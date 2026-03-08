@@ -15,7 +15,6 @@ add_requires("catch2 3.x")
 
 target("desktop")
     set_kind("binary")
-    set_filename("Delightful Qt Web Shell.exe")
     add_rules("qt.widgetapp")
     add_files(
         "cpp/main.cpp",
@@ -23,6 +22,14 @@ target("desktop")
         "cpp/resources/resources.qrc",
         "cpp/web_dist_resources.cpp"
     )
+    if is_plat("windows") then
+        set_filename("Delightful Qt Web Shell.exe")
+        add_files("resources/app.rc")
+    elseif is_plat("macosx") then
+        set_filename("Delightful Qt Web Shell")
+    else
+        set_filename("delightful-qt-web-shell")
+    end
     add_frameworks(
         "QtWidgets", "QtCore", "QtGui",
         "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel"
@@ -52,7 +59,8 @@ target("desktop")
 
         -- 3. Compile the .qrc into a .cpp via rcc
         local qt_dir = target:data("qt.dir") or get_config("qt")
-        local rcc = path.join(qt_dir, "bin", "rcc.exe")
+        local rcc_name = is_host("windows") and "rcc.exe" or "rcc"
+        local rcc = path.join(qt_dir, "bin", rcc_name)
         local cpp_path = path.join(base, "cpp", "web_dist_resources.cpp")
         os.execv(rcc, {"-o", cpp_path, qrc_path})
     end)

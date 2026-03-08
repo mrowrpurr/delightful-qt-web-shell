@@ -36,9 +36,13 @@ class TodoStore {
     std::string gen_id() { return std::to_string(next_id_++); }
 
     static std::string now_iso() {
-        auto        tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        std::tm     buf{};
+        auto    tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::tm buf{};
+#ifdef _MSC_VER
         gmtime_s(&buf, &tt);
+#else
+        gmtime_r(&tt, &buf);
+#endif
         char out[32];
         std::strftime(out, sizeof(out), "%Y-%m-%dT%H:%M:%SZ", &buf);
         return out;

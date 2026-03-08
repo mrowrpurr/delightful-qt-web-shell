@@ -22,9 +22,19 @@ test.afterEach(async () => {
   }
 })
 
+function getExePath(): string {
+  const platform = process.platform
+  if (platform === 'win32')
+    return path.resolve('build/windows/x64/release/Delightful Qt Web Shell.exe')
+  if (platform === 'darwin')
+    return path.resolve('build/macosx/arm64/release/Delightful Qt Web Shell')
+  // Linux
+  return path.resolve('build/linux/x86_64/release/delightful-qt-web-shell')
+}
+
 function launchQtApp(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const exePath = path.resolve('build/windows/x64/release/Delightful Qt Web Shell.exe')
+    const exePath = getExePath()
 
     qtProcess = spawn(exePath, [], {
       env: {
