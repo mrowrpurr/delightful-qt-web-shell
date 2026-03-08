@@ -29,7 +29,7 @@ See [BRIDGE_GUIDE.md](BRIDGE_GUIDE.md) for a step-by-step walkthrough of adding 
 
 ## Testing
 
-Five layers from fast unit tests to full Qt smoke tests. See [TESTING_GUIDE.md](TESTING_GUIDE.md) for practical guidance on what to test, how to debug failures, and how to add new tests.
+Four layers from fast unit tests to full Qt desktop e2e. Browser and desktop e2e share the same test suite — `DESKTOP=1` switches Playwright to connect via CDP. See [TESTING_GUIDE.md](TESTING_GUIDE.md) for practical guidance on what to test, how to debug failures, and how to add new tests.
 
 ## Cross-Platform
 

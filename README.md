@@ -8,14 +8,14 @@ A template for building desktop apps with **Qt WebEngine + React** — with five
 
 1. **Change the app name** — edit the top of `xmake.lua`:
    ```lua
-   local APP_NAME    = "Your App Name"
-   local APP_SLUG    = "your-app-name"
+   APP_NAME    = "Your App Name"
+   APP_SLUG    = "your-app-name"
    ```
    This flows everywhere automatically: window title, binary name, Windows exe metadata, HTML title, React heading.
 
 2. **Replace the icons** — drop your files into:
-   - `resources/icon.ico` (Windows taskbar / exe icon)
-   - `resources/icon.png` (loading screen logo)
+   - `desktop/resources/icon.ico` (Windows taskbar / exe icon)
+   - `desktop/resources/icon.png` (loading screen logo)
 
 3. **Optionally update `package.json`** — the `name` fields in `package.json` and `web/package.json` are npm metadata. Developers typically edit these when starting a new project.
 
@@ -82,9 +82,9 @@ Five layers, from fast unit tests to full Qt smoke tests:
 |-------|---------|----------------|
 | C++ unit (Catch2) | `xmake run test-todo-store` | Domain logic is correct |
 | TS unit (Bun) | `xmake run test-bun` | Bridge protocol works |
-| E2E (Playwright) | `xmake run test-e2e` | UI + backend integration works |
-| CDP smoke | `xmake run test-smoke` | Qt actually renders the React app |
-| All together | `xmake run test-all` | Everything (Catch2 + Bun + e2e) |
+| E2E browser (Playwright) | `xmake run test-browser` | UI + backend integration works |
+| E2E desktop (Playwright + CDP) | `xmake run test-desktop` | Same tests against real Qt app |
+| All together | `xmake run test-all` | Everything (Catch2 + Bun + browser e2e) |
 
 Install test dependencies first:
 
@@ -98,28 +98,33 @@ See [TESTING_GUIDE.md](TESTING_GUIDE.md) for details on each layer, [BRIDGE_GUID
 ## Project Structure
 
 ```
-cpp/
-  todo_store.hpp        Pure C++ domain logic (no Qt)
-  bridge.hpp            QObject wrapper — Q_INVOKABLE methods
-  expose_as_ws.hpp      Generic WebSocket adapter (QMetaObject introspection)
-  test_server.cpp       Headless C++ test server (7 lines of real code)
-  main.cpp              Qt desktop shell with WebEngine
+lib/
+  todos/                Pure C++ domain logic (no Qt)
+    include/todo_store.hpp
+    tests/unit/todo_store_test.cpp    Catch2 unit tests
+  web-bridge/           QObject wrapper — Q_INVOKABLE methods
+    include/bridge.hpp
+  web-shell/            Generic WebSocket adapter (Delightful infrastructure)
+    include/expose_as_ws.hpp
+    tests/web/bridge_proxy_test.ts    Bun unit tests for the Proxy bridge
+
+desktop/                Qt desktop shell with WebEngine
+  src/main.cpp
+  resources/
+
+cli/
+  test-server/          Headless C++ test server
+    src/test_server.cpp
 
 web/
   src/api/bridge.ts     TodoBridge interface + WsBridge Proxy + QtBridge + auto-detect
 
-test-server/
-  server.ts             Bun WebSocket mock server (per-connection isolation)
-
 tests/
-  todo_store_test.cpp   Catch2 unit tests
-  bridge_proxy_test.ts  Bun unit tests for the Proxy bridge
-
-e2e/
-  todo-lists.spec.ts    Playwright end-to-end tests (CRUD, toggle, isolation)
-
-smoke/
-  qt-renders-react.spec.ts  CDP smoke tests against real Qt app
+  e2e/                  Playwright end-to-end tests (browser + desktop)
+    fixture.ts          Unified test fixture (DESKTOP=1 switches to Qt CDP)
+    todo-lists.spec.ts  CRUD, toggle, isolation
+  helpers/
+    server.ts           Bun WebSocket mock server (per-connection isolation)
 ```
 
 ## License

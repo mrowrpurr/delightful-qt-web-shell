@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "../cpp/todo_store.hpp"
+#include <todo_store.hpp>
 
 TEST_CASE("TodoStore starts empty") {
     TodoStore store;

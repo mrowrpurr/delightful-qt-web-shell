@@ -1,5 +1,5 @@
 import { test, expect, afterEach } from 'bun:test'
-import { createWsBridge, type TodoBridge } from '../web/src/api/bridge'
+import { createWsBridge, type TodoBridge } from '../../../../web/src/api/bridge'
 
 // Each test spins up its own WebSocket server on a random port.
 // The Proxy bridge connects and we verify the JSON-RPC protocol.

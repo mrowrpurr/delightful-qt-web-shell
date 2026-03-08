@@ -47,7 +47,7 @@ export interface TodoBridge {
 
 ### Step 2: Add the domain logic in pure C++
 
-**`cpp/todo_store.hpp`** — no Qt, no JSON, just your business logic:
+**`lib/todos/include/todo_store.hpp`** — no Qt, no JSON, just your business logic:
 
 ```cpp
 void delete_list(const std::string& list_id) {
@@ -64,7 +64,7 @@ void delete_list(const std::string& list_id) {
 
 ### Step 3: Wrap it in the Bridge
 
-**`cpp/bridge.hpp`** — thin QObject wrapper. Q_INVOKABLE + JSON in/out:
+**`lib/web-bridge/include/bridge.hpp`** — thin QObject wrapper. Q_INVOKABLE + JSON in/out:
 
 ```cpp
 Q_INVOKABLE QString deleteList(const QString& listId) {
@@ -78,7 +78,7 @@ That's it on the C++ side. `expose_as_ws()` finds this method automatically via 
 
 ### Step 4: Add it to the Bun mock server
 
-**`test-server/server.ts`** — so Bun-based tests have the same method:
+**`tests/helpers/server.ts`** — so Bun-based tests have the same method:
 
 ```typescript
 deleteList(listId: string) {
@@ -103,9 +103,9 @@ You touched four files, and none of them were wiring or plumbing:
 | File | What you wrote |
 |------|----------------|
 | `web/src/api/bridge.ts` | The TypeScript interface method |
-| `cpp/todo_store.hpp` | The actual logic |
-| `cpp/bridge.hpp` | Q_INVOKABLE wrapper + signal |
-| `test-server/server.ts` | Mock implementation for tests |
+| `lib/todos/include/todo_store.hpp` | The actual logic |
+| `lib/web-bridge/include/bridge.hpp` | Q_INVOKABLE wrapper + signal |
+| `tests/helpers/server.ts` | Mock implementation for tests |
 
 The bridge infrastructure (`expose_as_ws`, `createWsBridge`, `createQtBridge`, `createBridge`) didn't change at all.
 
@@ -116,7 +116,7 @@ The bridge infrastructure (`expose_as_ws`, `createWsBridge`, `createQtBridge`, `
 Emit a signal from your Bridge. `expose_as_ws()` automatically forwards all parameterless signals as JSON events to connected WebSocket clients:
 
 ```cpp
-// cpp/bridge.hpp
+// lib/web-bridge/include/bridge.hpp
 signals:
     void dataChanged();    // → {"event":"dataChanged"}
     void listDeleted();    // → {"event":"listDeleted"}
@@ -137,7 +137,7 @@ The `on*` convention is detected by the Proxy. It strips the `on` prefix, lowerc
 
 ### Adding a new signal
 
-1. Add the signal to `cpp/bridge.hpp`:
+1. Add the signal to `lib/web-bridge/include/bridge.hpp`:
    ```cpp
    signals:
        void dataChanged();
@@ -184,13 +184,13 @@ useEffect(() => {
 
 | I want to... | File |
 |---|---|
-| Add/change business logic | `cpp/todo_store.hpp` |
-| Expose a method to the UI | `cpp/bridge.hpp` — add a Q_INVOKABLE method |
+| Add/change business logic | `lib/todos/include/todo_store.hpp` |
+| Expose a method to the UI | `lib/web-bridge/include/bridge.hpp` — add a Q_INVOKABLE method |
 | Define the TypeScript API | `web/src/api/bridge.ts` — update the interface |
-| Add a mock for tests | `test-server/server.ts` |
+| Add a mock for tests | `tests/helpers/server.ts` |
 | Use a bridge method in React | Just call `bridge.methodName()` — the Proxy handles it |
 | Push an event from C++ to JS | Add a signal to `bridge.hpp`, add `on*` to the TS interface |
-| Change how the WebSocket protocol works | `cpp/expose_as_ws.hpp` (you probably don't need to) |
+| Change how the WebSocket protocol works | `lib/web-shell/include/expose_as_ws.hpp` (you probably don't need to) |
 | Change how the Proxy works | `web/src/api/bridge.ts` — `createWsBridge` / `createQtBridge` (you probably don't need to) |
 
 ## How the Proxy Works (If You're Curious)
