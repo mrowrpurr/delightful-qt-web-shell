@@ -93,7 +93,7 @@ bun install
 npx playwright install chromium
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for details on each layer and the zero-boilerplate bridging pattern.
+See [TESTING.md](TESTING.md) for details on each layer, or [ARCHITECTURE.md](ARCHITECTURE.md) for the zero-boilerplate bridging pattern.
 
 ## Project Structure
 
