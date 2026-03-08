@@ -102,7 +102,9 @@ int main(int argc, char* argv[]) {
     app.styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     app.setApplicationName("Delightful Qt Web Shell");
 
-    // Dark palette — prevents white flash on first frame.
+    // Dark palette — prevents white flash on first frame (FOUC).
+    // setColorScheme handles menus/buttons, but the palette ensures the
+    // window background is dark before any content paints.
     QPalette darkPalette;
     darkPalette.setColor(QPalette::Window, QColor(0x24, 0x24, 0x24));
     darkPalette.setColor(QPalette::Base, QColor(0x24, 0x24, 0x24));
