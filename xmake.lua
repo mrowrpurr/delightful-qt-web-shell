@@ -58,9 +58,17 @@ target("desktop")
         io.writefile(qrc_path, table.concat(qrc_lines, "\n") .. "\n")
 
         -- 3. Compile the .qrc into a .cpp via rcc
+        --    Windows: bin/rcc.exe    macOS/Linux: libexec/rcc (since Qt 6.1)
         local qt_dir = target:data("qt.dir") or get_config("qt")
-        local rcc_name = is_host("windows") and "rcc.exe" or "rcc"
-        local rcc = path.join(qt_dir, "bin", rcc_name)
+        local rcc
+        if is_host("windows") then
+            rcc = path.join(qt_dir, "bin", "rcc.exe")
+        else
+            rcc = path.join(qt_dir, "libexec", "rcc")
+            if not os.isfile(rcc) then
+                rcc = path.join(qt_dir, "bin", "rcc")
+            end
+        end
         local cpp_path = path.join(base, "cpp", "web_dist_resources.cpp")
         os.runv(rcc, {"-o", cpp_path, qrc_path})
     end)
