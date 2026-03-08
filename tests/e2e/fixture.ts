@@ -20,8 +20,9 @@ function getExePath(): string {
   return fs.readFileSync('build/.desktop-binary.txt', 'utf8').trim()
 }
 
-export const test = isDesktop
-  ? base.extend<{ page: Page }>({
+type Fixtures = { page: Page; goHome: () => Promise<void> }
+
+const desktopTest = base.extend<Fixtures>({
       page: async ({}, use) => {
         let qtProcess: ChildProcess | null = null
         let browser: Browser | null = null
@@ -74,7 +75,22 @@ export const test = isDesktop
           qtProcess?.kill()
         }
       },
+      goHome: async ({ page }, use) => {
+        await use(async () => {
+          await expect(page.getByTestId('heading')).toBeVisible({ timeout: 10_000 })
+        })
+      },
     })
-  : base
+
+const browserTest = base.extend<Fixtures>({
+      goHome: async ({ page }, use) => {
+        await use(async () => {
+          await page.goto('/')
+          await expect(page.getByTestId('heading')).toBeVisible({ timeout: 10_000 })
+        })
+      },
+    })
+
+export const test = isDesktop ? desktopTest : browserTest
 
 export { expect }

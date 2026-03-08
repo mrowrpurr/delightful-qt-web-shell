@@ -1,21 +1,12 @@
 import { test, expect } from './fixture'
 
-// In desktop mode, the app is already loaded — no goto needed.
-// In browser mode, we navigate to the Vite dev server.
-const isDesktop = process.env.DESKTOP === '1'
-
-async function goHome(page: import('@playwright/test').Page) {
-  if (!isDesktop) await page.goto('/')
-  await expect(page.getByTestId('heading')).toBeVisible({ timeout: 10_000 })
-}
-
-test('shows empty state when no lists exist', async ({ page }) => {
-  await goHome(page)
+test('shows empty state when no lists exist', async ({ page, goHome }) => {
+  await goHome()
   await expect(page.getByTestId('empty-state')).toBeVisible()
 })
 
-test('create a list and add todos', async ({ page }) => {
-  await goHome(page)
+test('create a list and add todos', async ({ page, goHome }) => {
+  await goHome()
 
   // Create a list
   await page.getByTestId('new-list-input').fill('Groceries')
@@ -38,8 +29,8 @@ test('create a list and add todos', async ({ page }) => {
   await expect(page.getByText('Eggs')).toBeVisible()
 })
 
-test('toggle a todo done', async ({ page }) => {
-  await goHome(page)
+test('toggle a todo done', async ({ page, goHome }) => {
+  await goHome()
 
   // Create list + item
   await page.getByTestId('new-list-input').fill('Chores')
@@ -56,8 +47,8 @@ test('toggle a todo done', async ({ page }) => {
   await expect(item).toHaveAttribute('data-done', 'true')
 })
 
-test('multiple lists stay independent', async ({ page }) => {
-  await goHome(page)
+test('multiple lists stay independent', async ({ page, goHome }) => {
+  await goHome()
 
   // Create two lists (wait for each to appear)
   await page.getByTestId('new-list-input').fill('Work')
