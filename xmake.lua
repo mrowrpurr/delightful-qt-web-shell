@@ -62,7 +62,7 @@ target("desktop")
         local rcc_name = is_host("windows") and "rcc.exe" or "rcc"
         local rcc = path.join(qt_dir, "bin", rcc_name)
         local cpp_path = path.join(base, "cpp", "web_dist_resources.cpp")
-        os.execv(rcc, {"-o", cpp_path, qrc_path})
+        os.runv(rcc, {"-o", cpp_path, qrc_path})
     end)
 
 -- ── C++ unit tests (Catch2, no Qt) ───────────────────────────────────
