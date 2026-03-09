@@ -36,34 +36,49 @@ export interface TodoBridge {
 
 ### 2. Write the C++ logic
 
-**`lib/todos/include/todo_store.hpp`** — no Qt, no JSON, just your business logic:
+**`lib/todos/include/todo_store.hpp`** — this is `class TodoStore`, your pure C++ domain logic (no Qt, no JSON). Add the new method alongside the existing ones:
 
 ```cpp
-void delete_list(const std::string& list_id) {
-    lists_.erase(
-        std::remove_if(lists_.begin(), lists_.end(),
-            [&](const TodoList& l) { return l.id == list_id; }),
-        lists_.end());
-    items_.erase(
-        std::remove_if(items_.begin(), items_.end(),
-            [&](const TodoItem& i) { return i.list_id == list_id; }),
-        items_.end());
-}
+class TodoStore {
+    // ... existing methods: add_list, add_item, toggle_item, etc.
+
+    void delete_list(const std::string& list_id) {
+        lists_.erase(
+            std::remove_if(lists_.begin(), lists_.end(),
+                [&](const TodoList& l) { return l.id == list_id; }),
+            lists_.end());
+        items_.erase(
+            std::remove_if(items_.begin(), items_.end(),
+                [&](const TodoItem& i) { return i.list_id == list_id; }),
+            items_.end());
+    }
+};
 ```
 
 ### 3. Expose it via Q_INVOKABLE
 
-**`lib/web-bridge/include/bridge.hpp`** — thin QObject wrapper. Q_INVOKABLE + JSON in/out:
+**`lib/web-bridge/include/bridge.hpp`** — this is `class Bridge`, a thin QObject wrapper that exposes `TodoStore` methods to JavaScript. Add a `Q_INVOKABLE` method that calls the store and returns JSON:
 
 ```cpp
-Q_INVOKABLE QString deleteList(const QString& listId) {
-    store_.delete_list(listId.toStdString());
-    emit dataChanged();
-    return "{}";
-}
+class Bridge : public QObject {
+    Q_OBJECT
+    TodoStore store_;
+
+public:
+    // ... existing methods: listLists, addList, addItem, etc.
+
+    Q_INVOKABLE QString deleteList(const QString& listId) {
+        store_.delete_list(listId.toStdString());
+        emit dataChanged();
+        return "{}";
+    }
+
+signals:
+    void dataChanged();
+};
 ```
 
-That's it on the C++ side. The bridge infrastructure finds this method automatically via `QMetaObject` introspection — no routing code needed.
+That's it on the C++ side. The bridge infrastructure finds `Q_INVOKABLE` methods automatically — no routing code needed.
 
 ### 4. Add it to the test mock
 
