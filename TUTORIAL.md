@@ -1,10 +1,10 @@
 # Tutorial
 
-Your first feature in 5 minutes. This walks through adding a new method to your app — from C++ to React — and shows how the pieces connect.
+Your first feature in 5 minutes. We'll add a `deleteList` method — from C++ to React — and see how the pieces connect.
 
 ## The Bridge
 
-`createBridge()` connects your React app to C++. You call methods on it, they run in C++, results come back as Promises:
+`createBridge()` connects your React app to C++. You call methods, they run in C++, results come back as Promises:
 
 ```typescript
 const bridge = createBridge()
@@ -15,11 +15,13 @@ That's the entire API. The bridge handles everything else.
 
 ## Adding a Feature
 
-Let's add `deleteList` — a method that deletes a todo list and all its items.
+We're adding `deleteList` — deletes a todo list and all its items.
 
 ### 1. Define the TypeScript interface
 
-**`web/src/api/bridge.ts`** — this is the single source of truth for what your bridge can do:
+Add the new method to the `TodoBridge` interface. This is the single source of truth for what your bridge can do.
+
+#### `web/src/api/bridge.ts`
 
 ```typescript
 export interface TodoBridge {
@@ -36,7 +38,9 @@ export interface TodoBridge {
 
 ### 2. Write the C++ logic
 
-**`lib/todos/include/todo_store.hpp`** — this is `class TodoStore`, your pure C++ domain logic (no Qt, no JSON). Add the new method alongside the existing ones:
+Add the method to `TodoStore` — your pure C++ domain logic. No Qt, no JSON, just business logic.
+
+#### `lib/todos/include/todo_store.hpp`
 
 ```cpp
 class TodoStore {
@@ -57,7 +61,9 @@ class TodoStore {
 
 ### 3. Expose it via Q_INVOKABLE
 
-**`lib/web-bridge/include/bridge.hpp`** — this is `class Bridge`, a thin QObject wrapper that exposes `TodoStore` methods to JavaScript. Add a `Q_INVOKABLE` method that calls the store and returns JSON:
+Add a `Q_INVOKABLE` method to `Bridge` — the thin QObject wrapper that exposes `TodoStore` to JavaScript. Call the store, emit a signal, return JSON.
+
+#### `lib/web-bridge/include/bridge.hpp`
 
 ```cpp
 class Bridge : public QObject {
@@ -82,7 +88,9 @@ That's it on the C++ side. The bridge infrastructure finds `Q_INVOKABLE` methods
 
 ### 4. Add it to the test mock
 
-**`tests/helpers/server.ts`** — so Bun-based tests have the same method:
+Add the same method to the Bun mock server so e2e tests work.
+
+#### `tests/helpers/server.ts`
 
 ```typescript
 deleteList(listId: string) {
@@ -113,35 +121,37 @@ You touched four files, and none of them were wiring or plumbing:
 
 The bridge infrastructure didn't change at all.
 
-## How Do Events/Signals Work?
+## Events and Signals
 
-### C++ side
+Push real-time updates from C++ to React. Emit a signal on the C++ side, subscribe with `on*` on the TypeScript side.
 
-Emit a signal from your Bridge. The infrastructure automatically forwards all parameterless signals as events to connected clients:
+### C++ — emit a signal
+
+Any parameterless `Q_SIGNAL` on Bridge is automatically forwarded to connected clients.
+
+#### `lib/web-bridge/include/bridge.hpp`
 
 ```cpp
-// lib/web-bridge/include/bridge.hpp
 signals:
     void dataChanged();    // → fires onDataChanged in React
     void listDeleted();    // → fires onListDeleted in React
 ```
 
-No registration needed — any `Q_SIGNAL` with zero parameters is forwarded.
+### TypeScript — subscribe with on*
 
-### TypeScript side
-
-Methods starting with `on` + a capital letter automatically become event subscriptions:
+Methods starting with `on` + a capital letter are event subscriptions. The naming convention is the wiring — no registration needed.
 
 ```typescript
 bridge.onDataChanged(() => refresh())    // listens for "dataChanged"
 bridge.onListDeleted(() => recount())    // listens for "listDeleted"
 ```
 
-The `on*` convention is detected by the Proxy. It strips the `on` prefix, lowercases the first letter, and subscribes to that event name.
-
 ### Adding a new signal
 
-1. Add the signal to `lib/web-bridge/include/bridge.hpp`:
+1. Add the signal to Bridge:
+
+   #### `lib/web-bridge/include/bridge.hpp`
+
    ```cpp
    signals:
        void dataChanged();
@@ -149,6 +159,7 @@ The `on*` convention is detected by the Proxy. It strips the `on` prefix, lowerc
    ```
 
 2. Emit it where appropriate:
+
    ```cpp
    Q_INVOKABLE QString deleteList(const QString& listId) {
        store_.delete_list(listId.toStdString());
@@ -158,6 +169,9 @@ The `on*` convention is detected by the Proxy. It strips the `on` prefix, lowerc
    ```
 
 3. Add the subscription to your TypeScript interface:
+
+   #### `web/src/api/bridge.ts`
+
    ```typescript
    export interface TodoBridge {
      // ...
@@ -166,6 +180,7 @@ The `on*` convention is detected by the Proxy. It strips the `on` prefix, lowerc
    ```
 
 4. Use it in React:
+
    ```typescript
    const cleanup = bridge.onListDeleted(() => {
      console.log('a list was deleted')
