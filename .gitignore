@@ -32,6 +32,14 @@ test-results/
 .DS_Store
 Thumbs.db
 
+# Android
+android/.gradle/
+android/*/build/
+android/local.properties
+android/app/src/main/assets/
+android/app/.cxx/
+*.apk
+
 # Secrets
 .env
 .env.*

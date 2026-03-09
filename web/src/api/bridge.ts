@@ -111,6 +111,8 @@ declare global {
       transport: unknown,
       callback: (channel: { objects: Record<string, any> }) => void
     ) => void
+    AndroidBridge?: { invoke(method: string, argsJson: string): string }
+    __bridgeEvent?: (event: string) => void
   }
 }
 
@@ -158,13 +160,50 @@ export function createQtBridge<T extends object>(): T {
   }) as T
 }
 
+// ── Android bridge (native WebView) ───────────────────────────────────
+// window.AndroidBridge.invoke() is synchronous (runs on a JNI thread).
+// Events are pushed from Kotlin via window.__bridgeEvent().
+
+export function createAndroidBridge<T extends object>(): T {
+  const eventListeners: Record<string, Array<() => void>> = {}
+
+  window.__bridgeEvent = (event: string) => {
+    eventListeners[event]?.forEach(cb => cb())
+  }
+
+  return new Proxy({} as T, {
+    get(_, prop) {
+      if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON') return undefined
+      const eventName = eventNameFromProp(prop)
+      if (eventName) {
+        return (callback: () => void) => {
+          const listeners = eventListeners[eventName] ??= []
+          listeners.push(callback)
+          return () => {
+            const idx = listeners.indexOf(callback)
+            if (idx >= 0) listeners.splice(idx, 1)
+          }
+        }
+      }
+      return async (...args: any[]) => {
+        const result = window.AndroidBridge!.invoke(prop as string, JSON.stringify(args))
+        const data = JSON.parse(result)
+        if (data.error) throw new Error(data.error)
+        return data
+      }
+    },
+  }) as T
+}
+
 // ── Auto-detect (singleton) ───────────────────────────────────────────
 
 let _bridge: TodoBridge | null = null
 
 export function createBridge(): TodoBridge {
   if (!_bridge) {
-    if (window.qt?.webChannelTransport && window.QWebChannel)
+    if (window.AndroidBridge?.invoke)
+      _bridge = createAndroidBridge<TodoBridge>()
+    else if (window.qt?.webChannelTransport && window.QWebChannel)
       _bridge = createQtBridge<TodoBridge>()
     else {
       const wsUrl = import.meta.env.VITE_BRIDGE_WS_URL || 'ws://localhost:9876'
