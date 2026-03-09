@@ -33,6 +33,17 @@ includes("desktop/xmake.lua")
 
 includes("cli/test-server/xmake.lua")
 
+-- ── Hosted web server ──────────────────────────────────────────────
+
+target("server")
+    set_kind("phony")
+    set_default(false)
+    on_run(function()
+        print(">>> bun server/index.ts")
+        local base = os.scriptdir()
+        os.execv("bun", {"server/index.ts"}, {curdir = base})
+    end)
+
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
 
 target("test-todo-store")

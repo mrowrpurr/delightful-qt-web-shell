@@ -1,6 +1,6 @@
 # Delightful Qt Web Shell
 
-A template for building desktop and mobile apps with **Qt WebEngine + React** (desktop) and **Android WebView + NDK** (mobile) — with five layers of automated testing that actually work.
+A template for building desktop, mobile, and web apps with **Qt WebEngine + React** (desktop), **Android WebView + NDK** (mobile), and **Bun HTTP server** (hosted web) — with five layers of automated testing that actually work.
 
 ![Delightful Qt Web Shell](screenshot.png)
 
@@ -101,6 +101,24 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 
 The bridge auto-detects the Android environment — `window.AndroidBridge.invoke()` routes through JNI to the same C++ TodoStore used on desktop.
 
+## Hosted Web
+
+Deploy the React app as a regular website with a Bun HTTP server backend. All connected clients share the same TodoStore — changes in one browser tab appear in all others via SSE.
+
+```bash
+# Build the React app
+cd web && bun run build && cd ..
+
+# Start the server
+bun server/index.ts
+# → http://localhost:3000
+
+# Or via xmake
+xmake run server
+```
+
+The bridge auto-detects the hosted environment — production builds without a native shell use `fetch` + `EventSource` to talk to the API server.
+
 ## Testing
 
 Five layers, from fast unit tests to full Qt smoke tests:
@@ -145,12 +163,15 @@ android/                Android shell with WebView + NDK
     cpp/                JNI bridge → TodoStore (pure C++)
     assets/web/         React app (copied from web/dist/ at build time)
 
+server/
+  index.ts              Bun HTTP server (static files + REST API + SSE)
+
 cli/
   test-server/          Headless C++ test server
     src/test_server.cpp
 
 web/
-  src/api/bridge.ts     TodoBridge interface + WsBridge + QtBridge + AndroidBridge + auto-detect
+  src/api/bridge.ts     TodoBridge interface + WsBridge + QtBridge + AndroidBridge + ApiBridge + auto-detect
 
 tests/
   e2e/                  Playwright end-to-end tests (browser + desktop)

@@ -195,6 +195,47 @@ export function createAndroidBridge<T extends object>(): T {
   }) as T
 }
 
+// ── API bridge (hosted web / production) ─────────────────────────────
+// Method calls → fetch('/api/invoke'), events → SSE via EventSource.
+// Used when the React app is served by the Bun HTTP server.
+
+export function createApiBridge<T extends object>(): T {
+  const eventListeners: Record<string, Array<() => void>> = {}
+
+  const es = new EventSource('/api/events')
+  es.onmessage = (e) => {
+    const { event } = JSON.parse(e.data)
+    if (event) eventListeners[event]?.forEach(cb => cb())
+  }
+
+  return new Proxy({} as T, {
+    get(_, prop) {
+      if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON') return undefined
+      const eventName = eventNameFromProp(prop)
+      if (eventName) {
+        return (callback: () => void) => {
+          const listeners = eventListeners[eventName] ??= []
+          listeners.push(callback)
+          return () => {
+            const idx = listeners.indexOf(callback)
+            if (idx >= 0) listeners.splice(idx, 1)
+          }
+        }
+      }
+      return async (...args: any[]) => {
+        const resp = await fetch('/api/invoke', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ method: prop, args }),
+        })
+        const { result, error } = await resp.json()
+        if (error) throw new Error(error)
+        return result
+      }
+    },
+  }) as T
+}
+
 // ── Auto-detect (singleton) ───────────────────────────────────────────
 
 let _bridge: TodoBridge | null = null
@@ -205,10 +246,11 @@ export function createBridge(): TodoBridge {
       _bridge = createAndroidBridge<TodoBridge>()
     else if (window.qt?.webChannelTransport && window.QWebChannel)
       _bridge = createQtBridge<TodoBridge>()
-    else {
+    else if (import.meta.env.DEV) {
       const wsUrl = import.meta.env.VITE_BRIDGE_WS_URL || 'ws://localhost:9876'
       _bridge = createWsBridge<TodoBridge>(wsUrl)
-    }
+    } else
+      _bridge = createApiBridge<TodoBridge>()
   }
   return _bridge
 }
