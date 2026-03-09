@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QJsonArray>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QObject>
 #include <QString>
@@ -9,9 +8,8 @@
 #include "todo_store.hpp"
 
 // Thin QObject wrapper over TodoStore.
-// Every Q_INVOKABLE method takes QStrings and returns a JSON QString.
-// This convention is what makes expose_as_ws() generic — it works with
-// any QObject that follows this pattern.
+// Every Q_INVOKABLE method takes QStrings and returns QJsonObject or QJsonArray.
+// The infrastructure (expose_as_ws / QWebChannel) handles serialization automatically.
 class Bridge : public QObject {
     Q_OBJECT
     TodoStore store_;
@@ -36,54 +34,47 @@ class Bridge : public QObject {
         };
     }
 
-    static QString compact(const QJsonDocument& doc) {
-        return QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
-    }
-
 public:
     using QObject::QObject;
 
-    Q_INVOKABLE QString listLists() {
+    Q_INVOKABLE QJsonArray listLists() {
         QJsonArray arr;
         for (const auto& l : store_.list_lists())
             arr.append(to_json(l));
-        return compact(QJsonDocument(arr));
+        return arr;
     }
 
-    Q_INVOKABLE QString getList(const QString& listId) {
+    Q_INVOKABLE QJsonObject getList(const QString& listId) {
         auto detail = store_.get_list(listId.toStdString());
         QJsonArray items;
         for (const auto& i : detail.items)
             items.append(to_json(i));
-        QJsonObject obj;
-        obj["list"] = to_json(detail.list);
-        obj["items"] = items;
-        return compact(QJsonDocument(obj));
+        return {{"list", to_json(detail.list)}, {"items", items}};
     }
 
-    Q_INVOKABLE QString addList(const QString& name) {
+    Q_INVOKABLE QJsonObject addList(const QString& name) {
         auto list = store_.add_list(name.toStdString());
         emit dataChanged();
-        return compact(QJsonDocument(to_json(list)));
+        return to_json(list);
     }
 
-    Q_INVOKABLE QString addItem(const QString& listId, const QString& text) {
+    Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
         auto item = store_.add_item(listId.toStdString(), text.toStdString());
         emit dataChanged();
-        return compact(QJsonDocument(to_json(item)));
+        return to_json(item);
     }
 
-    Q_INVOKABLE QString toggleItem(const QString& itemId) {
+    Q_INVOKABLE QJsonObject toggleItem(const QString& itemId) {
         auto item = store_.toggle_item(itemId.toStdString());
         emit dataChanged();
-        return compact(QJsonDocument(to_json(item)));
+        return to_json(item);
     }
 
-    Q_INVOKABLE QString search(const QString& query) {
+    Q_INVOKABLE QJsonArray search(const QString& query) {
         QJsonArray arr;
         for (const auto& i : store_.search(query.toStdString()))
             arr.append(to_json(i));
-        return compact(QJsonDocument(arr));
+        return arr;
     }
 
 signals:

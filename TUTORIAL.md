@@ -39,7 +39,7 @@ class TodoStore {
 
 ### 2. Expose it to JavaScript
 
-Add a `Q_INVOKABLE` method to `Bridge` — the QObject wrapper that makes `TodoStore` callable from the web. Call the store, emit a signal, return JSON.
+Add a `Q_INVOKABLE` method to `Bridge` — the QObject wrapper that makes `TodoStore` callable from the web.
 
 #### `lib/web-bridge/include/bridge.hpp`
 
@@ -48,13 +48,29 @@ class Bridge : public QObject {
     Q_OBJECT
     TodoStore store_;
 
-public:
-    // ... existing methods: listLists, addList, addItem, etc.
+    // One to_json() per type you expose. Qt has built-in JSON types.
+    static QJsonObject to_json(const TodoList& l) {
+        return {
+            {"id",         QString::fromStdString(l.id)},
+            {"name",       QString::fromStdString(l.name)},
+            {"item_count", l.item_count},
+            {"created_at", QString::fromStdString(l.created_at)},
+        };
+    }
 
-    Q_INVOKABLE QString deleteList(const QString& listId) {
+public:
+    // Methods that return data — call the store, return JSON:
+    Q_INVOKABLE QJsonObject addList(const QString& name) {
+        auto list = store_.add_list(name.toStdString());
+        emit dataChanged();
+        return to_json(list);
+    }
+
+    // Our new method — nothing to return, empty object:
+    Q_INVOKABLE QJsonObject deleteList(const QString& listId) {
         store_.delete_list(listId.toStdString());
         emit dataChanged();
-        return "{}";
+        return {};
     }
 
 signals:
@@ -62,7 +78,7 @@ signals:
 };
 ```
 
-That's it on the C++ side. The bridge infrastructure finds `Q_INVOKABLE` methods automatically — no routing code needed.
+That's it on the C++ side. Return `QJsonObject` or `QJsonArray` from your methods — the infrastructure handles serialization. No routing code, no string wrangling.
 
 ### 3. Define the TypeScript interface
 
@@ -152,10 +168,10 @@ bridge.onListDeleted(() => recount())    // listens for "listDeleted"
 2. Emit it where appropriate:
 
    ```cpp
-   Q_INVOKABLE QString deleteList(const QString& listId) {
+   Q_INVOKABLE QJsonObject deleteList(const QString& listId) {
        store_.delete_list(listId.toStdString());
        emit listDeleted();
-       return "{}";
+       return {};
    }
    ```
 
