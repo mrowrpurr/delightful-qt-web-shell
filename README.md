@@ -112,10 +112,6 @@ desktop/                Qt desktop shell with WebEngine
   src/main.cpp
   resources/
 
-cli/
-  test-server/          Headless C++ test server
-    src/test_server.cpp
-
 web/
   src/api/bridge.ts     TodoBridge interface + WsBridge + QtBridge + auto-detect
 
@@ -125,6 +121,8 @@ tests/
     todo-lists.spec.ts  CRUD, toggle, isolation
   helpers/
     server.ts           Bun WebSocket mock server (per-connection isolation)
+    test-server/        Headless C++ WebSocket server (real backend, no GUI)
+      src/test_server.cpp
 ```
 
 ## License

@@ -29,9 +29,9 @@ includes("lib/web-bridge/xmake.lua")
 
 includes("desktop/xmake.lua")
 
--- ── CLI tools ────────────────────────────────────────────────────────
+-- ── Test infrastructure ─────────────────────────────────────────────
 
-includes("cli/test-server/xmake.lua")
+includes("tests/helpers/test-server/xmake.lua")
 
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
 
