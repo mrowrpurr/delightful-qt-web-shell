@@ -103,18 +103,18 @@ The bridge auto-detects the Android environment — `window.AndroidBridge.invoke
 
 ## Hosted Web
 
-Deploy the React app as a regular website with a Bun HTTP server backend. All connected clients share the same TodoStore — changes in one browser tab appear in all others via SSE.
+Deploy the React app as a regular website with a Bun HTTP server backend. The server loads the C++ TodoStore as a shared library via `bun:ffi` — same domain logic as desktop and Android. All connected clients share the same store instance; changes in one browser tab appear in all others via SSE.
 
 ```bash
+# Build the C++ shared library
+xmake build todos-ffi
+
 # Build the React app
 cd web && bun run build && cd ..
 
 # Start the server
-bun server/index.ts
-# → http://localhost:3000
-
-# Or via xmake
 xmake run server
+# → http://localhost:3000
 ```
 
 The bridge auto-detects the hosted environment — production builds without a native shell use `fetch` + `EventSource` to talk to the API server.

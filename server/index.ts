@@ -1,64 +1,28 @@
 // Bun HTTP server for hosted web deployment.
-// Serves the React build + exposes a REST/SSE API backed by an in-memory TodoStore.
-// All connected clients share the same store instance.
+// Serves the React build + exposes a REST/SSE API backed by the real C++ TodoStore via FFI.
+// All connected clients share the same store instance — same C++ code as desktop and Android.
 
+import { dlopen, FFIType, CString } from "bun:ffi"
+import { readFileSync } from "fs"
 import { resolve } from "path"
 
-// ── Types ────────────────────────────────────────────────────────────
+// ── Load C++ TodoStore shared library ───────────────────────────────────
 
-interface TodoList {
-  id: string
-  name: string
-  created_at: string
-}
+const libPath = readFileSync(resolve(import.meta.dir, "../build/.todos-ffi-lib.txt"), "utf-8").trim()
+const lib = dlopen(libPath, {
+  todo_store_create:      { returns: FFIType.ptr },
+  todo_store_destroy:     { args: [FFIType.ptr] },
+  todo_store_invoke:      { args: [FFIType.ptr, FFIType.cstring, FFIType.cstring], returns: FFIType.ptr },
+  todo_store_free_string: { args: [FFIType.ptr] },
+})
 
-interface TodoItem {
-  id: string
-  list_id: string
-  text: string
-  done: boolean
-  created_at: string
-}
+const store = lib.symbols.todo_store_create()!
 
-// ── Shared state ─────────────────────────────────────────────────────
-
-const state = { lists: [] as TodoList[], items: [] as TodoItem[], nextId: 1 }
-
-const handlers: Record<string, (...args: any[]) => any> = {
-  listLists() {
-    return state.lists.map(l => ({
-      ...l,
-      item_count: state.items.filter(i => i.list_id === l.id).length,
-    }))
-  },
-  getList(listId: string) {
-    const list = state.lists.find(l => l.id === listId)
-    if (!list) return { error: "List not found" }
-    return {
-      list: { ...list, item_count: state.items.filter(i => i.list_id === list.id).length },
-      items: state.items.filter(i => i.list_id === listId),
-    }
-  },
-  addList(name: string) {
-    const list: TodoList = { id: String(state.nextId++), name, created_at: new Date().toISOString() }
-    state.lists.push(list)
-    return { ...list, item_count: 0 }
-  },
-  addItem(listId: string, text: string) {
-    const item: TodoItem = { id: String(state.nextId++), list_id: listId, text, done: false, created_at: new Date().toISOString() }
-    state.items.push(item)
-    return item
-  },
-  toggleItem(itemId: string) {
-    const item = state.items.find(i => i.id === itemId)
-    if (!item) return { error: "Item not found" }
-    item.done = !item.done
-    return item
-  },
-  search(query: string) {
-    const lower = query.toLowerCase()
-    return state.items.filter(i => i.text.toLowerCase().includes(lower))
-  },
+function invoke(method: string, args: any[]): any {
+  const ptr = lib.symbols.todo_store_invoke(store, Buffer.from(method + "\0"), Buffer.from(JSON.stringify(args) + "\0"))!
+  const json = new CString(ptr)
+  lib.symbols.todo_store_free_string(ptr)
+  return JSON.parse(json as string)
 }
 
 const mutatingMethods = new Set(["addList", "addItem", "toggleItem"])
@@ -98,9 +62,8 @@ Bun.serve({
     // POST /api/invoke — single dispatch endpoint
     if (req.method === "POST" && url.pathname === "/api/invoke") {
       const { method, args } = await req.json() as { method: string; args: any[] }
-      const handler = handlers[method]
-      if (!handler) return Response.json({ error: `Unknown method: ${method}` }, { status: 400 })
-      const result = handler(...(args || []))
+      const result = invoke(method, args || [])
+      if (result?.error) return Response.json({ error: result.error }, { status: 400 })
       if (mutatingMethods.has(method)) broadcastEvent("dataChanged")
       return Response.json({ result })
     }
@@ -130,4 +93,4 @@ Bun.serve({
   },
 })
 
-console.log(`Hosted web server listening on http://localhost:${port}`)
+console.log(`Hosted web server listening on http://localhost:${port} (C++ TodoStore via FFI)`)

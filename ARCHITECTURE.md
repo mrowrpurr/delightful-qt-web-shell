@@ -23,7 +23,7 @@
 │  Hosted Web                               │          │
 │  ┌────────────┐  fetch + SSE      ┌───────┴───────┐  │
 │  │   React    │◄──────────────────►│  Bun HTTP    │  │
-│  │   (built)  │                   │  server (TS)  │  │
+│  │   (built)  │                   │  server (FFI) │  │
 │  └────────────┘                   └───────┬───────┘  │
 │   Browser                                 │          │
 └───────────────────────────────────────────┼──────────┘
@@ -39,7 +39,7 @@
                                      └──────────────┘
 ```
 
-In **desktop production**, the React app talks to C++ through QWebChannel — same process, zero serialization overhead. On **Android**, the same React app runs in a WebView with a `@JavascriptInterface` bridge that calls TodoStore via JNI/NDK. In **hosted web** mode, the Bun HTTP server serves the built React app and exposes the same TodoStore API over REST (`POST /api/invoke`) with SSE for events (`GET /api/events`) — all clients share the same store instance. In **dev and test**, the same Bridge is exposed over WebSocket, so Playwright, Bun, or a browser can call it identically.
+In **desktop production**, the React app talks to C++ through QWebChannel — same process, zero serialization overhead. On **Android**, the same React app runs in a WebView with a `@JavascriptInterface` bridge that calls TodoStore via JNI/NDK. In **hosted web** mode, the Bun HTTP server loads the C++ TodoStore as a shared library via `bun:ffi` and exposes it over REST (`POST /api/invoke`) with SSE for events (`GET /api/events`) — all four platforms run the exact same C++ domain logic. In **dev and test**, the same Bridge is exposed over WebSocket, so Playwright, Bun, or a browser can call it identically.
 
 ## The Proxy Pattern
 
