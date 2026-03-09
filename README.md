@@ -21,6 +21,14 @@ A template for building desktop apps with **Qt WebEngine + React** — with four
 
 That's it. Build and run.
 
+## Guides
+
+| | |
+|---|---|
+| **[Tutorial](TUTORIAL.md)** | Add your first feature in 5 minutes |
+| **[Testing Guide](TESTING_GUIDE.md)** | Four test layers — what to write, what broke, how to fix it |
+| **[Architecture](ARCHITECTURE.md)** | How the pieces fit together |
+
 ## Prerequisites
 
 - [xmake](https://xmake.io)
@@ -92,8 +100,6 @@ Install test dependencies first:
 bun install
 npx playwright install chromium
 ```
-
-See [TUTORIAL.md](TUTORIAL.md) to add your first feature, [TESTING_GUIDE.md](TESTING_GUIDE.md) for the test layers, or [ARCHITECTURE.md](ARCHITECTURE.md) for the big picture.
 
 ## Project Structure
 
