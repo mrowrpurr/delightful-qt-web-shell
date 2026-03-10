@@ -152,6 +152,21 @@ test('dataChanged fires when server pushes an event', async () => {
   expect(eventFired).toBe(true)
 })
 
+test('appReady sends a no-arg call and resolves', async () => {
+  const received: any[] = []
+  const server = startServer((ws, data) => {
+    received.push(data)
+    ws.send(JSON.stringify({ id: data.id, result: {} }))
+  }, ['dataChanged', 'ready'])
+
+  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  await bridge.appReady()
+
+  expect(received).toHaveLength(1)
+  expect(received[0].method).toBe('appReady')
+  expect(received[0].args).toEqual([])
+})
+
 test('dataChanged cleanup removes the listener', async () => {
   let sendEvent: (() => void) | null = null
   const server = startServer((ws, data) => {

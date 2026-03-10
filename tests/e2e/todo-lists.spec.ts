@@ -1,5 +1,18 @@
 import { test, expect } from './fixture'
 
+test('app signals ready after first render', async ({ page, goHome }) => {
+  await goHome()
+  // appReady() is called in useEffect on mount. If it failed, the bridge
+  // would be broken and the heading wouldn't be visible (goHome asserts it).
+  // Verify the round trip works by calling it again from the test.
+  const result = await page.evaluate(async () => {
+    const { createBridge } = await import('/src/api/bridge.ts')
+    const bridge = await createBridge()
+    return bridge.appReady()
+  })
+  expect(result).toBeDefined()
+})
+
 test('shows empty state when no lists exist', async ({ page, goHome }) => {
   await goHome()
   await expect(page.getByTestId('empty-state')).toBeVisible()
