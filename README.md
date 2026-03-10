@@ -63,7 +63,7 @@ For development with hot module replacement:
 cd web && bun run dev
 
 # Terminal 2: Qt desktop pointing at Vite
-xmake run desktop -- --dev
+xmake run desktop --dev
 ```
 
 The `--dev` flag loads from `http://localhost:5173` instead of embedded resources. Edit a React component, save, see it update instantly inside the native Qt window.
