@@ -1,3 +1,18 @@
+:root {
+  --bg: #242424;
+  --bg-surface: #1a1a2e;
+  --bg-surface-selected: #1a1a3e;
+  --bg-input: #1a1a1a;
+  --text: #e0e0e0;
+  --text-heading: #ffffff;
+  --text-muted: #a0a0a0;
+  --text-hint: #888;
+  --text-faded: #666;
+  --border: #444;
+  --accent: #4a9eff;
+  --accent-hover: #3a8eef;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,8 +21,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #242424;
-  color: #e0e0e0;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .app {
@@ -22,26 +37,26 @@ body {
 h1 {
   font-size: 2rem;
   font-weight: 300;
-  color: #ffffff;
+  color: var(--text-heading);
   text-align: center;
 }
 
 h2 {
   font-size: 1.2rem;
   font-weight: 400;
-  color: #ffffff;
+  color: var(--text-heading);
   margin-bottom: 8px;
 }
 
 p {
-  color: #a0a0a0;
+  color: var(--text-muted);
   font-size: 1rem;
   text-align: center;
 }
 
 .hint {
   font-size: 0.85rem;
-  color: #555;
+  color: var(--text-hint);
 }
 
 .create-list, .add-item {
@@ -52,23 +67,23 @@ p {
 input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #444;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #1a1a1a;
-  color: #e0e0e0;
+  background: var(--bg-input);
+  color: var(--text);
   font-size: 0.95rem;
   outline: none;
 }
 
 input:focus {
-  border-color: #4a9eff;
+  border-color: var(--accent);
 }
 
 button {
   padding: 8px 20px;
   border: none;
   border-radius: 6px;
-  background: #4a9eff;
+  background: var(--accent);
   color: #fff;
   font-size: 0.95rem;
   cursor: pointer;
@@ -76,7 +91,7 @@ button {
 }
 
 button:hover {
-  background: #3a8eef;
+  background: var(--accent-hover);
 }
 
 .lists {
@@ -90,7 +105,7 @@ button:hover {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: #1a1a2e;
+  background: var(--bg-surface);
   border: 1px solid transparent;
   border-radius: 8px;
   cursor: pointer;
@@ -98,12 +113,12 @@ button:hover {
 }
 
 .list-card:hover {
-  border-color: #4a9eff44;
+  border-color: color-mix(in srgb, var(--accent) 27%, transparent);
 }
 
 .list-card.selected {
-  border-color: #4a9eff;
-  background: #1a1a3e;
+  border-color: var(--accent);
+  background: var(--bg-surface-selected);
 }
 
 .list-name {
@@ -111,15 +126,15 @@ button:hover {
 }
 
 .list-count {
-  color: #666;
+  color: var(--text-faded);
   font-size: 0.85rem;
 }
 
 .detail {
   margin-top: 8px;
   padding: 16px;
-  background: #1a1a2e;
-  border: 1px solid #4a9eff44;
+  background: var(--bg-surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 27%, transparent);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -142,16 +157,16 @@ button:hover {
 
 .todo-item.done .todo-text {
   text-decoration: line-through;
-  color: #666;
+  color: var(--text-faded);
 }
 
 .checkbox {
   font-size: 1.1rem;
-  color: #4a9eff;
+  color: var(--accent);
   width: 20px;
   text-align: center;
 }
 
 .todo-item.done .checkbox {
-  color: #555;
+  color: var(--text-hint);
 }

@@ -36,6 +36,9 @@
 
 #include "bridge.hpp"
 
+// Must match --bg in App.css — prevents white flash before web content loads.
+static constexpr QColor kBackground{0x24, 0x24, 0x24};
+
 // Keeps the loading overlay sized to match the parent widget.
 class OverlayResizer : public QObject {
     QPointer<QWidget> overlay_;
@@ -56,12 +59,14 @@ public:
 class SchemeHandler : public QWebEngineUrlSchemeHandler {
     static QByteArray mimeForExtension(const QString& ext) {
         static const QHash<QString, QByteArray> types = {
-            {"html", "text/html"},      {"js",   "text/javascript"},
-            {"mjs",  "text/javascript"},{"css",  "text/css"},
+            {"html", "text/html"},       {"js",   "text/javascript"},
+            {"mjs",  "text/javascript"}, {"css",  "text/css"},
             {"json", "application/json"},{"png",  "image/png"},
-            {"svg",  "image/svg+xml"},  {"ico",  "image/x-icon"},
-            {"woff", "font/woff"},      {"woff2","font/woff2"},
-            {"ttf",  "font/ttf"},       {"wasm", "application/wasm"},
+            {"jpg",  "image/jpeg"},      {"jpeg", "image/jpeg"},
+            {"gif",  "image/gif"},       {"webp", "image/webp"},
+            {"svg",  "image/svg+xml"},   {"ico",  "image/x-icon"},
+            {"woff", "font/woff"},       {"woff2","font/woff2"},
+            {"ttf",  "font/ttf"},        {"wasm", "application/wasm"},
             {"map",  "application/json"},
         };
         return types.value(ext.toLower(), "application/octet-stream");
@@ -118,8 +123,8 @@ int main(int argc, char* argv[]) {
     // setColorScheme handles menus/buttons, but the palette ensures the
     // window background is dark before any content paints.
     QPalette darkPalette;
-    darkPalette.setColor(QPalette::Window, QColor(0x24, 0x24, 0x24));
-    darkPalette.setColor(QPalette::Base, QColor(0x24, 0x24, 0x24));
+    darkPalette.setColor(QPalette::Window, kBackground);
+    darkPalette.setColor(QPalette::Base, kBackground);
     app.setPalette(darkPalette);
 
     // Named profile = persistent localStorage/IndexedDB
@@ -157,7 +162,7 @@ int main(int argc, char* argv[]) {
     // ── Web view ──────────────────────────────────────────────
     auto* view = new QWebEngineView(&window);
     auto* page = new QWebEnginePage(profile, view);
-    page->setBackgroundColor(QColor(0x24, 0x24, 0x24));
+    page->setBackgroundColor(kBackground);
     view->setPage(page);
 
     // Inject qwebchannel.js from Qt's built-in resources
@@ -180,7 +185,7 @@ int main(int argc, char* argv[]) {
     auto* devToolsView = new QWebEngineView();
     devToolsView->setWindowTitle("Developer Tools");
     devToolsView->resize(1024, 600);
-    devToolsView->page()->setBackgroundColor(QColor(0x24, 0x24, 0x24));
+    devToolsView->page()->setBackgroundColor(kBackground);
     view->page()->setDevToolsPage(devToolsView->page());
 
     QObject::connect(devToolsAction, &QAction::triggered, devToolsView, [devToolsView]() {
@@ -210,7 +215,8 @@ int main(int argc, char* argv[]) {
     stackLayout->addWidget(view);
 
     auto* overlay = new QWidget(stack);
-    overlay->setStyleSheet("background-color: #242424;");
+    overlay->setStyleSheet(
+        QStringLiteral("background-color: %1;").arg(kBackground.name()));
     overlay->setGeometry(stack->rect());
 
     auto* overlayLayout = new QVBoxLayout(overlay);

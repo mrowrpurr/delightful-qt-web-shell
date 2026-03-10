@@ -36,20 +36,20 @@ export default function App() {
   const handleCreateList = useCallback(async () => {
     const name = newListName.trim()
     if (!name) return
-    await bridge.addList(name)
+    await bridge.addList(name).catch(console.error)
     setNewListName('')
   }, [newListName])
 
   const handleAddItem = useCallback(async () => {
     const text = newItemText.trim()
     if (!text || !selectedListId) return
-    await bridge.addItem(selectedListId, text)
+    await bridge.addItem(selectedListId, text).catch(console.error)
     setNewItemText('')
   }, [newItemText, selectedListId])
 
   const handleToggleItem = useCallback(async (itemId: string) => {
     if (!selectedListId) return
-    await bridge.toggleItem(itemId)
+    await bridge.toggleItem(itemId).catch(console.error)
   }, [selectedListId])
 
   return (
