@@ -57,6 +57,19 @@ target("dev-web")
         os.execv("bun", {"run", "dev"}, {curdir = web_dir, envs = envs})
     end)
 
+-- ── Desktop with DevTools ────────────────────────────────────────────
+
+target("dev-desktop")
+    set_kind("phony")
+    set_default(false)
+    add_deps("desktop")
+    on_run(function(target)
+        local desktop = target:dep("desktop")
+        local envs = os.getenvs()
+        envs["QTWEBENGINE_REMOTE_DEBUGGING"] = "9222"
+        os.execv(desktop:targetfile(), {}, {envs = envs})
+    end)
+
 -- ── Playwright e2e tests (browser) ──────────────────────────────────
 
 target("test-browser")
