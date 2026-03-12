@@ -28,6 +28,7 @@ target("desktop")
     )
     add_defines('APP_NAME="' .. APP_NAME:gsub('"', '\\"') .. '"')
     add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')
+    add_defines('APP_VERSION="' .. APP_VERSION:gsub('"', '\\"') .. '"')
 
     before_build(function(target)
         local base = os.scriptdir()

@@ -9,12 +9,14 @@
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QGraphicsOpacityEffect>
 #include <QIcon>
 #include <QLabel>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QPointer>
 #include <QProgressBar>
 #include <QPropertyAnimation>
@@ -149,6 +151,16 @@ int main(int argc, char* argv[]) {
     auto* menuBar = window.menuBar();
 
     auto* fileMenu = menuBar->addMenu("&File");
+
+    // Example: File > Export... opens a native QFileDialog.
+    // Demonstrates the pattern for native file pickers — testable with pywinauto.
+    auto* exportAction = fileMenu->addAction("&Export...");
+    exportAction->setShortcut(QKeySequence("Ctrl+E"));
+    QObject::connect(exportAction, &QAction::triggered, &window, [&window]() {
+        QFileDialog::getSaveFileName(&window, "Export Data", "", "JSON Files (*.json);;All Files (*)");
+    });
+
+    fileMenu->addSeparator();
     auto* quitAction = fileMenu->addAction("&Quit");
     quitAction->setShortcut(QKeySequence("Ctrl+Q"));
     QObject::connect(quitAction, &QAction::triggered, &app, &QApplication::quit);
@@ -156,6 +168,16 @@ int main(int argc, char* argv[]) {
     auto* windowsMenu = menuBar->addMenu("&Windows");
     auto* devToolsAction = windowsMenu->addAction("&Developer Tools");
     devToolsAction->setShortcut(QKeySequence("F12"));
+
+    // Example: Help > About opens a native QMessageBox.
+    // Demonstrates the pattern for native dialogs — testable with pywinauto.
+    auto* helpMenu = menuBar->addMenu("&Help");
+    auto* aboutAction = helpMenu->addAction("&About");
+    QObject::connect(aboutAction, &QAction::triggered, &window, [&window]() {
+        QMessageBox::about(&window, "About " APP_NAME,
+            QString("%1 v%2\n\nA template for Qt + React apps with real testing.")
+                .arg(APP_NAME).arg(APP_VERSION));
+    });
 
     // ── Shell + Bridge ─────────────────────────────────────────
     auto* shell = new WebShell(&window);

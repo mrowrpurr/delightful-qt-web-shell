@@ -23,7 +23,17 @@ export default function App() {
     setDetail(result)
   }, [])
 
-  // Tell the Qt shell we're ready — triggers the loading overlay fade-out.
+  // ╔══════════════════════════════════════════════════════════════════════╗
+  // ║  DO NOT REMOVE THIS CALL — IT WILL BREAK THE APP COMPLETELY        ║
+  // ║                                                                     ║
+  // ║  signalReady() tells the Qt shell that React has mounted.           ║
+  // ║  Without it, the loading overlay stays forever and the app          ║
+  // ║  appears frozen. There is no error, no crash, just a white          ║
+  // ║  screen with a spinner that never goes away.                        ║
+  // ║                                                                     ║
+  // ║  If you're refactoring this component, move this call but           ║
+  // ║  DO NOT DELETE IT. It must run once after the first render.         ║
+  // ╚══════════════════════════════════════════════════════════════════════╝
   useEffect(() => { signalReady() }, [])
 
   useEffect(() => {

@@ -16,6 +16,22 @@ const CDP_URL = "http://localhost:9222"
 let browser: Browser | null = null
 let appPage: Page | null = null
 
+// ── console message buffer ─────────────────────────────────────────
+
+interface ConsoleEntry {
+  timestamp: string
+  level: string
+  text: string
+}
+
+const MAX_CONSOLE_BUFFER = 100
+const consoleBuffer: ConsoleEntry[] = []
+
+function pushConsoleEntry(entry: ConsoleEntry) {
+  if (consoleBuffer.length >= MAX_CONSOLE_BUFFER) consoleBuffer.shift()
+  consoleBuffer.push(entry)
+}
+
 async function getPage(): Promise<Page> {
   if (appPage && !appPage.isClosed()) return appPage
 
@@ -26,6 +42,15 @@ async function getPage(): Promise<Page> {
     return url !== "about:blank" && !url.startsWith("devtools://")
   })
   if (!page) throw new Error("No app page found. Is dev-desktop running?")
+
+  page.on("console", (msg) => {
+    pushConsoleEntry({
+      timestamp: new Date().toISOString(),
+      level: msg.type(),   // "log" | "warn" | "error" | "info" | "debug" etc.
+      text: msg.text(),
+    })
+  })
+
   appPage = page
   return page
 }
@@ -227,6 +252,44 @@ server.registerTool(
       return { content: [{ type: "text" as const, text: `${selector} visible` }] }
     }
     throw new Error("Provide testId or selector")
+  },
+)
+
+// ── console_messages ───────────────────────────────────────────────
+
+server.registerTool(
+  "console_messages",
+  {
+    description: "Return buffered browser console messages (last 100). Optionally filter by level, limit count, and clear the buffer.",
+    inputSchema: {
+      level: z.string().optional().describe("Filter by level (e.g. 'error', 'warn', 'log', 'info', 'debug')"),
+      count: z.number().optional().describe("Max number of messages to return (most recent first)"),
+      clear: z.boolean().optional().describe("Clear the buffer after reading (default: false)"),
+    },
+  },
+  async ({ level, count, clear }) => {
+    let messages = level
+      ? consoleBuffer.filter(m => m.level === level)
+      : [...consoleBuffer]
+
+    if (count !== undefined) {
+      messages = messages.slice(-count)
+    }
+
+    const text = messages.length === 0
+      ? "(no console messages)"
+      : JSON.stringify(messages, null, 2)
+
+    if (clear) {
+      consoleBuffer.length = 0
+    }
+
+    return {
+      content: [{
+        type: "text" as const,
+        text,
+      }],
+    }
   },
 )
 

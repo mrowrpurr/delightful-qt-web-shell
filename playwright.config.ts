@@ -11,7 +11,7 @@ const isDesktop = process.env.DESKTOP === '1'
 
 export default defineConfig({
   timeout: 30_000,
-  testDir: './tests/e2e',
+  testDir: './tests/playwright',
   use: isDesktop ? {} : { baseURL: 'http://localhost:5173' },
 
   // In desktop mode, the Qt app is the server — no Vite or backend needed.
