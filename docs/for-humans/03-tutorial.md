@@ -1,5 +1,7 @@
 # Tutorial — Your First Feature in 5 Minutes
 
+> **Shortcut:** `xmake run scaffold-bridge <name>` scaffolds a new bridge end-to-end. This tutorial walks through the pattern manually so you understand what's happening under the hood.
+
 We'll add an `addItem` method — from C++ domain logic to React UI — and see how the three-file pattern works.
 
 ## The Three Files

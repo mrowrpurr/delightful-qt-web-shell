@@ -1,5 +1,7 @@
 # Adding Features
 
+> **Shortcut:** `xmake run scaffold-bridge <name>` scaffolds a new bridge end-to-end. The manual steps below show what's happening under the hood.
+
 ## Adding a Method to an Existing Bridge
 
 Three files. No wiring.
