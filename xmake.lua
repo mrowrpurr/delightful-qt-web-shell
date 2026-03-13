@@ -117,14 +117,19 @@ target("start-desktop")
         end
 
         -- Wait for CDP to come online (QtWebEngine can take 20s+ on first launch)
+        import("lib.detect.find_tool")
         local start_time = os.time()
         while os.time() - start_time < 30 do
-            local ok = try { function() os.runv("curl", {"-s", "-o", "/dev/null", "-w", "", "http://localhost:9222/json/version"}) return true end }
+            local ok = try { function()
+                local curl = assert(find_tool("curl"))
+                os.runv(curl.program, {"-sf", "http://localhost:9222/json/version"})
+                return true
+            end }
             if ok then
-                -- Get PID from CDP (ask the process list)
+                -- Save PID so stop-desktop can kill it later
                 if is_plat("windows") then
-                    local output = os.iorunv("wmic", {"process", "where", "commandline like '%" .. path.filename(exe) .. "%'", "get", "processid", "/value"})
-                    local pid = output:match("ProcessId=(%d+)")
+                    local output = os.iorunv("tasklist", {"/FI", "IMAGENAME eq " .. path.filename(exe), "/FO", "CSV", "/NH"})
+                    local pid = output:match('"[^"]+","(%d+)"')
                     if pid then io.writefile(pidfile, pid) end
                 end
                 print("Desktop app started! CDP ready on http://localhost:9222")
