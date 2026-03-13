@@ -8,7 +8,6 @@ target("dev-server")
         "include/type_test_bridge.hpp"
     )
     add_includedirs("include")
-    add_frameworks("QtCore", "QtNetwork", "QtWebSockets")
 
     -- Write the binary path so Playwright can run it directly.
     -- Running via `xmake run` creates a grandchild process that orphans

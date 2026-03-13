@@ -21,7 +21,7 @@ target("desktop")
         set_filename(APP_SLUG)
     end
     add_frameworks(
-        "QtWidgets", "QtCore", "QtGui",
+        "QtWidgets", "QtGui",
         "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel"
     )
     add_defines('APP_NAME="' .. APP_NAME:gsub('"', '\\"') .. '"')
