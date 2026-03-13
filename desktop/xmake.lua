@@ -40,7 +40,7 @@ target("desktop")
         os.setenv("VITE_APP_NAME", _APP_NAME)
 
         -- 1. Build the web app (skip if sources haven't changed)
-        local stamp_file = path.join(base, ".web-build-stamp")
+        local stamp_file = path.join(project_root, "build", ".web-build-stamp")
         local src_dir = path.join(web_dir, "src")
         local needs_build = not os.isdir(dist_dir) or not os.isfile(stamp_file)
         if not needs_build then
