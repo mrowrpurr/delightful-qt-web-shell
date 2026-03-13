@@ -86,6 +86,8 @@ xmake run dev-desktop
 
 Edit React components, save, see changes instantly inside the native Qt window.
 
+**React changes are live. C++ changes require rebuild + restart:** `xmake build desktop && xmake run dev-desktop`. There's no C++ hot reload — plan your workflow accordingly.
+
 ### React only (no Qt needed)
 
 ```bash
@@ -115,9 +117,9 @@ curl -s http://localhost:9222/json/version
 ## Quick Test
 
 ```bash
-xmake run test-all   # Catch2 + Bun + Playwright browser (~10s)
+xmake run test-all   # Catch2 + Bun + Playwright + pywinauto
 ```
 
-Note: `test-all` runs the three fast, reliable layers (Catch2 + Bun + browser e2e). Desktop e2e and pywinauto are excluded because they need a built app, take longer, and can be flaky due to GPU/window manager timing. Run those separately when testing native Qt features.
+Runs all layers except desktop e2e (Playwright in Qt). Launches and stops the desktop app automatically for pywinauto tests.
 
 If that's green, everything works. See [Testing](04-testing.md) for the full picture.

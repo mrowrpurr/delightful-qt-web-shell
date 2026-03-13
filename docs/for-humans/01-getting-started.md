@@ -103,7 +103,7 @@ The dev-server is a headless C++ process that serves your bridges over WebSocket
 
 ```bash
 xmake run setup               # install all dependencies
-xmake run test-all            # Catch2 + Bun + Playwright browser (~10s)
+xmake run test-all            # all layers: Catch2 + Bun + Playwright + pywinauto
 ```
 
 If that's green, everything works.

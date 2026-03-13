@@ -20,7 +20,7 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 
 ### 2. Bridge wrapper
 
-`lib/bridges/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`:
+`lib/bridges/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`. Parameters can be `QString`, `int`, `double`, `bool`, `QJsonObject`, `QJsonArray`, or `QStringList` — the bridge converts JSON args automatically:
 
 ```cpp
 Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
@@ -55,6 +55,8 @@ There's no auto-generation or macro. Qt doesn't know your struct layout, so you 
 | `void` | `{ok: true}` | Acknowledgement |
 
 **Always return `QJsonObject` or `QJsonArray` for structured data.** If you return a `QString`, the JS side sees `{value: "hello"}` not `"hello"` — this is by design, not a bug. Access it via `result.value`.
+
+**Errors are thrown as JS exceptions.** Wrong arg count → `"addItem: expected 2 args, got 1"`. Unknown method → clear error. You'll see these in the browser console (F12) or in Playwright test output — they don't fail silently.
 
 ### 3. TypeScript interface
 
