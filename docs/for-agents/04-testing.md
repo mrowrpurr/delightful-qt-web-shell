@@ -20,7 +20,7 @@ Five layers, from instant unit tests to native Qt window automation.
 | Browser e2e (Playwright) | `xmake run test-browser` | ~5s | UI + backend integration |
 | Desktop e2e (Playwright) | `xmake run test-desktop` | ~15s | Same tests in real Qt app |
 | Native Qt (pywinauto) | `xmake run test-pywinauto` | ~5s | Menus, dialogs, shortcuts |
-| All together | `xmake run test-all` | ~10s | Catch2 + Bun + browser e2e |
+| All layers | `xmake run test-all` | ~30s | Catch2 + Bun + browser e2e + pywinauto |
 | Bridge validation | `xmake run validate-bridges` | ~3s | TS↔C++ interface match |
 
 ## Setup (One Time)
