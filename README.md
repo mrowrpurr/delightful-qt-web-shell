@@ -1,135 +1,84 @@
 # Delightful Qt Web Shell
 
-A template for building desktop apps with **Qt WebEngine + React** — with five layers of automated testing that actually work.
+A template for building desktop apps with **Qt WebEngine + React** — native menus, dialogs, and system integration with a web UI, connected by a zero-boilerplate bridge.
 
-![Delightful Qt Web Shell](screenshot.png)
+## Table of Contents
+
+- [Make It Yours](#make-it-yours)
+- [Build & Run](#build--run)
+- [Documentation](#documentation)
+  - [For Agents](#for-agents)
+  - [For Humans](#for-humans)
+- [Prerequisites](#prerequisites)
+- [Testing](#testing)
+- [License](#license)
 
 ## Make It Yours
 
-1. **Change the app name** — edit the top of `xmake.lua`:
-   ```lua
-   APP_NAME    = "Your App Name"
-   APP_SLUG    = "your-app-name"
-   ```
-   This flows everywhere automatically: window title, binary name, Windows exe metadata, HTML title, React heading.
+Edit the top of `xmake.lua`:
 
-2. **Replace the icons** — drop your files into:
-   - `desktop/resources/icon.ico` (Windows taskbar / exe icon)
-   - `desktop/resources/icon.png` (loading screen logo)
+```lua
+APP_NAME    = "Your App Name"
+APP_SLUG    = "your-app-name"
+APP_VERSION = "0.1.0"
+```
 
-3. **Optionally update `package.json`** — the `name` fields in `package.json` and `web/package.json` are npm metadata. Developers typically edit these when starting a new project.
-
-That's it. Build and run.
-
-## Guides
-
-| | |
-|---|---|
-| **[CLAUDE.md](CLAUDE.md)** | Agent onboarding — build commands, key files, gotchas |
-| **[Tutorial](TUTORIAL.md)** | Add your first feature in 5 minutes |
-| **[Testing Guide](TESTING_GUIDE.md)** | Five test layers — what to write, what broke, how to fix it |
-| **[Architecture](ARCHITECTURE.md)** | How the pieces fit together |
-
-## Prerequisites
-
-- [xmake](https://xmake.io)
-- [Qt 6.x](https://www.qt.io) with these modules installed:
-  - **Qt WebEngine** — the Chromium-based web view
-  - **Qt WebChannel** — bridge between C++ and JavaScript
-  - **Qt WebSockets** — for the test server and dev/test bridge
-  - **Qt Positioning** — required by WebEngine at runtime
-- [Bun](https://bun.sh)
-- [Node.js](https://nodejs.org) (for Playwright)
-- **Linux only:** `libnss3-dev` and `libasound2-dev` (Chromium dependencies)
+This flows everywhere: window title, binary name, Windows exe metadata, HTML `<title>`, loading screen. Replace `desktop/resources/icon.ico` and `icon.png` with your own.
 
 ## Build & Run
 
 ```bash
-# Configure (point to your Qt installation)
-xmake f --qt=/path/to/qt  # e.g. C:/Qt/6.10.2/msvc2022_64 or ~/Qt/6.10.2/macos
-
-# Build the desktop app (also builds the React app via Vite)
-xmake build desktop
-
-# Run it
-xmake run desktop
+xmake f --qt=/path/to/qt      # point at your Qt installation (one time)
+xmake build desktop            # build React + C++
+xmake run desktop              # run the app
 ```
 
-## Dev Mode
+## Documentation
 
-For development with hot module replacement:
+### For Agents
 
-```bash
-# Terminal 1: Vite dev server
-xmake run dev-web
+You're an AI agent building a desktop app. These docs are written for you — commands to run, patterns to follow, traps to avoid.
 
-# Terminal 2: Qt desktop with HMR + CDP debugging
-xmake run dev-desktop
-```
+| Doc | What it covers |
+|-----|---------------|
+| [01 — Getting Started](docs/for-agents/01-getting-started.md) | Project layout, prerequisites, build & run, dev mode |
+| [02 — Architecture](docs/for-agents/02-architecture.md) | How pieces fit, proxy pattern, type system, return value wrapping |
+| [03 — Adding Features](docs/for-agents/03-adding-features.md) | Add a method, add a bridge, signals, xmake setup, full checklist |
+| [04 — Testing](docs/for-agents/04-testing.md) | All 5 layers, what to test when, debugging, adding tests |
+| [05 — Tools](docs/for-agents/05-tools.md) | cdp-mcp + pywinauto — seeing and driving the app |
+| [06 — Gotchas](docs/for-agents/06-gotchas.md) | Quick reference for silent failures and traps |
 
-`dev-desktop` loads from `http://localhost:5173` with CDP on port 9222. Edit a React component, save, see it update instantly inside the native Qt window.
+Start with **01**, read through **03**, and keep **06** open while you work.
 
-For browser-only development (no Qt at all):
+### For Humans
 
-```bash
-# Terminal 1: C++ backend
-xmake run dev-server
+You're a developer who wants to understand the template and start building.
 
-# Terminal 2: Vite dev server
-xmake run dev-web
+| Doc | What it covers |
+|-----|---------------|
+| [01 — Getting Started](docs/for-humans/01-getting-started.md) | What is this, why Qt+React, setup, project structure |
+| [02 — Architecture](docs/for-humans/02-architecture.md) | How the pieces fit together, the proxy pattern, signals |
+| [03 — Tutorial](docs/for-humans/03-tutorial.md) | Add your first feature in 5 minutes |
+| [04 — Testing](docs/for-humans/04-testing.md) | Five test layers, debugging, adding tests |
 
-# Open http://localhost:5173 in any browser
-```
+Start with **01**, then jump to **03** to get your hands dirty.
 
-The React app connects to the C++ backend automatically — same code whether you're in Qt or a browser.
+## Prerequisites
+
+- [xmake](https://xmake.io) — build system
+- [Qt 6.x](https://www.qt.io) — WebEngine, WebChannel, WebSockets, Positioning
+- [Bun](https://bun.sh) — JS runtime
+- [Node.js](https://nodejs.org) — for Playwright and cdp-mcp
+- **Linux only:** `libnss3-dev`, `libasound2-dev`
 
 ## Testing
 
-Five layers, from fast unit tests to native Qt smoke tests:
-
-| Layer | Command | What it proves |
-|-------|---------|----------------|
-| C++ unit (Catch2) | `xmake run test-todo-store` | Domain logic is correct |
-| TS unit (Bun) | `xmake run test-bun` | Bridge protocol works |
-| E2E browser (Playwright) | `xmake run test-browser` | UI + backend integration works |
-| E2E desktop (Playwright + CDP) | `xmake run test-desktop` | Same tests against real Qt app |
-| Native Qt (pywinauto) | `xmake run test-pywinauto` | Menus, dialogs, keyboard shortcuts |
-| All together | `xmake run test-all` | Everything (Catch2 + Bun + browser e2e) |
-
-Install test dependencies first:
-
 ```bash
-bun install
-npx playwright install chromium
+bun install && npx playwright install chromium   # one-time setup
+xmake run test-all                                # Catch2 + Bun + Playwright (~10s)
 ```
 
-## Project Structure
-
-```
-lib/
-  todos/                  Pure C++ domain logic (no Qt)
-    include/todo_store.hpp
-    tests/unit/             Catch2 unit tests
-  web-bridge/             Bridge — exposes C++ to JavaScript
-    include/bridge.hpp
-  web-shell/              Bridge infrastructure (you won't need to touch this)
-    include/web_shell.hpp     Registration, appReady lifecycle
-    include/expose_as_ws.hpp  WebSocket transport
-
-desktop/                  Qt desktop shell
-  src/main.cpp
-  resources/
-
-web/
-  src/api/bridge.ts       Your app's bridge interface
-
-tests/
-  playwright/             Playwright end-to-end tests
-    todo-lists.spec.ts
-  pywinauto/              Native Qt tests (menus, dialogs, shortcuts)
-  helpers/
-    dev-server/           Headless C++ WebSocket server (dev + tests)
-```
+Five layers: C++ unit (Catch2), bridge protocol (Bun), browser e2e (Playwright), desktop e2e (Playwright + CDP), native Qt (pywinauto). See [testing docs](docs/for-humans/04-testing.md) for details.
 
 ## License
 
