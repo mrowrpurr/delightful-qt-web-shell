@@ -34,7 +34,7 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 | What you changed | What to do |
 |---|---|
 | Domain logic in `todo_store.hpp` | Add a Catch2 test |
-| New bridge method in `bridge.hpp` | Nothing — test server uses the real bridge |
+| New bridge method in `todo_bridge.hpp` | Nothing — test server uses the real bridge |
 | UI behavior changed | Add a Playwright e2e test |
 | New native Qt dialog or menu | Add a pywinauto test in `tests/pywinauto/` |
 | Nothing visible changed | You probably don't need a new test |
@@ -55,7 +55,7 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 
 | Symptom | Likely cause |
 |---|---|
-| Catch2 won't compile | Syntax error in `todo_store.hpp` or `bridge.hpp` |
+| Catch2 won't compile | Syntax error in `todo_store.hpp` or `todo_bridge.hpp` |
 | Bun tests timeout | Port 9876 in use? Or dev-server binary not built. |
 | E2e won't start | Run `xmake build dev-server` |
 | E2e "locator not found" | A `data-testid` changed in React |

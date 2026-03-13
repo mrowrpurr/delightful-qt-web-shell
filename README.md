@@ -45,7 +45,7 @@ You're an AI agent building a desktop app. These docs are written for you — co
 | [02 — Architecture](docs/for-agents/02-architecture.md) | How pieces fit, proxy pattern, type system, return value wrapping |
 | [03 — Adding Features](docs/for-agents/03-adding-features.md) | Add a method, add a bridge, signals, xmake setup, full checklist |
 | [04 — Testing](docs/for-agents/04-testing.md) | All 5 layers, what to test when, debugging, adding tests |
-| [05 — Tools](docs/for-agents/05-tools.md) | cdp + pywinauto — seeing and driving the app |
+| [05 — Tools](docs/for-agents/05-tools.md) | playwright-cdp + pywinauto — seeing and driving the app |
 | [06 — Gotchas](docs/for-agents/06-gotchas.md) | Quick reference for silent failures and traps |
 
 Start with **01**, read through **03**, and keep **06** open while you work.
@@ -68,13 +68,13 @@ Start with **01**, then jump to **03** to get your hands dirty.
 - [xmake](https://xmake.io) — build system
 - [Qt 6.x](https://www.qt.io) — WebEngine, WebChannel, WebSockets, Positioning
 - [Bun](https://bun.sh) — JS runtime
-- [Node.js](https://nodejs.org) — for Playwright and cdp
+- [Node.js](https://nodejs.org) — for Playwright and playwright-cdp
 - **Linux only:** `libnss3-dev`, `libasound2-dev`
 
 ## Testing
 
 ```bash
-bun install && npx playwright install chromium   # one-time setup
+xmake run setup                                   # one-time setup
 xmake run test-all                                # Catch2 + Bun + Playwright (~10s)
 ```
 

@@ -17,7 +17,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 │   └── src/api/bridge.ts     #   TypeScript bridge interfaces
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt)
-│   ├── web-bridge/           #   Bridge (QObject wrapper over domain logic)
+│   ├── todo-bridge/           #   TodoBridge (QObject wrapper over domain logic)
 │   └── web-shell/            #   Framework internals (don't touch)
 ├── tests/
 │   ├── playwright/           #   Browser + desktop e2e tests
@@ -34,7 +34,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 - [xmake](https://xmake.io) — build system
 - [Qt 6.x](https://www.qt.io) with modules: WebEngine, WebChannel, WebSockets, Positioning (Positioning is a transitive dependency of QtWebEngine — you won't use it directly)
 - [Bun](https://bun.sh) — JS runtime and package manager
-- [Node.js](https://nodejs.org) — for Playwright and cdp (Bun's ws polyfill breaks CDP)
+- [Node.js](https://nodejs.org) — for Playwright and playwright-cdp (Bun's ws polyfill breaks CDP)
 
 ## Make It Yours
 

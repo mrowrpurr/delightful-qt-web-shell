@@ -37,7 +37,7 @@
 #include <QWebEngineUrlRequestJob>
 #include <QWebEngineView>
 
-#include "bridge.hpp"
+#include "todo_bridge.hpp"
 #include "web_shell.hpp"
 
 // Must match --bg in App.css — prevents white flash before web content loads.
@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
     // Also register in tests/helpers/dev-server/src/test_server.cpp, and add the
     // .hpp to add_files() in both desktop/xmake.lua and dev-server/xmake.lua.
     auto* shell = new WebShell(&window);
-    auto* bridge = new Bridge;
+    auto* bridge = new TodoBridge;
     shell->addBridge("todos", bridge);
 
     // ── Web view ──────────────────────────────────────────────

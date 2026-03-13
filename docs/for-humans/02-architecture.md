@@ -26,7 +26,7 @@
 The app has three layers:
 
 1. **React UI** (`web/`) — Everything the user sees. Standard React + Vite.
-2. **Bridge** (`lib/web-bridge/`) — A thin `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. This is the API surface between C++ and JavaScript.
+2. **Bridge** (`lib/todo-bridge/`) — A thin `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. This is the API surface between C++ and JavaScript.
 3. **Domain logic** (`lib/todos/`) — Pure C++, no Qt dependencies. Your business logic, testable in isolation with Catch2.
 
 ## Two Transports, Same Code

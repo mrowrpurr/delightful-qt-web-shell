@@ -6,11 +6,9 @@ local _APP_VERSION = APP_VERSION
 target("desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
-    add_deps("web-bridge", "web-shell")
+    add_deps("todo-bridge", "web-shell")
     add_files(
         "src/main.cpp",
-        path.join(os.projectdir(), "lib/web-bridge/include/bridge.hpp"),
-        path.join(os.projectdir(), "lib/web-shell/include/web_shell.hpp"),
         "resources/resources.qrc",
         "web_dist_resources.cpp"
     )

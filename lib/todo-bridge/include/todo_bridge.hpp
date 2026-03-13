@@ -10,7 +10,7 @@
 // Thin QObject wrapper over TodoStore.
 // Every Q_INVOKABLE method takes QStrings and returns QJsonObject or QJsonArray.
 // The infrastructure (expose_as_ws / QWebChannel) handles serialization automatically.
-class Bridge : public QObject {
+class TodoBridge : public QObject {
     Q_OBJECT
     TodoStore store_;
 

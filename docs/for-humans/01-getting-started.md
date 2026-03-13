@@ -23,7 +23,7 @@ You don't need to learn QML or Qt Widgets for UI. You don't need Electron's memo
   - **Qt WebSockets** — for the dev server and test infrastructure
   - **Qt Positioning** — required by WebEngine at runtime (transitive dependency)
 - [Bun](https://bun.sh) — JS runtime and package manager
-- [Node.js](https://nodejs.org) — for Playwright tests and the cdp CLI
+- [Node.js](https://nodejs.org) — for Playwright tests and playwright-cdp
 - **Linux only:** `libnss3-dev` and `libasound2-dev` (Chromium dependencies)
 
 ## Make It Yours
@@ -89,7 +89,7 @@ The dev-server is a headless C++ process that serves your bridges over WebSocket
 │   └── src/api/bridge.ts     #   TypeScript bridge interfaces
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt)
-│   ├── web-bridge/           #   Bridge (QObject wrapper over domain logic)
+│   ├── todo-bridge/           #   TodoBridge (QObject wrapper over domain logic)
 │   └── web-shell/            #   Framework internals (you won't touch this)
 ├── tests/
 │   ├── playwright/           #   Browser + desktop e2e tests

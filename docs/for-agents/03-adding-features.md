@@ -18,7 +18,7 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 
 ### 2. Bridge wrapper
 
-`lib/web-bridge/include/bridge.hpp` — mark it `Q_INVOKABLE`:
+`lib/todo-bridge/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`:
 
 ```cpp
 Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
@@ -41,7 +41,7 @@ static QJsonObject to_json(const TodoItem& i) {
 }
 ```
 
-There's no auto-generation or macro. Qt doesn't know your struct layout, so you map fields manually. This is the pattern used throughout the template — see `bridge.hpp` for the full example.
+There's no auto-generation or macro. Qt doesn't know your struct layout, so you map fields manually. This is the pattern used throughout the template — see `todo_bridge.hpp` for the full example.
 
 ### 3. TypeScript interface
 
@@ -118,7 +118,7 @@ target("notes")
     add_includedirs("include", {public = true})
 ```
 
-Then add `add_deps("notes")` alongside the existing `add_deps("web-bridge", "web-shell")` in both `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua`. This makes `#include "notes_bridge.hpp"` work in your entry points.
+Then add `add_deps("notes")` alongside the existing `add_deps("todo-bridge", "web-shell")` in both `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua`. This makes `#include "notes_bridge.hpp"` work in your entry points.
 
 **Alternative (simpler, no new target):** If your bridge is a single header with no domain logic library, you can skip the xmake target and just add `add_includedirs(path.join(os.projectdir(), "lib/notes/include"))` directly in both build targets.
 
@@ -186,7 +186,7 @@ Push real-time updates from C++ to React.
 Add a parameterless signal and emit it:
 
 ```cpp
-// bridge.hpp
+// todo_bridge.hpp
 signals:
     void dataChanged();
 

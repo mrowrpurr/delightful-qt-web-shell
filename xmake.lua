@@ -26,7 +26,7 @@ add_requires("catch2 3.x")
 
 includes("lib/todos/xmake.lua")
 includes("lib/web-shell/xmake.lua")
-includes("lib/web-bridge/xmake.lua")
+includes("lib/todo-bridge/xmake.lua")
 
 -- ── Desktop app ──────────────────────────────────────────────────────
 

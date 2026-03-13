@@ -1,5 +1,5 @@
 {
-  "name": "cdp-cli",
+  "name": "playwright-cdp",
   "version": "0.1.0",
   "type": "module",
   "scripts": {

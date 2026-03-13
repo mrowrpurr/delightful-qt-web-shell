@@ -6,7 +6,7 @@ We'll add an `addItem` method — from C++ domain logic to React UI — and see 
 
 ```
 ├── lib/todos/include/todo_store.hpp        ← C++ domain logic
-├── lib/web-bridge/include/bridge.hpp       ← Q_INVOKABLE wrapper
+├── lib/todo-bridge/include/todo_bridge.hpp  ← Q_INVOKABLE wrapper
 └── web/src/api/bridge.ts                   ← TypeScript interface
 ```
 
@@ -26,9 +26,9 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 
 ## Step 2: Expose It to JavaScript
 
-Add a `Q_INVOKABLE` method to `Bridge` — the QObject wrapper.
+Add a `Q_INVOKABLE` method to `TodoBridge` — the QObject wrapper.
 
-**`lib/web-bridge/include/bridge.hpp`:**
+**`lib/todo-bridge/include/todo_bridge.hpp`:**
 
 ```cpp
 Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
@@ -75,7 +75,7 @@ That's it. Three files, no wiring, no glue code.
 | File | What you wrote |
 |------|----------------|
 | `todo_store.hpp` | The actual logic |
-| `bridge.hpp` | Q_INVOKABLE wrapper + signal |
+| `todo_bridge.hpp` | Q_INVOKABLE wrapper + signal |
 | `bridge.ts` | TypeScript interface line |
 
 The bridge infrastructure didn't change at all. It discovered your new method via `QMetaObject` introspection and made it callable from JavaScript automatically.

@@ -20,7 +20,7 @@
 
 1. **Domain logic** (`lib/todos/include/todo_store.hpp`) — Pure C++, no Qt. Your business logic lives here. Testable with Catch2 in isolation.
 
-2. **Bridge** (`lib/web-bridge/include/bridge.hpp`) — A `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. This is the API surface between C++ and JavaScript. Takes Qt types, returns Qt types.
+2. **Bridge** (`lib/todo-bridge/include/todo_bridge.hpp`) — A `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. This is the API surface between C++ and JavaScript. Takes Qt types, returns Qt types.
 
 3. **TypeScript interface** (`web/src/api/bridge.ts`) — Declares the methods and signals your bridge exposes. No implementation needed — the proxy dynamically dispatches method calls based on the interface, so the declaration alone is sufficient.
 
