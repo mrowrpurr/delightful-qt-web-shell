@@ -43,3 +43,4 @@ android/app/.cxx/
 # Secrets
 .env
 .env.*
+!.env.example
