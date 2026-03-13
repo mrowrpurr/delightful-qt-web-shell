@@ -1,140 +1,44 @@
-# Gotchas — Everything That Will Trip You Up
+# Gotchas — Quick Reference
 
-## The Showstoppers
+This is a concise index of traps. Details live in the doc where you're doing the work — this page is for scanning when something breaks.
 
-### cdp-mcp must run under Node, not Bun
+## Silent Failures (the scary ones)
 
-Bun's `ws` polyfill can't handle HTTP 101 Switching Protocols, which CDP requires. If you run cdp-mcp with Bun, `connectOverCDP` hangs forever — no error, no timeout, just silence.
-
-The `.mcp.json` uses `npx tsx`. Don't change it.
-
-### signalReady() must not be removed
-
-`web/src/App.tsx` calls `signalReady()` after React mounts. This tells the C++ side to fade out the loading overlay. If it never fires:
-
-- User sees a spinner forever
-- No error, no crash — just stuck
-- 15-second timeout eventually shows an error message
-
-If you refactor `App.tsx`, you can move the call. Just don't delete it.
-
-### playwright-core needs patching for QtWebEngine
-
-QtWebEngine doesn't support the `Browser.setDownloadBehavior` CDP command that Playwright sends during context initialization. Without the patch, `connectOverCDP` crashes.
-
-The fix is a one-line `.catch(() => {})` in Playwright's `crBrowser.js`. It's applied automatically:
-- Root `package.json` uses `patchedDependencies` (Bun's patch system)
-- `tools/cdp-mcp/postinstall` applies the same patch to its local copy
-
-**When bumping playwright-core versions**, check if the patch still applies cleanly and if the underlying issue has been fixed upstream.
+| What you forgot | What happens | Where it's explained |
+|---|---|---|
+| Register bridge in `test_server.cpp` | Bridge silently doesn't exist in dev/test mode | [03-adding-features.md, Step 3](03-adding-features.md) |
+| Add header to `add_files()` for MOC | Cryptic vtable linker error — doesn't mention your file | [03-adding-features.md, Step 2](03-adding-features.md) |
+| Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s | [02-architecture.md, signalReady](02-architecture.md) |
+| Use Bun instead of Node for cdp-mcp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
 
 ## Build Gotchas
 
-### Web build caching can fool you
+**Web build caching:** The build skips Vite if `web/src/` hasn't changed (timestamps vs `build/.web-build-stamp`). If you edited web code but see old output, delete `build/.web-build-stamp` to force a rebuild.
 
-The build skips Vite if `web/src/` hasn't changed (checked by file timestamps against `build/.web-build-stamp`). This is fast but can be confusing:
+**First build is slow:** ~30s (Vite + C++ compile). Subsequent builds skip Vite and only recompile changed C++.
 
-- **Symptom:** You edited web code but the app shows the old version
-- **Fix:** Touch any file in `web/src/` to force a rebuild, or delete `build/.web-build-stamp`
+**`xmake build desktop` before desktop tests:** Desktop e2e and pywinauto tests need the app binary. Build first.
 
-### Qt MOC requires headers in add_files()
+## playwright-core Patch
 
-If you create a new bridge (a `QObject` subclass), its `.hpp` must be listed in `add_files()` in **both**:
-- `desktop/xmake.lua`
-- `tests/helpers/dev-server/xmake.lua`
+QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes during `connectOverCDP` without a one-line `.catch(() => {})` patch in `crBrowser.js`. Applied automatically by:
+- Root `package.json` → `patchedDependencies` (Bun's patch system)
+- `tools/cdp-mcp/postinstall` → applies same patch to its copy
 
-If you skip this, you get a cryptic vtable linker error that doesn't mention your file at all. It's always the MOC.
+**When bumping playwright-core**, check if the patch still applies and if the issue is fixed upstream.
 
-### Bridge registration in two places
-
-New bridges must be registered in both entry points:
-- `desktop/src/main.cpp` → `shell->addBridge("name", bridge)`
-- `tests/helpers/dev-server/src/test_server.cpp` → `shell.addBridge("name", bridge)`
-
-If you only register in `main.cpp`, browser-mode dev and Playwright tests won't see your bridge. No error — it silently doesn't exist, and you'll waste time debugging React thinking the method call is wrong.
-
-### First build is slow
-
-`xmake build desktop` takes ~30s on first run (Vite + C++ compile). Subsequent builds skip Vite if web source hasn't changed and only recompile changed C++ files.
-
-## Test Gotchas
-
-### Desktop tests need the app built first
-
-```bash
-xmake build desktop    # must do this first
-xmake run test-desktop
-```
-
-If you skip the build, the test runner can't find the executable.
-
-### Desktop tests are inherently flaky
-
-GPU rendering, window manager timing, and focus issues make desktop tests less stable than browser tests. If a desktop test fails but the browser version of the same test passes, it's probably a timing/rendering issue, not a code bug.
-
-### The app must be running for pywinauto
-
-```bash
-xmake run start-desktop    # start it first
-xmake run test-pywinauto   # then test
-```
-
-pywinauto connects to a running window. If the app isn't running, every test fails with "window not found."
-
-### Port conflicts
+## Port Conflicts
 
 | Port | Used by | If busy |
 |------|---------|---------|
-| 5173 | Vite dev server | Another Vite instance running? |
-| 9222 | CDP (Qt debug port) | Another Qt instance or Chrome with debug? |
-| 9876 | WebSocket bridge (dev/test) | dev-server already running? |
-
-### Debug bottom-up
-
-If tests fail, start from the bottom:
-1. Catch2 fails → C++ logic is broken
-2. Catch2 passes, Bun fails → bridge protocol is broken
-3. Bun passes, browser e2e fails → UI isn't wired up correctly
-4. Browser passes, desktop fails → GPU/window issue (not your code)
-
-## Type System
-
-### Types just work — don't overthink it
-
-The bridge uses Qt's `QVariant` conversion system. Any type Qt can convert to/from JSON works automatically. You never need to modify the framework to support a new type.
-
-Common types: `QString`, `int`, `double`, `bool`, `QJsonObject`, `QJsonArray`, `QStringList`, `QVariant`. But if Qt can serialize it, it works.
-
-### Max 10 parameters per method
-
-Qt's `QMetaObject::invokeMethod` supports up to 10 arguments. If you need more, pass a `QJsonObject` instead.
-
-### Void methods return `{ok: true}`
-
-Not `undefined`, not `null` — the JS side gets `{ok: true}`. Your TypeScript interface should return `Promise<{ok: true}>` or just `Promise<void>` (the proxy handles it).
-
-### Arg count mismatch gives a clear error
-
-```
-"addItem: expected 2 args, got 1"
-```
-
-No silent nulls, no crash — you get an error message saying exactly what's wrong.
+| 5173 | Vite dev server | Another Vite instance? |
+| 9222 | CDP (Qt debug port) | Another Qt/Chrome instance? |
+| 9876 | WebSocket bridge | dev-server already running? |
 
 ## Environment
 
-### .env.example exists — check it
+`.env.example` documents Vite env vars. The key one is `VITE_BRIDGE_WS_URL` (defaults to `ws://localhost:9876`). You'd only change this if you run the dev-server on a different port.
 
-`.env.example` documents the environment variables Vite uses. Copy it to `.env` for local overrides. The key one is `VITE_BRIDGE_WS_URL` (defaults to `ws://localhost:9876`).
+## Platform
 
-### Windows is the primary platform
-
-pywinauto is Windows-only. cdp-mcp works everywhere. The full test suite (all 5 layers) only runs on Windows. macOS/Linux can run everything except pywinauto tests.
-
-## The Validate Command
-
-```bash
-xmake run validate-bridges
-```
-
-This checks that your TypeScript interfaces match your C++ `Q_INVOKABLE` methods. Run it after adding or changing bridge methods. It catches drift at dev time — before you find out at runtime that a method name is misspelled or an argument is missing.
+pywinauto is Windows-only. cdp-mcp works everywhere. The full 5-layer test suite only runs on Windows. macOS/Linux can run everything except pywinauto tests.

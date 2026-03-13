@@ -28,6 +28,21 @@ Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
 }
 ```
 
+`to_json()` is a hand-written helper — **you write one for each domain struct** you want to return. It lives as a `static` method in the bridge class:
+
+```cpp
+static QJsonObject to_json(const TodoItem& i) {
+    return {
+        {"id",         QString::fromStdString(i.id)},
+        {"text",       QString::fromStdString(i.text)},
+        {"done",       i.done},
+        {"created_at", QString::fromStdString(i.created_at)},
+    };
+}
+```
+
+There's no auto-generation or macro. Qt doesn't know your struct layout, so you map fields manually. This is the pattern used throughout the template — see `bridge.hpp` for the full example.
+
 ### 3. TypeScript interface
 
 `web/src/api/bridge.ts`:
@@ -79,11 +94,11 @@ signals:
 
 ### Step 2: Add the .hpp to xmake build files
 
-**This is the step agents forget.** Qt's MOC (Meta-Object Compiler) needs to process your header. If you skip this, you'll get a cryptic vtable linker error.
+**This is the step agents forget.** Qt's MOC (Meta-Object Compiler) needs to process your header. If you skip this, you'll get a cryptic vtable linker error that doesn't mention your file.
 
-Add your header to `add_files()` in **both**:
+Two things to add in **both** `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua`:
 
-**`desktop/xmake.lua`:**
+**1. Add your header to `add_files()` (for MOC processing):**
 ```lua
 add_files(
     -- ...existing files...
@@ -91,17 +106,27 @@ add_files(
 )
 ```
 
-**`tests/helpers/dev-server/xmake.lua`:**
+**2. Make the header findable via `#include`:**
+
+The existing lib directories use a `headeronly` target in their own `xmake.lua` with `add_includedirs("include", {public = true})`. The simplest approach for a new bridge is the same pattern.
+
+Create `lib/notes/xmake.lua`:
 ```lua
-add_files(
-    -- ...existing files...
-    path.join(os.projectdir(), "lib/notes/include/notes_bridge.hpp"),
-)
+target("notes")
+    set_kind("headeronly")
+    add_headerfiles("include/(**.hpp)")
+    add_includedirs("include", {public = true})
 ```
+
+Then add `add_deps("notes")` alongside the existing `add_deps("web-bridge", "web-shell")` in both `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua`. This makes `#include "notes_bridge.hpp"` work in your entry points.
+
+**Alternative (simpler, no new target):** If your bridge is a single header with no domain logic library, you can skip the xmake target and just add `add_includedirs(path.join(os.projectdir(), "lib/notes/include"))` directly in both build targets.
 
 ### Step 3: Register in both entry points
 
-**`desktop/src/main.cpp`:**
+Note the syntax difference: `main.cpp` uses `shell->` (pointer), `test_server.cpp` uses `shell.` (stack-allocated object). Copy from the right example.
+
+**`desktop/src/main.cpp`** (pointer — uses `shell->`):
 ```cpp
 #include "notes_bridge.hpp"
 // ...
@@ -109,7 +134,7 @@ auto* notes = new NotesBridge;
 shell->addBridge("notes", notes);
 ```
 
-**`tests/helpers/dev-server/src/test_server.cpp`:**
+**`tests/helpers/dev-server/src/test_server.cpp`** (stack object — uses `shell.`):
 ```cpp
 #include "notes_bridge.hpp"
 // ...
@@ -117,7 +142,7 @@ auto* notes = new NotesBridge;
 shell.addBridge("notes", notes);
 ```
 
-If you only register in `main.cpp`, browser-mode dev and Playwright tests won't see your bridge. No error — it just silently won't exist.
+If you only register in `main.cpp`, browser-mode dev and Playwright tests won't see your bridge. No error — it just silently won't exist, and you'll waste time debugging React when the problem is the C++ side.
 
 ### Step 4: TypeScript interface
 
@@ -140,11 +165,13 @@ await notes.addNote('Meeting notes')
 
 ### Checklist
 
-- [ ] C++ header with `Q_OBJECT` + `Q_INVOKABLE` methods
+- [ ] C++ header with `Q_OBJECT` + `Q_INVOKABLE` methods + `to_json()` helpers for your structs
+- [ ] `xmake.lua` for your new lib (headeronly target with `add_includedirs`)
 - [ ] Header in `add_files()` in `desktop/xmake.lua`
 - [ ] Header in `add_files()` in `tests/helpers/dev-server/xmake.lua`
-- [ ] `#include` + `addBridge()` in `desktop/src/main.cpp`
-- [ ] `#include` + `addBridge()` in `tests/helpers/dev-server/src/test_server.cpp`
+- [ ] `add_deps("your-lib")` in both xmake targets
+- [ ] `#include` + `addBridge()` in `desktop/src/main.cpp` (uses `shell->`)
+- [ ] `#include` + `addBridge()` in `tests/helpers/dev-server/src/test_server.cpp` (uses `shell.`)
 - [ ] TypeScript interface in `web/src/api/bridge.ts`
 - [ ] Run `xmake run validate-bridges` to verify C++ and TS match
 
@@ -171,7 +198,7 @@ Q_INVOKABLE QJsonObject addItem(...) {
 }
 ```
 
-Parameterless signals are auto-forwarded to connected clients. No registration needed.
+**Only parameterless signals are auto-forwarded** to connected clients. Signals with parameters (e.g., `void itemAdded(QString id)`) are listed in `__meta__` but are NOT forwarded over WebSocket — the forwarding mechanism uses a generic slot that can't receive arbitrary parameter types. If you need to push data, emit a parameterless signal and have the client re-fetch.
 
 ### Subscribe in TypeScript
 
@@ -212,3 +239,24 @@ xmake run test-all            # run all tests
 ```
 
 The bridge validator catches drift between C++ and TypeScript at dev time — before you find out at runtime.
+
+### What validate-bridges output looks like
+
+**Passing:**
+```
+Bridge "todos": 9 methods, 1 signal — all match ✓
+Bridge "typeTest": 18 methods, 0 signals — all match ✓
+All bridges validated successfully.
+```
+
+**Failing (TS method missing in C++):**
+```
+ERROR: Bridge "todos" — TS declares "removeItem" but C++ has no matching Q_INVOKABLE method
+```
+
+**Warning (C++ method missing in TS):**
+```
+WARNING: Bridge "todos" — C++ has "search" but TS interface doesn't declare it (won't be callable from JS)
+```
+
+Errors (TS declares something C++ doesn't have) cause exit code 1. Warnings (C++ has extras) are informational.

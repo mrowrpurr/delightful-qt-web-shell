@@ -9,10 +9,30 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 - **Five test layers** that actually work — C++ unit, bridge protocol, browser e2e, desktop e2e, native Qt
 - **Dev tools** — cdp-mcp (see/click web content via MCP), pywinauto (drive native Qt widgets)
 
+## Project Layout
+
+```
+├── desktop/                  # Qt desktop app (main.cpp, xmake.lua, resources)
+├── web/                      # React app (Vite)
+│   └── src/api/bridge.ts     #   TypeScript bridge interfaces
+├── lib/
+│   ├── todos/                #   Domain logic (pure C++, no Qt)
+│   ├── web-bridge/           #   Bridge (QObject wrapper over domain logic)
+│   └── web-shell/            #   Framework internals (don't touch)
+├── tests/
+│   ├── playwright/           #   Browser + desktop e2e tests
+│   ├── pywinauto/            #   Native Qt widget tests (Windows)
+│   └── helpers/dev-server/   #   Headless C++ backend for dev/test
+├── tools/cdp-mcp/            # MCP server for seeing web content via CDP
+└── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, targets)
+```
+
+**dev-server** is a headless C++ process that serves your bridges over WebSocket on port 9876 — no Qt window, no GUI. It's what runs during `xmake run dev-server`, Playwright browser tests, and Bun tests. Same bridge code as the desktop app, just without a window.
+
 ## Prerequisites
 
 - [xmake](https://xmake.io) — build system
-- [Qt 6.x](https://www.qt.io) with modules: WebEngine, WebChannel, WebSockets, Positioning
+- [Qt 6.x](https://www.qt.io) with modules: WebEngine, WebChannel, WebSockets, Positioning (Positioning is a transitive dependency of QtWebEngine — you won't use it directly)
 - [Bun](https://bun.sh) — JS runtime and package manager
 - [Node.js](https://nodejs.org) — for Playwright and cdp-mcp (Bun's ws polyfill breaks CDP)
 
@@ -90,5 +110,7 @@ curl -s http://localhost:9222/json/version
 ```bash
 xmake run test-all   # Catch2 + Bun + Playwright browser (~10s)
 ```
+
+Note: `test-all` runs the three fast, reliable layers (Catch2 + Bun + browser e2e). Desktop e2e and pywinauto are excluded because they need a built app, take longer, and can be flaky due to GPU/window manager timing. Run those separately when testing native Qt features.
 
 If that's green, everything works. See [Testing](04-testing.md) for the full picture.
