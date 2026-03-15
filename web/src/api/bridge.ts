@@ -1,4 +1,5 @@
 import { createQtConnection, createWsConnection, type BridgeConnection } from './bridge-transport'
+import { createWasmConnection } from './wasm-transport'
 
 // ── Domain types ──────────────────────────────────────────────────────
 // Snake_case field names match the C++ structs and JSON wire format.
@@ -48,7 +49,9 @@ let _connection: Promise<BridgeConnection> | null = null
 
 function getConnection(): Promise<BridgeConnection> {
   if (!_connection) {
-    if (window.qt?.webChannelTransport && window.QWebChannel)
+    if (import.meta.env.VITE_TRANSPORT === 'wasm')
+      _connection = createWasmConnection()
+    else if (window.qt?.webChannelTransport && window.QWebChannel)
       _connection = createQtConnection()
     else {
       const wsUrl = import.meta.env.VITE_BRIDGE_WS_URL || 'ws://localhost:9876'

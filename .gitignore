@@ -11,6 +11,9 @@ desktop/web_dist_resources.cpp
 desktop/resources/app.rc
 build/.desktop-binary.txt
 
+# WASM build artifacts copied by dev-wasm
+web/public/wasm-app.*
+
 # Dependencies
 node_modules/
 

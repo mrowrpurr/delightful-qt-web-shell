@@ -1,0 +1,5 @@
+target("wasm-bridges")
+    set_kind("object")
+    add_files("src/*.cpp")
+    add_includedirs("include", {public = true})
+    add_deps("todos")

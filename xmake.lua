@@ -19,23 +19,23 @@ end
 
 add_requires("catch2 3.x")
 
--- ── Libraries ────────────────────────────────────────────────────────
+-- ── Shared libraries ─────────────────────────────────────────────────
 
 includes("lib/todos/xmake.lua")
-includes("lib/web-shell/xmake.lua")
-includes("lib/bridges/xmake.lua")
 
--- ── Desktop app ──────────────────────────────────────────────────────
+-- ── Platform-specific targets ───────────────────────────────────────
 
-includes("desktop/xmake.lua")
-
--- ── Test infrastructure ─────────────────────────────────────────────
-
-includes("tests/helpers/dev-server/xmake.lua")
-
--- ── Build targets ───────────────────────────────────────────────────
-
-includes("xmake/setup.lua")
-includes("xmake/scaffold-bridge.lua")
-includes("xmake/dev.lua")
-includes("xmake/testing.lua")
+if is_plat("wasm") then
+    includes("lib/wasm-bridges/xmake.lua")
+    includes("wasm/xmake.lua")
+else
+    includes("lib/web-shell/xmake.lua")
+    includes("lib/bridges/xmake.lua")
+    includes("desktop/xmake.lua")
+    includes("tests/helpers/dev-server/xmake.lua")
+    includes("xmake/setup.lua")
+    includes("xmake/scaffold-bridge.lua")
+    includes("xmake/dev.lua")
+    includes("xmake/dev-wasm.lua")
+    includes("xmake/testing.lua")
+end
