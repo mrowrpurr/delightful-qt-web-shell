@@ -2,14 +2,15 @@
 
 > **Shortcut:** `xmake run scaffold-bridge <name>` scaffolds a new bridge end-to-end. This tutorial walks through the pattern manually so you understand what's happening under the hood.
 
-We'll add an `addItem` method — from C++ domain logic to React UI — and see how the three-file pattern works.
+We'll add an `addItem` method — from C++ domain logic to React UI — and see how the four-file pattern works (domain logic + Qt bridge + WASM bridge + TypeScript interface).
 
-## The Three Files
+## The Four Files
 
 ```
-├── lib/todos/include/todo_store.hpp        ← C++ domain logic
-├── lib/bridges/include/todo_bridge.hpp  ← Q_INVOKABLE wrapper
-└── web/src/api/bridge.ts                   ← TypeScript interface
+├── lib/todos/include/todo_store.hpp              ← C++ domain logic
+├── lib/bridges/include/todo_bridge.hpp        ← Qt bridge (Q_INVOKABLE)
+├── lib/wasm-bridges/include/todo_wasm_bridge.hpp ← WASM bridge (Embind)
+└── web/src/api/bridge.ts                         ← TypeScript interface
 ```
 
 ## Step 1: Write the C++ Logic
@@ -26,7 +27,7 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 }
 ```
 
-## Step 2: Expose It to JavaScript
+## Step 2: Expose It via the Qt Bridge (Desktop)
 
 Add a `Q_INVOKABLE` method to `TodoBridge` — the QObject wrapper.
 
@@ -54,7 +55,44 @@ static QJsonObject to_json(const TodoItem& i) {
 
 **Why `QJsonObject`?** Return `QJsonObject` or `QJsonArray` and JS gets the data directly. If you return a scalar (`QString`, `int`, `bool`), JS receives it wrapped: `{value: "hello"}` instead of `"hello"`. This is by design — always return structured types for a clean JS API.
 
-## Step 3: Define the TypeScript Interface
+## Step 3: Expose It via the WASM Bridge (Browser)
+
+Add a matching method to `TodoWasmBridge` — **same method name**, same domain call, but returns `emscripten::val` instead of `QJsonObject`.
+
+**`lib/wasm-bridges/include/todo_wasm_bridge.hpp`:**
+
+```cpp
+emscripten::val addItem(const std::string& listId, const std::string& text) {
+    auto item = store_.add_item(listId, text);
+    return to_val(item);
+}
+```
+
+`to_val()` maps C++ struct fields to a JavaScript object in WASM memory:
+
+```cpp
+static emscripten::val to_val(const TodoItem& i) {
+    auto obj = emscripten::val::object();
+    obj.set("id",   i.id);
+    obj.set("text", i.text);
+    obj.set("done", i.done);
+    return obj;
+}
+```
+
+The method is registered with Embind at the bottom of the file:
+
+```cpp
+EMSCRIPTEN_BINDINGS(todo_bridge) {
+    emscripten::class_<TodoWasmBridge>("TodoBridge")
+        .constructor<>()
+        .function("addItem", &TodoWasmBridge::addItem);
+}
+```
+
+> **Pattern:** Qt bridge uses `to_json()` → `QJsonObject`. WASM bridge uses `to_val()` → `emscripten::val`. Same method names, same domain calls, different serialization.
+
+## Step 4: Define the TypeScript Interface
 
 **`web/src/api/bridge.ts`:**
 
@@ -65,24 +103,25 @@ export interface TodoBridge {
 }
 ```
 
-## Step 4: Use It in React
+## Step 5: Use It in React
 
 ```typescript
 const todos = await getBridge<TodoBridge>('todos')
 await todos.addItem(listId, 'Buy milk')
 ```
 
-That's it. Three files, no wiring, no glue code.
+That's it. Four files, no wiring, no glue code.
 
 ## What Just Happened?
 
 | File | What you wrote |
 |------|----------------|
-| `todo_store.hpp` | The actual logic |
-| `todo_bridge.hpp` | Q_INVOKABLE wrapper + signal |
-| `bridge.ts` | TypeScript interface line |
+| `todo_store.hpp` | The actual logic (shared by both targets) |
+| `todo_bridge.hpp` | Qt bridge: `Q_INVOKABLE` wrapper + `to_json()` |
+| `todo_wasm_bridge.hpp` | WASM bridge: Embind method + `to_val()` |
+| `bridge.ts` | TypeScript interface line (shared by both targets) |
 
-The bridge infrastructure didn't change at all. It discovered your new method via `QMetaObject` introspection and made it callable from JavaScript automatically.
+The bridge infrastructure didn't change at all. The Qt side discovered your new method via `QMetaObject` introspection. The WASM side exposed it via Embind. Both are callable from the same React code.
 
 ## Adding a New Bridge
 
@@ -133,5 +172,7 @@ useEffect(() => {
 
 ```bash
 xmake run validate-bridges   # checks TS interfaces match C++ methods
-xmake run test-all            # run the fast test layers
+xmake run test-all            # run all test layers
 ```
+
+> If you only changed WASM bridge code, Catch2 covers the domain logic (same C++) and browser e2e covers the UI. You don't need separate WASM tests — the domain logic is identical.

@@ -2,43 +2,46 @@
 
 ## The Big Picture
 
+One React UI, one domain library, two deployment targets:
+
 ```
-┌──────────────────────────────────────────────────────────┐
-│  Qt Desktop Shell                                        │
-│  ┌────────────┐                  ┌───────────────────┐   │
-│  │   React    │◄─────────────────►│    WebShell       │  │
-│  │   (Vite)   │  QWebChannel /   │  (infrastructure) │  │
-│  └────────────┘  WebSocket       └────────┬──────────┘   │
-│   WebEngine                         addBridge("todos")   │
-│                                           │              │
-│                                    ┌──────┴───────┐      │
-│                                    │    Bridge    │      │
-│                                    │  (QObject)   │      │
-│                                    └──────┴───────┘      │
-└───────────────────────────────────────────┼──────────────┘
-                                            │
-                                     ┌──────┴───────┐
-                                     │  TodoStore   │
-                                     │  (pure C++)  │
-                                     └──────────────┘
+                                ┌──────────────┐
+                          ┌────►│ Qt Bridge    │──┐
+                          │     │ QObject      │  │
+                          │     │ Q_INVOKABLE  │  │    ┌──────────────┐
+ React (Vite)             │     └──────────────┘  ├───►│ TodoStore    │
+ ┌──────────┐    transport│                       │    │ pure C++     │
+ │  UI      │◄────────────┤                       │    │ no framework │
+ │  bridge  │  auto-detect│     ┌──────────────┐  │    │ deps         │
+ │  proxy   │             └────►│ WASM Bridge  │──┘    └──────────────┘
+ └──────────┘                   │ Embind       │
+                                │ emscripten:: │
+      transport:                │ val          │
+      ├── QWebChannel           └──────────────┘
+      ├── WebSocket
+      └── WASM (Embind)
 ```
 
-The app has three layers:
+**The bridge is a controller.** `TodoStore` is the model. The Qt bridge and WASM bridge are two thin controllers over the same model — one speaks `QJsonObject`, the other speaks `emscripten::val`. React is the view. The transport is invisible.
+
+The app has four layers:
 
 1. **React UI** (`web/`) — Everything the user sees. Standard React + Vite.
-2. **Bridge** (`lib/bridges/`) — A thin `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. This is the API surface between C++ and JavaScript.
-3. **Domain logic** (`lib/todos/`) — Pure C++, no Qt dependencies. Your business logic, testable in isolation with Catch2.
+2. **Domain logic** (`lib/todos/`) — Pure C++, no Qt, no Emscripten. Your business logic, testable in isolation with Catch2. Compiled for both desktop and WASM.
+3. **Qt bridge** (`lib/bridges/`) — A thin `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
+4. **WASM bridge** (`lib/wasm-bridges/`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
 
-## Two Transports, Same Code
+## Three Transports, Same Code
 
-| Mode | Transport | When |
-|------|-----------|------|
-| **Production** | QWebChannel (in-process) | `xmake run desktop` |
-| **Dev/Test** | WebSocket JSON-RPC | `xmake run dev-server`, Playwright, Bun tests |
+| Mode | Transport | Bridge type | When |
+|------|-----------|-------------|------|
+| **Desktop prod** | QWebChannel (in-process) | Qt (`QObject`) | `xmake run desktop` |
+| **Desktop dev/test** | WebSocket JSON-RPC | Qt (`QObject`) | `xmake run dev-server`, Playwright, Bun tests |
+| **Browser (WASM)** | Direct Embind calls | WASM (`emscripten::val`) | `xmake run dev-wasm` |
 
-Your code doesn't know or care which transport is active. The React app auto-detects: if `window.qt?.webChannelTransport` exists, it uses QWebChannel. Otherwise, it connects via WebSocket to `localhost:9876`.
+Your code doesn't know or care which transport is active. React auto-detects: `VITE_TRANSPORT=wasm` → Embind. `window.qt?.webChannelTransport` → QWebChannel. Otherwise → WebSocket to `localhost:9876`.
 
-This means you can develop in a browser with hot reload, and the same code runs inside the Qt window in production — zero changes.
+This means you can develop in a browser with hot reload, the same code runs inside the Qt window in production, and the same C++ logic runs as WASM in the browser — zero changes to React.
 
 ## The Proxy Pattern
 
@@ -48,7 +51,9 @@ Both sides are zero-boilerplate:
 
 **TypeScript side:** `getBridge<TodoBridge>('todos')` queries the backend for available methods and signals, then returns a JavaScript `Proxy`. Method calls become JSON-RPC messages. Signal names become subscribe functions.
 
-**The result:** Add a `Q_INVOKABLE` method in C++ and a matching line in the TypeScript interface. The proxy connects them with no glue code.
+**WASM side:** No proxy needed — Embind exposes C++ methods directly as JavaScript functions. The WASM transport wraps synchronous Embind calls in Promises for API consistency with the other transports.
+
+**The result:** Add a method to your domain logic, wrap it in both bridges (Qt + WASM), add a line to the TypeScript interface. The transport connects them.
 
 ## Signals — C++ to JavaScript Events
 
@@ -67,11 +72,11 @@ todos.dataChanged(() => refresh())
 
 Only parameterless signals are auto-forwarded. If you need to push data, emit a parameterless notification and have the client re-fetch.
 
-## The signalReady() Contract
+## The signalReady() Contract (Desktop Only)
 
 React calls `signalReady()` after mounting. This tells the C++ side to fade out the loading overlay. If it never fires (JS error, bridge broken), a 15-second timeout shows an error message.
 
-This call lives in `App.tsx`. If you refactor, move it — but never remove it.
+This call lives in `App.tsx`. If you refactor, move it — but never remove it. In WASM mode, `signalReady()` is a no-op — there's no loading overlay to dismiss.
 
 ## Cross-Platform
 

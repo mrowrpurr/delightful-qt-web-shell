@@ -25,6 +25,8 @@ Five test layers, from instant unit tests to native Qt window automation.
 
 `test-all` runs Catch2 + Bun + browser e2e + pywinauto. It launches and stops the desktop app automatically for native tests. Desktop e2e (Playwright in Qt) is the only layer excluded — it's slower and can be flaky due to GPU/window manager timing.
 
+> ⚠️ **`test-all` takes over your desktop.** It launches the Qt app and drives it with pywinauto — your mouse and keyboard are hijacked for ~30 seconds. If you're working with an agent and don't want to lose control, ask them to run the invisible layers first: `test-todo-store`, `test-bun`, and `test-browser`. Those catch most issues without touching your desktop. Only run `test-all` (or `test-pywinauto`) when you're ready to hand over the screen.
+
 ## Setup (One Time)
 
 ```bash
@@ -37,6 +39,7 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 |---|---|
 | Domain logic in `todo_store.hpp` | Add a Catch2 test |
 | New bridge method in `todo_bridge.hpp` | Nothing — test server uses the real bridge |
+| New WASM bridge method | Catch2 covers the domain logic; browser e2e covers the UI |
 | UI behavior changed | Add a Playwright e2e test |
 | New native Qt dialog or menu | Add a pywinauto test in `tests/pywinauto/` |
 | Nothing visible changed | You probably don't need a new test |
@@ -141,3 +144,26 @@ def test_save_dialog(app):
 | `tests/pywinauto/native_dialogs.py` | `FileDialog`, `QtMessageBox`, `open_modal` helpers |
 | `tests/pywinauto/win32_helpers.py` | Low-level Win32 API for modal dialog interaction |
 | `tools/screenshot.py` | Desktop screenshot CLI + Python API (multi-monitor) |
+
+## Working with Agents
+
+Agents share your computer. Some test commands are invisible; others steal your desktop.
+
+**Invisible (safe anytime — agent can run without asking):**
+- `test-todo-store` — pure C++ unit tests, no GUI
+- `test-bun` — bridge protocol tests, no GUI
+- `test-browser` — headless Chromium, no visible window
+- `validate-bridges` — static check, no GUI
+
+**Takes over your desktop (agent should ask first):**
+- `test-all` — includes pywinauto, which drives your mouse/keyboard for ~30s
+- `test-pywinauto` — same as above
+- `test-desktop` — launches Qt app with Playwright, can be flaky
+
+**What you can tell your agent:**
+- *"Run the invisible tests first, only run test-all when I say so"*
+- *"Run the WASM app headlessly"* — agent uses `PLAYWRIGHT_URL=http://localhost:5173` with playwright-cdp, completely invisible to you
+- *"Open the browser so I can see it"* — agent uses `playwright-cdp open` to launch a visible browser you both can see
+- *"Go ahead and run everything"* — gives the agent permission to run `test-all`
+
+The agent docs explain this from the other side — agents are instructed to ask before running desktop-hijacking tests.

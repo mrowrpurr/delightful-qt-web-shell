@@ -7,6 +7,8 @@
 --   xmake f -p windows --qt=...   (switch back — dev-wasm is a phony target)
 --   xmake run dev-wasm
 
+local _APP_NAME = APP_NAME
+
 target("dev-wasm")
     set_kind("phony")
     set_default(false)
@@ -31,6 +33,7 @@ target("dev-wasm")
         -- Start Vite with WASM transport
         local web_dir = path.join(root, "web")
         local envs = os.getenvs()
+        envs["VITE_APP_NAME"] = _APP_NAME
         envs["VITE_TRANSPORT"] = "wasm"
         print("Starting Vite with WASM transport...")
         os.execv("bun", {"run", "dev"}, {curdir = web_dir, envs = envs})
