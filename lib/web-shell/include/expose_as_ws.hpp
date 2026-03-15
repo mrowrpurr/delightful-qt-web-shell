@@ -40,16 +40,30 @@ public slots:
 // expected parameter type. Uses Qt's own QVariant conversion system so
 // ANY type with a registered converter works — no hardcoded type list.
 //
+// QJsonValue::toVariant() loses JSON type info (object→QVariantMap,
+// array→QVariantList) and QVariant::convert() can't always recover it —
+// the QVariantList→QJsonArray converter isn't registered in all Qt 6.x.
+// So we extract JSON-native types directly from the QJsonValue first.
+//
 // The QVariant is used as stable storage — its lifetime must outlast the
 // invoke call. We fill one QVariant per parameter and point the
 // QGenericArgument at the QVariant's internal data.
 // Uses QGenericArgument directly (not Q_ARG) for compatibility across Qt 6.x.
 // Q_ARG returns QMetaMethodArgument in Qt 6.5+ which is a different type.
 inline QGenericArgument coerce_arg(const QJsonValue& json_val, const QByteArray& param_type, QVariant& storage) {
-    QMetaType target_type = QMetaType::fromName(param_type);
-    storage = json_val.toVariant();
-    if (target_type.isValid() && storage.metaType() != target_type)
-        storage.convert(target_type);
+    // Extract JSON-native types directly — avoids lossy QVariant round-trip.
+    if (param_type == "QJsonObject" && json_val.isObject()) {
+        storage = QVariant::fromValue(json_val.toObject());
+    } else if (param_type == "QJsonArray" && json_val.isArray()) {
+        storage = QVariant::fromValue(json_val.toArray());
+    } else if (param_type == "int" && json_val.isDouble()) {
+        storage = QVariant::fromValue(static_cast<int>(json_val.toDouble()));
+    } else {
+        QMetaType target_type = QMetaType::fromName(param_type);
+        storage = json_val.toVariant();
+        if (target_type.isValid() && storage.metaType() != target_type)
+            storage.convert(target_type);
+    }
     return QGenericArgument(param_type.constData(), storage.constData());
 }
 
