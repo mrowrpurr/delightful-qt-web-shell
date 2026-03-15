@@ -4,7 +4,7 @@
 
 ## Adding a Method to an Existing Bridge
 
-Three files. No wiring.
+Four files. No wiring.
 
 ### 1. C++ domain logic
 
@@ -18,7 +18,7 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 }
 ```
 
-### 2. Bridge wrapper
+### 2. Qt bridge wrapper (desktop)
 
 `lib/bridges/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`. Parameters can be `QString`, `int`, `double`, `bool`, `QJsonObject`, `QJsonArray`, or `QStringList` — the bridge converts JSON args automatically:
 
@@ -30,7 +30,7 @@ Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
 }
 ```
 
-`to_json()` is a hand-written helper — **you write one for each domain struct** you want to return. It lives as a `static` method in the bridge class:
+`to_json()` is a hand-written helper — **you write one for each domain struct** you want to return:
 
 ```cpp
 static QJsonObject to_json(const TodoItem& i) {
@@ -43,9 +43,45 @@ static QJsonObject to_json(const TodoItem& i) {
 }
 ```
 
-There's no auto-generation or macro. Qt doesn't know your struct layout, so you map fields manually. This is the pattern used throughout the template — see `todo_bridge.hpp` for the full example.
+### 3. WASM bridge wrapper (browser)
 
-**Return type matters on the JS side:**
+`lib/wasm-bridges/include/todo_wasm_bridge.hpp` — same method names, same domain call, but returns `emscripten::val` instead of `QJsonObject`:
+
+```cpp
+emscripten::val addItem(const std::string& listId, const std::string& text) {
+    auto item = store_.add_item(listId, text);
+    notify();
+    return to_val(item);
+}
+```
+
+`to_val()` is the WASM equivalent of `to_json()`:
+
+```cpp
+static emscripten::val to_val(const TodoItem& i) {
+    auto obj = emscripten::val::object();
+    obj.set("id", i.id);
+    obj.set("text", i.text);
+    obj.set("done", i.done);
+    obj.set("created_at", i.created_at);
+    return obj;
+}
+```
+
+Then register it with Embind in `lib/wasm-bridges/src/wasm_bindings.cpp`:
+
+```cpp
+EMSCRIPTEN_BINDINGS(bridges) {
+    emscripten::class_<TodoWasmBridge>("TodoBridge")
+        .constructor()
+        .function("addItem", &TodoWasmBridge::addItem);
+        // ... all other methods
+}
+```
+
+**The pattern:** `to_json()` for Qt, `to_val()` for WASM. Same fields, same structure, different types. Both are thin wrappers around the same domain logic — they should produce identical JSON shapes.
+
+**Return type matters on the JS side (Qt bridge only):**
 
 | C++ returns | JS receives | Why |
 |------------|-------------|-----|
@@ -54,11 +90,11 @@ There's no auto-generation or macro. Qt doesn't know your struct layout, so you 
 | `QString`, `int`, `double`, `bool` | Wrapped: `{value: ...}` | Scalars need a JSON wrapper |
 | `void` | `{ok: true}` | Acknowledgement |
 
-**Always return `QJsonObject` or `QJsonArray` for structured data.** If you return a `QString`, the JS side sees `{value: "hello"}` not `"hello"` — this is by design, not a bug. Access it via `result.value`.
+**WASM bridge returns are always direct** — `emscripten::val` creates JS objects, so there's no wrapping.
 
 **Errors are thrown as JS exceptions.** Wrong arg count → `"addItem: expected 2 args, got 1"`. Unknown method → clear error. You'll see these in the browser console (F12) or in Playwright test output — they don't fail silently.
 
-### 3. TypeScript interface
+### 4. TypeScript interface
 
 `web/src/api/bridge.ts`:
 
@@ -98,13 +134,21 @@ No xmake.lua edits needed — the `lib/bridges/` target uses glob discovery.
 ### After scaffolding
 
 1. Add `Q_INVOKABLE` methods to `lib/bridges/include/notes_bridge.hpp`
-2. Mirror them in `web/src/api/notes-bridge.ts`
-3. Use it: `const notes = await getBridge<NotesBridge>('notes')`
+2. Create the WASM bridge: `lib/wasm-bridges/include/notes_wasm_bridge.hpp` — same method names, `emscripten::val` returns, `to_val()` helpers
+3. Register in `lib/wasm-bridges/src/wasm_bindings.cpp` with `EMSCRIPTEN_BINDINGS`
+4. Register in `web/src/api/wasm-transport.ts` — add `notes: new wasm.NotesBridge()` to the bridges map
+5. Mirror methods in `web/src/api/notes-bridge.ts`
+6. Use it: `const notes = await getBridge<NotesBridge>('notes')`
+
+> The scaffolder handles Qt bridge + TS interface + wiring. WASM bridge creation is manual — see `todo_wasm_bridge.hpp` for the pattern.
 
 ### Checklist
 
-- [ ] `Q_INVOKABLE` methods + `to_json()` helpers for your structs in the `.hpp`
-- [ ] Matching TypeScript interface in the `.ts`
+- [ ] Domain logic in `lib/` — pure C++, no framework deps
+- [ ] Qt bridge: `Q_INVOKABLE` methods + `to_json()` helpers
+- [ ] WASM bridge: Embind-registered class + `to_val()` helpers + `EMSCRIPTEN_BINDINGS`
+- [ ] WASM transport: bridge instance registered in `wasm-transport.ts`
+- [ ] TypeScript interface matching both bridges
 - [ ] Run `xmake run validate-bridges` to verify C++ and TS match
 
 ---
@@ -131,6 +175,17 @@ Q_INVOKABLE QJsonObject addItem(...) {
 ```
 
 **Only parameterless signals are auto-forwarded** to connected clients. Signals with parameters (e.g., `void itemAdded(QString id)`) are listed in `__meta__` but are NOT forwarded over WebSocket — the forwarding mechanism uses a generic slot that can't receive arbitrary parameter types. If you need to push data, emit a parameterless signal and have the client re-fetch.
+
+**WASM equivalent:** Signals don't exist in Embind. Instead, expose an `onDataChanged(callback)` method that stores a JS callback. Call it from mutation methods:
+
+```cpp
+// In the WASM bridge:
+std::vector<emscripten::val> data_changed_listeners_;
+void notify() { for (auto& cb : data_changed_listeners_) cb(); }
+void onDataChanged(emscripten::val callback) { data_changed_listeners_.push_back(callback); }
+```
+
+The WASM transport maps `onDataChanged` to the same `dataChanged` signal interface React expects — no changes needed in your components.
 
 ### Subscribe in TypeScript
 

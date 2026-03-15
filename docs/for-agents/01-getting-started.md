@@ -1,29 +1,34 @@
 # Getting Started
 
-You're an agent who wants to build a desktop app. This template gives you Qt + React + C++ with a bridge between them and five layers of automated testing.
+You're an agent who wants to build an app. This template gives you Qt + React + C++ with a bridge between them, five layers of automated testing, and two deployment targets: **desktop** (Qt) and **browser** (WASM).
 
 ## What You Get
 
-- **React UI** rendered inside a Qt WebEngine window — you write React, the user sees a native desktop app
-- **C++ backend** connected to the UI via a type-safe bridge — write `Q_INVOKABLE` methods, call them from TypeScript
+- **React UI** — one codebase, two targets: native Qt desktop window or standalone browser app
+- **C++ backend** connected to the UI via bridges — Qt bridge for desktop, Embind bridge for WASM
+- **Shared domain logic** — pure C++ with no framework deps, compiled for both targets
 - **Five test layers** that actually work — C++ unit, bridge protocol, browser e2e, desktop e2e, native Qt
-- **Dev tools** — playwright-cdp (see/click web content via CLI/library), pywinauto (drive native Qt widgets)
+- **Dev tools** — playwright-cdp (see/click web content via CLI), pywinauto (drive native Qt widgets)
 
 ## Project Layout
 
 ```
 ├── desktop/                  # Qt desktop app (main.cpp, xmake.lua, resources)
-├── web/                      # React app (Vite)
-│   └── src/api/bridge.ts     #   TypeScript bridge interfaces
+├── web/                      # React app (Vite) — shared by desktop + WASM
+│   └── src/api/
+│       ├── bridge.ts         #   TypeScript bridge interfaces + transport auto-detect
+│       └── wasm-transport.ts #   WASM transport (Embind calls wrapped in Promises)
 ├── lib/
-│   ├── todos/                #   Domain logic (pure C++, no Qt)
-│   ├── bridges/               #   Bridge QObjects (wrappers over domain logic)
+│   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)
+│   ├── bridges/              #   Qt bridge — QObjects wrapping domain logic
+│   ├── wasm-bridges/         #   WASM bridge — Embind wrapping domain logic
 │   └── web-shell/            #   Framework internals (don't touch)
+├── wasm/                     # WASM entry point + Emscripten linker config
 ├── tests/
 │   ├── playwright/           #   Browser + desktop e2e tests
 │   ├── pywinauto/            #   Native Qt widget tests (Windows)
 │   └── helpers/dev-server/   #   Headless C++ backend for dev/test
-├── tools/playwright-cdp/      # Playwright + CDP library for seeing web content
+├── tools/playwright-cdp/     # Playwright CLI for driving web content (desktop + browser)
 └── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, targets)
 ```
 
@@ -35,6 +40,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 - [Qt 6.x](https://www.qt.io) with modules: WebEngine, WebChannel, WebSockets, Positioning (Positioning is a transitive dependency of QtWebEngine — you won't use it directly)
 - [Bun](https://bun.sh) — JS runtime and package manager
 - [Node.js](https://nodejs.org) — for Playwright and playwright-cdp (Bun's ws polyfill breaks CDP)
+- [Emscripten](https://emscripten.org) — *(optional, WASM target only)* C++ to WebAssembly compiler
 
 ## Make It Yours
 
@@ -101,6 +107,34 @@ xmake run dev-web
 ```
 
 Same React code, same bridge calls — just running in a browser instead of Qt.
+
+### WASM (browser-only, no Qt needed)
+
+```bash
+# One-time: build the WASM target
+xmake f -p wasm && xmake build wasm-app
+
+# Switch back to desktop config (WASM artifacts persist in build/)
+xmake f -p windows --qt=/path/to/qt
+
+# Run the WASM app in browser
+xmake run dev-wasm
+```
+
+`dev-wasm` copies the WASM build artifacts to `web/public/` and starts Vite with `VITE_TRANSPORT=wasm`. Same React UI, same method names — but the C++ runs as WebAssembly in the browser instead of a Qt backend.
+
+**React HMR works.** C++ changes require `xmake f -p wasm && xmake build wasm-app`, then `reload()` in playwright-cdp or refresh the browser.
+
+**Drive it with playwright-cdp:**
+```bash
+# Headless (agent solo)
+PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts snapshot
+
+# Headed (pairing with human)
+npx tsx tools/playwright-cdp/cli.ts open http://localhost:5173
+npx tsx tools/playwright-cdp/cli.ts snapshot   # reuses same browser
+npx tsx tools/playwright-cdp/cli.ts close      # when done
+```
 
 ### Background launch (for automation)
 

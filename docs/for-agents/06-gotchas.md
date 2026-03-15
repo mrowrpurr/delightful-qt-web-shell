@@ -29,12 +29,23 @@ QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes
 
 **When bumping playwright-core**, check if the patch still applies and if the issue is fixed upstream.
 
+## WASM Gotchas
+
+**Embind bindings missing (TodoBridge is not a constructor):** The `wasm-bridges` library must use `set_kind("object")` in xmake.lua, not `set_kind("static")`. Static libraries get dead-stripped by the linker because `main.cpp` doesn't reference the `EMSCRIPTEN_BINDINGS` block (it's a static initializer). Object libraries include all `.o` files unconditionally.
+
+**Vite blocks import() of /public files:** You can't `import('/wasm-app.js')` in Vite — it refuses to transform JS files inside `/public`. The WASM transport uses a blob URL + `<script type="module">` to load the Emscripten module. Don't try to "fix" this with `@vite-ignore` — it doesn't work. See `wasm-transport.ts` for the working pattern.
+
+**Platform switch resets Qt path:** After `xmake f -p wasm`, switching back with `xmake f -p windows` loses the `--qt=` setting. Always pass it explicitly: `xmake f -p windows --qt=C:/qt/6.10.2/msvc2022_64`.
+
+**WASM state is in-memory:** The WASM bridge has no persistence — page refresh resets everything. This is expected. After rebuilding WASM, use `reload()` in playwright-cdp to pick up the new build.
+
 ## Port Conflicts
 
 | Port | Used by | If busy |
 |------|---------|---------|
 | 5173 | Vite dev server | Another Vite instance? |
 | 9222 | CDP (Qt debug port) | Another Qt/Chrome instance? |
+| 9333 | CDP (playwright-cdp open) | Close with `npx tsx tools/playwright-cdp/cli.ts close` |
 | 9876 | WebSocket bridge | dev-server already running? |
 
 ## Environment

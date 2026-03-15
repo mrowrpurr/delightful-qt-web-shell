@@ -27,13 +27,26 @@ You're an agent. You can't look at a screen. These tools are your eyes and hands
 
 ## playwright-cdp — Your Eyes on the Web Content
 
-A TypeScript library + CLI for driving the Qt app via Chrome DevTools Protocol. Import the functions directly for full programmatic power, or use the CLI for quick one-off commands.
+A TypeScript library + CLI for driving the app via Playwright. Works with both the Qt desktop app (via CDP) and the WASM browser app (via launched Chromium).
+
+### Connection Modes
+
+| Mode | How | When |
+|------|-----|------|
+| **Qt desktop** (default) | Connects to CDP on `:9222` | `xmake run start-desktop` first |
+| **Browser headless** | `PLAYWRIGHT_URL=http://...` | Agent driving WASM app solo |
+| **Browser persistent** | `cli.ts open <url>` / `close` | Human+agent pairing — browser stays open |
 
 ### Setup
 
 ```bash
 xmake run setup            # all deps (one time)
+
+# Desktop mode:
 xmake run start-desktop    # launches app, CDP on :9222
+
+# WASM mode:
+xmake run dev-wasm         # starts Vite with WASM transport on :5173
 ```
 
 ### Three Ways to Use It
@@ -108,7 +121,10 @@ npx tsx tools/playwright-cdp/cli.ts screenshot debug.png
 | `text(testId?, { selector? })` | Gets the text content of an element |
 | `wait(testId?, timeout?, { selector? })` | Waits for an element to appear |
 | `console_messages({ level?, count?, clear? })` | Reads buffered console messages (filtered, counted, or cleared) |
-| `disconnect()` | Closes the CDP connection (auto-called by run.ts) |
+| `reload()` | Reloads the page (picks up new WASM builds) |
+| `open(url, { headless? })` | Launches persistent Chromium (survives between commands) |
+| `close()` | Closes the persistent browser |
+| `disconnect()` | Detaches from CDP (auto-called by run.ts) |
 
 ### Workflow Pattern
 
@@ -124,6 +140,44 @@ npx tsx tools/playwright-cdp/cli.ts screenshot debug.png
 - **eval_js for power moves** — read React state, check localStorage, trigger functions
 - **console_messages for debugging** — reads the in-page buffer instantly, filter by `level`, limit with `count`, drain with `clear: true`
 - **run.ts for quick exploration** — pipe code via stdin, all functions available as globals, no imports, auto-disconnect
+
+### Driving the WASM App
+
+The same functions work against the WASM browser app. Two modes:
+
+**Headless (agent working solo):**
+```bash
+# Each command launches its own headless browser, runs, exits
+PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts snapshot
+
+echo '
+await fill("new-list-input", "Groceries")
+await click("create-list-button")
+console.log(await snapshot())
+' | PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/run.ts
+```
+
+**Persistent browser (pairing with human):**
+```bash
+# Open a browser that stays open between commands
+npx tsx tools/playwright-cdp/cli.ts open http://localhost:5173
+
+# Now run commands against it — same browser, state preserved
+PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts snapshot
+PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts fill --test-id new-list-input "Groceries"
+
+# When done
+npx tsx tools/playwright-cdp/cli.ts close
+```
+
+**After rebuilding WASM:**
+```bash
+xmake f -p wasm && xmake build wasm-app
+# dev-wasm auto-copies artifacts, or manually:
+cp build/wasm/wasm32/release/wasm-app.* web/public/
+# Then reload the page:
+PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts reload
+```
 
 ### ⚠️ Critical: Node, Not Bun
 

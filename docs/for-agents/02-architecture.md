@@ -2,33 +2,43 @@
 
 ## The Big Picture
 
+One React UI, one domain library, two deployment targets:
+
 ```
- React (Vite)          WebShell              Bridge           TodoStore
- ┌──────────┐      ┌──────────────┐     ┌──────────────┐   ┌──────────────┐
- │  UI      │◄────►│ infrastructure│────►│ QObject      │──►│ pure C++     │
- │  bridge  │      │ registration │     │ Q_INVOKABLE  │   │ no Qt deps   │
- │  proxy   │      │ appReady     │     │ signals      │   │ business     │
- └──────────┘      └──────────────┘     └──────────────┘   │ logic        │
-                                                            └──────────────┘
-      ▲                    ▲
-      │                    │
-      └── QWebChannel ────┘  (production: in-process, zero overhead)
-      └── WebSocket ──────┘  (dev/test: same protocol, any client)
+                                ┌──────────────┐
+                          ┌────►│ Qt Bridge    │──┐
+                          │     │ QObject      │  │
+                          │     │ Q_INVOKABLE  │  │    ┌──────────────┐
+ React (Vite)             │     └──────────────┘  ├───►│ TodoStore    │
+ ┌──────────┐    transport│                       │    │ pure C++     │
+ │  UI      │◄────────────┤                       │    │ no framework │
+ │  bridge  │  auto-detect│     ┌──────────────┐  │    │ deps         │
+ │  proxy   │             └────►│ WASM Bridge  │──┘    └──────────────┘
+ └──────────┘                   │ Embind       │
+                                │ emscripten:: │
+      transport:                │ val          │
+      ├── QWebChannel           └──────────────┘
+      ├── WebSocket
+      └── WASM (Embind)
 ```
 
-## Three Layers You Touch
+**The bridge is a controller.** `TodoStore` is the model. The Qt bridge and WASM bridge are two thin controllers over the same model — one speaks `QJsonObject`, the other speaks `emscripten::val`. React is the view. The transport is invisible.
 
-1. **Domain logic** (`lib/todos/include/todo_store.hpp`) — Pure C++, no Qt. Your business logic lives here. Testable with Catch2 in isolation.
+## Four Layers You Touch
 
-2. **Bridge** (`lib/bridges/include/todo_bridge.hpp`) — A `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. This is the API surface between C++ and JavaScript. Takes Qt types, returns Qt types.
+1. **Domain logic** (`lib/todos/include/todo_store.hpp`) — Pure C++, no Qt, no Emscripten. Your business logic lives here. Testable with Catch2 in isolation. Compiled for both desktop and WASM.
 
-3. **TypeScript interface** (`web/src/api/bridge.ts`) — Declares the methods and signals your bridge exposes. No implementation needed — the proxy dynamically dispatches method calls based on the interface, so the declaration alone is sufficient.
+2. **Qt bridge** (`lib/bridges/include/todo_bridge.hpp`) — A `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
+
+3. **WASM bridge** (`lib/wasm-bridges/include/todo_wasm_bridge.hpp`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
+
+4. **TypeScript interface** (`web/src/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
 
 ## Two Layers You Don't Touch
 
-- **WebShell** (`lib/web-shell/include/web_shell.hpp`) — Bridge registration, `appReady` lifecycle signal. You call `shell->addBridge("name", bridge)` and never think about it again.
+- **WebShell** (`lib/web-shell/include/web_shell.hpp`) — Bridge registration, `appReady` lifecycle signal. You call `shell->addBridge("name", bridge)` and never think about it again. *(Desktop only — WASM doesn't use WebShell.)*
 
-- **Transport** (`lib/web-shell/include/expose_as_ws.hpp` + `web/src/api/bridge-transport.ts`) — Converts `Q_INVOKABLE` methods to JSON-RPC over WebSocket (dev/test) or QWebChannel (production). Uses `QMetaObject` introspection + `QVariant` conversion — any type Qt can serialize works automatically.
+- **Transport** (`web/src/api/bridge-transport.ts`, `wasm-transport.ts`) — The React app auto-detects which transport to use. You never touch this.
 
 ## The Proxy Pattern
 
@@ -49,16 +59,19 @@ export default function App() {
 }
 ```
 
-**The result:** Add a `Q_INVOKABLE` method in C++ and a line in the TypeScript interface. Done. The proxy connects them.
+**WASM side:** No proxy needed — Embind exposes C++ methods directly as JavaScript functions. The WASM transport wraps synchronous Embind calls in Promises for API consistency with the other transports.
 
-## Two Transports, Same Code
+**The result:** Add a method to your domain logic, wrap it in both bridges (Qt + WASM), add a line to the TypeScript interface. The transport connects them.
 
-| Mode | Transport | When |
-|------|-----------|------|
-| **Production** | QWebChannel (in-process) | `xmake run desktop` |
-| **Dev/Test** | WebSocket JSON-RPC | `xmake run dev-server`, Playwright, Bun tests |
+## Three Transports, Same React Code
 
-Your bridge code doesn't know or care which transport is active. The React app auto-detects: if `window.qt?.webChannelTransport` exists, it uses QWebChannel. Otherwise, it connects via WebSocket to `localhost:9876`.
+| Mode | Transport | Bridge type | When |
+|------|-----------|-------------|------|
+| **Desktop prod** | QWebChannel (in-process) | Qt (`QObject`) | `xmake run desktop` |
+| **Desktop dev/test** | WebSocket JSON-RPC | Qt (`QObject`) | `xmake run dev-server`, Playwright, Bun tests |
+| **Browser (WASM)** | Direct Embind calls | WASM (`emscripten::val`) | `xmake run dev-wasm` |
+
+React auto-detects: `VITE_TRANSPORT=wasm` → Embind. `window.qt?.webChannelTransport` → QWebChannel. Otherwise → WebSocket to `localhost:9876`. Your React components don't know or care which transport is active.
 
 ## Type System
 

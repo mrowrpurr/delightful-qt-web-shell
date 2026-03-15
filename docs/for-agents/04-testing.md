@@ -35,9 +35,12 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 |---|---|
 | Domain logic in `todo_store.hpp` | Add a Catch2 test |
 | New bridge method in `todo_bridge.hpp` | Nothing — test server uses the real bridge |
+| New WASM bridge method | Catch2 covers the domain logic; browser test covers the UI |
 | UI behavior changed | Add a Playwright e2e test |
 | New native Qt dialog or menu | Add a pywinauto test in `tests/pywinauto/` |
 | Nothing visible changed | You probably don't need a new test |
+
+**WASM testing note:** Domain logic is already tested via Catch2 — it's the same C++ compiled for both targets. The WASM bridge is thin (just `to_val()` wrappers), so if Catch2 and browser e2e tests pass, the WASM path works. For manual verification, use `PLAYWRIGHT_URL=http://localhost:5173` with playwright-cdp.
 
 ## Something Broke → Where to Look
 
