@@ -20,8 +20,10 @@ Five layers, from instant unit tests to native Qt window automation.
 | Browser e2e (Playwright) | `xmake run test-browser` | ~5s | UI + backend integration |
 | Desktop e2e (Playwright) | `xmake run test-desktop` | ~15s | Same tests in real Qt app |
 | Native Qt (pywinauto) | `xmake run test-pywinauto` | ~5s | Menus, dialogs, shortcuts |
-| All layers | `xmake run test-all` | ~30s | Catch2 + Bun + browser e2e + pywinauto |
+| All layers | `xmake run test-all` | ~30s | Catch2 + Bun + browser e2e + pywinauto ⚠️ |
 | Bridge validation | `xmake run validate-bridges` | ~3s | TS↔C++ interface match |
+
+**⚠️ `test-all` takes over the desktop.** It launches the Qt app and drives it with pywinauto — your human loses mouse/keyboard control for ~30 seconds. **Ask before running it.** If you just need to validate logic and UI, run `test-todo-store`, `test-bun`, and `test-browser` first — they're invisible. Only run `test-all` or `test-pywinauto` when you need to verify native Qt features (menus, dialogs, shortcuts). See [Sharing the Desktop](05-tools.md#sharing-the-desktop-with-your-human).
 
 ## Setup (One Time)
 

@@ -130,10 +130,10 @@ xmake run dev-wasm
 # Headless (agent solo)
 PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts snapshot
 
-# Headed (pairing with human)
+# Headed (pairing with human — browser stays open between commands)
 npx tsx tools/playwright-cdp/cli.ts open http://localhost:5173
-npx tsx tools/playwright-cdp/cli.ts snapshot   # reuses same browser
-npx tsx tools/playwright-cdp/cli.ts close      # when done
+PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts snapshot
+npx tsx tools/playwright-cdp/cli.ts close
 ```
 
 ### Background launch (for automation)

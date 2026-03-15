@@ -382,9 +382,22 @@ playwright-cdp works everywhere because it talks to the browser engine, not the 
 
 ## Sharing the Desktop with Your Human
 
-If you're driving the app with pywinauto, **your human can't use their desktop** — you're moving their mouse, opening dialogs, pressing keys. Coordinate:
+You share a computer with a human. Be mindful of what takes over their screen.
 
-- Ask before taking over the desktop
-- Work in focused bursts — do your automation, then release
-- Consider running on a separate machine or VM for long automation sessions
-- playwright-cdp doesn't have this problem — it works through CDP, invisible to the human
+**What's invisible to the human (safe anytime):**
+- playwright-cdp in **headless mode** (`PLAYWRIGHT_URL=...`) — runs in a background browser
+- playwright-cdp via **CDP** (`:9222`) — talks to the browser engine, not the OS
+- Catch2 and Bun tests — pure backend, no GUI
+
+**What hijacks their desktop (ask first):**
+- **pywinauto** — moves their mouse, opens dialogs, presses keys. They can't use their computer.
+- **`xmake run test-all`** — includes pywinauto tests, which launch the Qt desktop app and drive it for ~30s. Your human loses control of their desktop during this time.
+- **`xmake run test-pywinauto`** / **`xmake run test-desktop`** — same problem
+- **playwright-cdp `open`** (persistent headed browser) — opens a visible window but doesn't steal focus or mouse. Less intrusive, but still visible.
+
+**Best practices:**
+- **Ask before running `test-all`** — "I need to run the full test suite, which includes desktop tests that'll take over your screen for about 30 seconds. Good time?"
+- Prefer **headless browser mode** for WASM work — it's completely invisible
+- For desktop tests, consider running non-pywinauto layers first (`test-todo-store`, `test-bun`, `test-browser`) to catch most issues without taking over the desktop
+- If the human says "run everything", go ahead — they've given permission
+- Work in focused bursts with pywinauto — do your automation, then release

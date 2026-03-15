@@ -89,9 +89,11 @@ Common types:
 | array of strings | `QStringList` | Qt auto-converts |
 | anything | `QVariant` | Catch-all |
 
-### Return Value Wrapping
+### Return Value Wrapping (Qt bridge only)
 
-This is important — the JS side sees different shapes depending on the C++ return type:
+This applies to the **Qt bridge** (desktop). The WASM bridge returns `emscripten::val` objects directly — no wrapping, no special cases.
+
+For the Qt bridge, the JS side sees different shapes depending on the C++ return type:
 
 | C++ returns | JS receives | Example |
 |------------|-------------|---------|
@@ -109,8 +111,8 @@ This is important — the JS side sees different shapes depending on the C++ ret
 **Max parameters:** 10 per method (Qt's `QMetaObject::invokeMethod` limit — pass a `QJsonObject` if you need more).
 **Arg count mismatch:** Returns a clear error: `"addItem: expected 2 args, got 1"`.
 
-## signalReady() Contract
+## signalReady() Contract (Desktop Only)
 
 React calls `signalReady()` after mounting. This fires `WebShell::ready()` on the C++ side, which fades out the loading overlay. If it never fires (bridge broken, JS error), a 15-second timeout shows an error message.
 
-**Never remove the `signalReady()` call in App.tsx.** Move it if you refactor, but it must run after your app mounts.
+**Never remove the `signalReady()` call in App.tsx.** Move it if you refactor, but it must run after your app mounts. In WASM mode, `signalReady()` is a no-op — there's no loading overlay to dismiss.
