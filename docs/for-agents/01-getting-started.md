@@ -20,8 +20,9 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 │       └── wasm-transport.ts #   WASM transport (Embind calls wrapped in Promises)
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)
-│   ├── bridges/              #   Qt bridge — QObjects wrapping domain logic
-│   ├── wasm-bridges/         #   WASM bridge — Embind wrapping domain logic
+│   ├── bridges/
+│   │   ├── qt/               #   Qt bridge — QObjects wrapping domain logic
+│   │   └── wasm/             #   WASM bridge — Embind wrapping domain logic
 │   └── web-shell/            #   Framework internals (don't touch)
 ├── wasm/                     # WASM entry point + Emscripten linker config
 ├── tests/

@@ -113,8 +113,9 @@ xmake run dev-wasm
 │   └── src/api/bridge.ts     #   TypeScript bridge interfaces
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)
-│   ├── bridges/              #   Qt bridge — QObjects wrapping domain logic
-│   ├── wasm-bridges/         #   WASM bridge — Embind wrapping domain logic
+│   ├── bridges/
+│   │   ├── qt/               #   Qt bridge — QObjects wrapping domain logic
+│   │   └── wasm/             #   WASM bridge — Embind wrapping domain logic
 │   └── web-shell/            #   Framework internals (you won't touch this)
 ├── wasm/                     # WASM entry point + Emscripten linker config
 ├── tests/

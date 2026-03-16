@@ -20,7 +20,7 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 
 ### 2. Qt bridge wrapper (desktop)
 
-`lib/bridges/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`. Parameters can be `QString`, `int`, `double`, `bool`, `QJsonObject`, `QJsonArray`, or `QStringList` — the bridge converts JSON args automatically:
+`lib/bridges/qt/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`. Parameters can be `QString`, `int`, `double`, `bool`, `QJsonObject`, `QJsonArray`, or `QStringList` — the bridge converts JSON args automatically:
 
 ```cpp
 Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
@@ -45,7 +45,7 @@ static QJsonObject to_json(const TodoItem& i) {
 
 ### 3. WASM bridge wrapper (browser)
 
-`lib/wasm-bridges/include/todo_wasm_bridge.hpp` — same method names, same domain call, but returns `emscripten::val` instead of `QJsonObject`:
+`lib/bridges/wasm/include/todo_wasm_bridge.hpp` — same method names, same domain call, but returns `emscripten::val` instead of `QJsonObject`:
 
 ```cpp
 emscripten::val addItem(const std::string& listId, const std::string& text) {
@@ -68,7 +68,7 @@ static emscripten::val to_val(const TodoItem& i) {
 }
 ```
 
-Then register it with Embind in `lib/wasm-bridges/src/wasm_bindings.cpp`:
+Then register it with Embind in `lib/bridges/wasm/src/wasm_bindings.cpp`:
 
 ```cpp
 EMSCRIPTEN_BINDINGS(bridges) {
@@ -125,17 +125,17 @@ xmake run scaffold-bridge notes
 ```
 
 This does everything:
-1. Creates `lib/bridges/include/notes_bridge.hpp` — C++ bridge with `Q_OBJECT` + skeleton
+1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — C++ bridge with `Q_OBJECT` + skeleton
 2. Creates `web/src/api/notes-bridge.ts` — TypeScript interface stub
 3. Wires `#include` + `addBridge()` into both `desktop/src/main.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
 
-No xmake.lua edits needed — the `lib/bridges/` target uses glob discovery.
+No xmake.lua edits needed — the `lib/bridges/qt/` target uses glob discovery.
 
 ### After scaffolding
 
-1. Add `Q_INVOKABLE` methods to `lib/bridges/include/notes_bridge.hpp`
-2. Create the WASM bridge: `lib/wasm-bridges/include/notes_wasm_bridge.hpp` — same method names, `emscripten::val` returns, `to_val()` helpers
-3. Register in `lib/wasm-bridges/src/wasm_bindings.cpp` with `EMSCRIPTEN_BINDINGS`
+1. Add `Q_INVOKABLE` methods to `lib/bridges/qt/include/notes_bridge.hpp`
+2. Create the WASM bridge: `lib/bridges/wasm/include/notes_wasm_bridge.hpp` — same method names, `emscripten::val` returns, `to_val()` helpers
+3. Register in `lib/bridges/wasm/src/wasm_bindings.cpp` with `EMSCRIPTEN_BINDINGS`
 4. Register in `web/src/api/wasm-transport.ts` — add `notes: new wasm.NotesBridge()` to the bridges map
 5. Mirror methods in `web/src/api/notes-bridge.ts`
 6. Use it: `const notes = await getBridge<NotesBridge>('notes')`

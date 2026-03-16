@@ -2,7 +2,7 @@
 --
 -- xmake run scaffold-bridge settings
 --
--- Drops a new bridge header into lib/bridges/, wires it into main.cpp
+-- Drops a new bridge header into lib/bridges/qt/, wires it into main.cpp
 -- and test_server.cpp, and creates a TS interface stub.
 -- No xmake.lua edits needed — the glob picks up new headers automatically.
 
@@ -29,7 +29,7 @@ target("scaffold-bridge")
             function(a, b) return a:upper() .. b end):gsub("-", "") .. "Bridge"
 
         local root = os.projectdir()
-        local hpp_path = path.join(root, "lib", "bridges", "include", file_name .. ".hpp")
+        local hpp_path = path.join(root, "lib", "bridges", "qt", "include", file_name .. ".hpp")
 
         -- ── Guard against overwrite ─────────────────────────────
         if os.isfile(hpp_path) then
@@ -98,7 +98,7 @@ target("scaffold-bridge")
         print("")
         print("✅ Scaffolded bridge: " .. class_name)
         print("")
-        print("   lib/bridges/include/" .. file_name .. ".hpp   ← C++ bridge (add Q_INVOKABLE methods)")
+        print("   lib/bridges/qt/include/" .. file_name .. ".hpp   ← C++ bridge (add Q_INVOKABLE methods)")
         print("   web/src/api/" .. slug .. "-bridge.ts          ← TS interface (match C++ methods)")
         print("")
         print("   Also wired into: desktop main.cpp, dev-server test_server.cpp")

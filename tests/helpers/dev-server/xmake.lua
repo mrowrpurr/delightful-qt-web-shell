@@ -2,7 +2,7 @@ target("dev-server")
     set_kind("binary")
     set_default(false)
     add_rules("qt.console")
-    add_deps("bridges", "web-shell")
+    add_deps("qt-bridges", "web-shell")
     add_files(
         "src/test_server.cpp",
         "include/type_test_bridge.hpp"

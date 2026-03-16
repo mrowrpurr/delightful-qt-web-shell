@@ -1,4 +1,4 @@
-target("bridges")
+target("qt-bridges")
     set_kind("static")
     add_rules("qt.static")
     add_files("src/*.cpp", "include/**.hpp")

@@ -28,8 +28,8 @@ The app has four layers:
 
 1. **React UI** (`web/`) — Everything the user sees. Standard React + Vite.
 2. **Domain logic** (`lib/todos/`) — Pure C++, no Qt, no Emscripten. Your business logic, testable in isolation with Catch2. Compiled for both desktop and WASM.
-3. **Qt bridge** (`lib/bridges/`) — A thin `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
-4. **WASM bridge** (`lib/wasm-bridges/`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
+3. **Qt bridge** (`lib/bridges/qt/`) — A thin `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
+4. **WASM bridge** (`lib/bridges/wasm/`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
 
 ## Three Transports, Same Code
 

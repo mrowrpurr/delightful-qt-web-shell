@@ -6,7 +6,7 @@ local _APP_VERSION = APP_VERSION
 target("desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
-    add_deps("bridges", "web-shell")
+    add_deps("qt-bridges", "web-shell")
     add_files(
         "src/main.cpp",
         "resources/resources.qrc",

@@ -26,11 +26,11 @@ includes("lib/todos/xmake.lua")
 -- ── Platform-specific targets ───────────────────────────────────────
 
 if is_plat("wasm") then
-    includes("lib/wasm-bridges/xmake.lua")
+    includes("lib/bridges/wasm/xmake.lua")
     includes("wasm/xmake.lua")
 else
     includes("lib/web-shell/xmake.lua")
-    includes("lib/bridges/xmake.lua")
+    includes("lib/bridges/qt/xmake.lua")
     includes("desktop/xmake.lua")
     includes("tests/helpers/dev-server/xmake.lua")
     includes("xmake/setup.lua")

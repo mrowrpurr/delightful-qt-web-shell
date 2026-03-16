@@ -28,9 +28,9 @@ One React UI, one domain library, two deployment targets:
 
 1. **Domain logic** (`lib/todos/include/todo_store.hpp`) — Pure C++, no Qt, no Emscripten. Your business logic lives here. Testable with Catch2 in isolation. Compiled for both desktop and WASM.
 
-2. **Qt bridge** (`lib/bridges/include/todo_bridge.hpp`) — A `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
+2. **Qt bridge** (`lib/bridges/qt/include/todo_bridge.hpp`) — A `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
 
-3. **WASM bridge** (`lib/wasm-bridges/include/todo_wasm_bridge.hpp`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
+3. **WASM bridge** (`lib/bridges/wasm/include/todo_wasm_bridge.hpp`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
 
 4. **TypeScript interface** (`web/src/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
 

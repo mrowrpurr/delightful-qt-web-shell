@@ -31,7 +31,7 @@ QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes
 
 ## WASM Gotchas
 
-**Embind bindings missing (TodoBridge is not a constructor):** The `wasm-bridges` library must use `set_kind("object")` in xmake.lua, not `set_kind("static")`. Static libraries get dead-stripped by the linker because `main.cpp` doesn't reference the `EMSCRIPTEN_BINDINGS` block (it's a static initializer). Object libraries include all `.o` files unconditionally.
+**Embind bindings missing (TodoBridge is not a constructor):** The `bridges/wasm` library must use `set_kind("object")` in xmake.lua, not `set_kind("static")`. Static libraries get dead-stripped by the linker because `main.cpp` doesn't reference the `EMSCRIPTEN_BINDINGS` block (it's a static initializer). Object libraries include all `.o` files unconditionally.
 
 **Vite blocks import() of /public files:** You can't `import('/wasm-app.js')` in Vite — it refuses to transform JS files inside `/public`. The WASM transport uses a blob URL + `<script type="module">` to load the Emscripten module. Don't try to "fix" this with `@vite-ignore` — it doesn't work. See `wasm-transport.ts` for the working pattern.
 

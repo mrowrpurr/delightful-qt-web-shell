@@ -8,8 +8,8 @@ We'll add an `addItem` method — from C++ domain logic to React UI — and see 
 
 ```
 ├── lib/todos/include/todo_store.hpp              ← C++ domain logic
-├── lib/bridges/include/todo_bridge.hpp        ← Qt bridge (Q_INVOKABLE)
-├── lib/wasm-bridges/include/todo_wasm_bridge.hpp ← WASM bridge (Embind)
+├── lib/bridges/qt/include/todo_bridge.hpp        ← Qt bridge (Q_INVOKABLE)
+├── lib/bridges/wasm/include/todo_wasm_bridge.hpp ← WASM bridge (Embind)
 └── web/src/api/bridge.ts                         ← TypeScript interface
 ```
 
@@ -31,7 +31,7 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 
 Add a `Q_INVOKABLE` method to `TodoBridge` — the QObject wrapper.
 
-**`lib/bridges/include/todo_bridge.hpp`:**
+**`lib/bridges/qt/include/todo_bridge.hpp`:**
 
 ```cpp
 Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
@@ -59,7 +59,7 @@ static QJsonObject to_json(const TodoItem& i) {
 
 Add a matching method to `TodoWasmBridge` — **same method name**, same domain call, but returns `emscripten::val` instead of `QJsonObject`.
 
-**`lib/wasm-bridges/include/todo_wasm_bridge.hpp`:**
+**`lib/bridges/wasm/include/todo_wasm_bridge.hpp`:**
 
 ```cpp
 emscripten::val addItem(const std::string& listId, const std::string& text) {
