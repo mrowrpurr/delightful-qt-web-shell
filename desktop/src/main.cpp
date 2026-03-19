@@ -111,6 +111,7 @@ int main(int argc, char* argv[]) {
     QWebEngineUrlScheme::registerScheme(scheme);
 
     QApplication app(argc, argv);
+    app.setOrganizationName(APP_ORG);
     app.setApplicationName(APP_NAME);
 
     QCommandLineParser parser;
@@ -143,7 +144,7 @@ int main(int argc, char* argv[]) {
     window.setWindowTitle(APP_NAME);
 
     // Restore saved window geometry, or default to 900×640 centered
-    QSettings settings(APP_SLUG, APP_SLUG);
+    QSettings settings(APP_ORG, APP_SLUG);
     if (settings.contains("window/geometry")) {
         window.restoreGeometry(settings.value("window/geometry").toByteArray());
     } else {
@@ -186,6 +187,20 @@ int main(int argc, char* argv[]) {
     quitAction->setShortcut(QKeySequence("Ctrl+Q"));
     QObject::connect(quitAction, &QAction::triggered, &app, &QApplication::quit);
 
+    auto* viewMenu = menuBar->addMenu("&View");
+
+    auto* zoomInAction = viewMenu->addAction("Zoom &In");
+    zoomInAction->setShortcuts({QKeySequence::ZoomIn, QKeySequence("Ctrl+=")});
+    zoomInAction->setShortcutContext(Qt::ApplicationShortcut);
+
+    auto* zoomOutAction = viewMenu->addAction("Zoom &Out");
+    zoomOutAction->setShortcut(QKeySequence::ZoomOut);
+    zoomOutAction->setShortcutContext(Qt::ApplicationShortcut);
+
+    auto* zoomResetAction = viewMenu->addAction("&Reset Zoom");
+    zoomResetAction->setShortcut(QKeySequence("Ctrl+0"));
+    zoomResetAction->setShortcutContext(Qt::ApplicationShortcut);
+
     auto* windowsMenu = menuBar->addMenu("&Windows");
     auto* devToolsAction = windowsMenu->addAction("&Developer Tools");
     devToolsAction->setShortcut(QKeySequence("F12"));
@@ -213,6 +228,20 @@ int main(int argc, char* argv[]) {
     auto* page = new QWebEnginePage(profile, view);
     page->setBackgroundColor(kBackground);
     view->setPage(page);
+
+    // Restore saved zoom level before content loads (still behind loading overlay)
+    view->setZoomFactor(settings.value("window/zoomFactor", 1.0).toReal());
+
+    // Wire up zoom shortcuts (menu actions created above, view exists now)
+    QObject::connect(zoomInAction, &QAction::triggered, view, [view]() {
+        view->setZoomFactor(qMin(view->zoomFactor() + 0.1, 5.0));
+    });
+    QObject::connect(zoomOutAction, &QAction::triggered, view, [view]() {
+        view->setZoomFactor(qMax(view->zoomFactor() - 0.1, 0.25));
+    });
+    QObject::connect(zoomResetAction, &QAction::triggered, view, [view]() {
+        view->setZoomFactor(1.0);
+    });
 
     // Inject qwebchannel.js from Qt's built-in resources
     QFile webChannelFile(":/qtwebchannel/qwebchannel.js");
@@ -346,9 +375,10 @@ int main(int argc, char* argv[]) {
         qWarning() << "signalReady() was not called within 15 seconds — bridge may be broken.";
     });
 
-    // Save window geometry on close so it restores next launch
+    // Save window geometry and zoom on close so they restore next launch
     QObject::connect(&app, &QApplication::aboutToQuit, [&]() {
         settings.setValue("window/geometry", window.saveGeometry());
+        settings.setValue("window/zoomFactor", view->zoomFactor());
     });
 
     return app.exec();

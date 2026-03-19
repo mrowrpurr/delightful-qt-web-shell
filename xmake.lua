@@ -3,6 +3,7 @@
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 APP_NAME    = "Delightful Qt Web Shell"
 APP_SLUG    = "delightful-qt-web-shell"
+APP_ORG     = "MyOrganization"
 APP_VERSION = "0.1.0"
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

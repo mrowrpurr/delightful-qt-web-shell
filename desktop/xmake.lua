@@ -1,6 +1,7 @@
 -- Capture at parse time — globals aren't available inside before_build closures
 local _APP_NAME    = APP_NAME
 local _APP_SLUG    = APP_SLUG
+local _APP_ORG     = APP_ORG
 local _APP_VERSION = APP_VERSION
 
 target("desktop")
@@ -26,6 +27,7 @@ target("desktop")
     )
     add_defines('APP_NAME="' .. APP_NAME:gsub('"', '\\"') .. '"')
     add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')
+    add_defines('APP_ORG="' .. APP_ORG:gsub('"', '\\"') .. '"')
     add_defines('APP_VERSION="' .. APP_VERSION:gsub('"', '\\"') .. '"')
 
     before_build(function(target)
@@ -110,6 +112,7 @@ target("desktop")
                 .. '    BEGIN\n'
                 .. '        BLOCK "040904B0"\n'
                 .. '        BEGIN\n'
+                .. '            VALUE "CompanyName",      "' .. _APP_ORG .. '"\n'
                 .. '            VALUE "FileDescription",  "' .. _APP_NAME .. '"\n'
                 .. '            VALUE "FileVersion",      "' .. version .. '"\n'
                 .. '            VALUE "InternalName",     "' .. _APP_SLUG .. '"\n'

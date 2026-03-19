@@ -38,10 +38,11 @@ Edit the top of `xmake.lua`:
 ```lua
 APP_NAME    = "Your App Name"
 APP_SLUG    = "your-app-name"
+APP_ORG     = "YourOrganization"
 APP_VERSION = "0.1.0"
 ```
 
-This propagates everywhere automatically: window title, binary name, Windows exe metadata, HTML `<title>`, loading screen text. Replace `desktop/resources/icon.ico` and `icon.png` with your own icons.
+This propagates everywhere automatically: window title, binary name, Windows exe metadata, HTML `<title>`, loading screen, and platform settings/data directories (`QSettings`, `AppLocalDataLocation`). Replace `desktop/resources/icon.ico` and `icon.png` with your own icons.
 
 ## Build & Run
 
