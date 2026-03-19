@@ -20,6 +20,7 @@
 #include "widgets/scheme_handler.hpp"
 
 // @scaffold:include
+#include "system_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "web_shell.hpp"
 
@@ -89,6 +90,8 @@ Application::Application(int& argc, char** argv)
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;
     shell_->addBridge("todos", todoBridge);
+    auto* systemBridge = new SystemBridge;
+    shell_->addBridge("system", systemBridge);
 
     // ── System tray ──────────────────────────────────────────
     // The tray icon lets the app live in the background without a visible window.

@@ -7,6 +7,7 @@
 #include <QCommandLineParser>
 
 // @scaffold:include
+#include "system_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "expose_as_ws.hpp"
 #include "type_test_bridge.hpp"
@@ -29,6 +30,8 @@ int main(int argc, char* argv[]) {
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;
     shell.addBridge("todos", todoBridge);
+    auto* systemBridge = new SystemBridge;
+    shell.addBridge("system", systemBridge);
     auto* typeTest = new TypeTestBridge;
     shell.addBridge("typeTest", typeTest);
     auto* server = expose_as_ws(&shell, port);

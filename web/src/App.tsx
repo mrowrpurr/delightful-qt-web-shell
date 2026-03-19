@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getBridge, signalReady, type TodoBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
+import type { SystemBridge } from './api/system-bridge'
 
 // Top-level await — Vite supports this natively.
 // Runs before React mounts. The Qt shell shows a loading overlay during this time,
 // so there's no visible delay. Safe to move but must stay at module scope (not
 // inside a component), because getBridge returns a long-lived proxy, not per-render state.
 const todos = await getBridge<TodoBridge>('todos')
+const system = await getBridge<SystemBridge>('system')
 
 export default function App() {
   const [lists, setLists] = useState<TodoList[]>([])
@@ -13,6 +15,8 @@ export default function App() {
   const [detail, setDetail] = useState<ListDetail | null>(null)
   const [newListName, setNewListName] = useState('')
   const [newItemText, setNewItemText] = useState('')
+  const [droppedFiles, setDroppedFiles] = useState<string[]>([])
+  const [copyFeedback, setCopyFeedback] = useState('')
 
   const loadLists = useCallback(async () => {
     const result = await todos.listLists()
@@ -74,10 +78,41 @@ export default function App() {
     await todos.deleteItem(itemId).catch(console.error)
   }, [])
 
+  const handleCopyToClipboard = useCallback(async () => {
+    const now = new Date().toLocaleString()
+    await system.copyToClipboard(`[Clipboard Test] The current time is now ${now}`)
+    setCopyFeedback('Copied!')
+    setTimeout(() => setCopyFeedback(''), 2000)
+  }, [])
+
+  // Subscribe to file drop events from Qt
+  useEffect(() => {
+    return system.filesDropped(async () => {
+      const files = await system.getDroppedFiles()
+      setDroppedFiles(files)
+    })
+  }, [])
+
   return (
     <div className="app">
       <h1 data-testid="heading">{import.meta.env.VITE_APP_NAME}</h1>
       <p>A template for Qt + React apps with real testing.</p>
+
+      <div className="system-actions">
+        <button data-testid="copy-clipboard-button" onClick={handleCopyToClipboard}>
+          📋 Copy to clipboard
+        </button>
+        {copyFeedback && <span className="feedback">{copyFeedback}</span>}
+      </div>
+
+      {droppedFiles.length > 0 && (
+        <div className="dropped-files" data-testid="dropped-files">
+          <strong>Dropped files:</strong>
+          {droppedFiles.map((file, i) => (
+            <div key={i} className="dropped-file">{file}</div>
+          ))}
+        </div>
+      )}
 
       <div className="create-list">
         <input

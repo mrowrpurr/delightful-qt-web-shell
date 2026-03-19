@@ -59,6 +59,33 @@ p {
   color: var(--text-hint);
 }
 
+.system-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.system-actions .feedback {
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.dropped-files {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.dropped-file {
+  color: var(--text-muted);
+  margin-top: 4px;
+  word-break: break-all;
+}
+
 .create-list, .add-item {
   display: flex;
   gap: 8px;

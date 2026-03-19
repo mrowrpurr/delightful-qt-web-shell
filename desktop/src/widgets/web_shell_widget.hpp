@@ -50,8 +50,13 @@ public:
     // Toggle the developer tools window (F12)
     void toggleDevTools();
 
+protected:
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
+
 private:
     QWebEngineView* view_ = nullptr;
     QWebEngineView* devToolsView_ = nullptr;
     LoadingOverlay* overlay_ = nullptr;
+    WebShell* shell_ = nullptr;
 };

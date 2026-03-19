@@ -7,7 +7,10 @@
 #include "web_shell_widget.hpp"
 #include "loading_overlay.hpp"
 
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QFile>
+#include <QMimeData>
 #include <QVBoxLayout>
 #include <QWebChannel>
 #include <QWebEnginePage>
@@ -16,6 +19,7 @@
 #include <QWebEngineScriptCollection>
 #include <QWebEngineView>
 
+#include "system_bridge.hpp"
 #include "web_shell.hpp"
 
 // Must match --bg in App.css and LoadingOverlay
@@ -24,8 +28,10 @@ static constexpr QColor kBackground{0x24, 0x24, 0x24};
 WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
                                bool devMode, OverlayStyle overlayStyle,
                                QWidget* parent)
-    : QWidget(parent)
+    : QWidget(parent), shell_(shell)
 {
+    setAcceptDrops(true);
+
     // ── Layout ───────────────────────────────────────────────
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -107,4 +113,26 @@ void WebShellWidget::toggleDevTools() {
         devToolsView_->raise();
         devToolsView_->activateWindow();
     }
+}
+
+void WebShellWidget::dragEnterEvent(QDragEnterEvent* event) {
+    // Accept file drops from the OS (Explorer, Finder, etc.)
+    if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+}
+
+void WebShellWidget::dropEvent(QDropEvent* event) {
+    // Collect dropped file paths and forward to the SystemBridge.
+    // React subscribes to the filesDropped signal and calls getDroppedFiles().
+    QStringList paths;
+    for (const auto& url : event->mimeData()->urls()) {
+        if (url.isLocalFile())
+            paths.append(url.toLocalFile());
+    }
+    if (paths.isEmpty()) return;
+
+    // Find the SystemBridge by name — no tight coupling to the class
+    auto* bridge = qobject_cast<SystemBridge*>(shell_->bridges().value("system"));
+    if (bridge)
+        bridge->handleFilesDropped(paths);
 }
