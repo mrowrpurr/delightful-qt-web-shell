@@ -8,11 +8,12 @@ target("desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
     add_deps("qt-bridges", "web-shell")
+    add_files("src/**.cpp", "src/**.hpp")
     add_files(
-        "src/main.cpp",
         "resources/resources.qrc",
         "web_dist_resources.cpp"
     )
+    add_includedirs("src")
     if is_plat("windows") then
         set_filename(APP_NAME .. ".exe")
         add_files("resources/app.rc")
