@@ -27,6 +27,7 @@ target("desktop")
     else
         set_filename(APP_SLUG)
     end
+    add_packages("qlementine-icons")
     add_frameworks(
         "QtWidgets", "QtGui",
         "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel",

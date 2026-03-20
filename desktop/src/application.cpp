@@ -19,6 +19,8 @@
 
 #include "widgets/scheme_handler.hpp"
 
+#include <oclero/qlementine/icons/QlementineIcons.hpp>
+
 // @scaffold:include
 #include "system_bridge.hpp"
 #include "todo_bridge.hpp"
@@ -30,6 +32,11 @@ static constexpr QColor kBackground{0x24, 0x24, 0x24};
 Application::Application(int& argc, char** argv)
     : QApplication(argc, argv)
 {
+    // ── Icons ──────────────────────────────────────────────────
+    // Initialize Qlementine icon theme — must happen before any QIcon usage.
+    // After this, use QIcon(iconPath(Icons16::...)) anywhere in the app.
+    oclero::qlementine::icons::initializeIconTheme();
+
     // ── Identity ─────────────────────────────────────────────
     setOrganizationName(APP_ORG);
     setApplicationName(APP_NAME);

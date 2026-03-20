@@ -22,12 +22,32 @@
 #include <QAction>
 #include <QApplication>
 #include <QFileDialog>
+#include <QIcon>
 #include <QKeySequence>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMessageBox>
-#include <QStyle>
+#include <QPainter>
+#include <QPixmap>
 #include <QToolBar>
+
+#include <oclero/qlementine/icons/QlementineIcons.hpp>
+#include <oclero/qlementine/icons/Icons16.hpp>
+
+using oclero::qlementine::icons::iconPath;
+using oclero::qlementine::icons::Icons16;
+
+// Tint an SVG icon to a given color (default: white for dark themes).
+// Loads the SVG as a pixmap, paints the color over it using SourceIn
+// composition — only existing pixels get recolored, transparency preserved.
+static QIcon tintedIcon(Icons16 icon, const QColor& color = Qt::white) {
+    QPixmap pix(iconPath(icon));
+    QPainter painter(&pix);
+    painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+    painter.fillRect(pix.rect(), color);
+    painter.end();
+    return QIcon(pix);
+}
 
 MenuActions buildMenuBar(QMainWindow* window) {
     auto* menuBar = window->menuBar();
@@ -38,7 +58,7 @@ MenuActions buildMenuBar(QMainWindow* window) {
 
     // File > Save — native file picker (testable with pywinauto)
     out.save = fileMenu->addAction(
-        window->style()->standardIcon(QStyle::SP_DialogSaveButton), "&Save...");
+        tintedIcon(Icons16::Action_Save), "&Save...");
     out.save->setShortcut(QKeySequence("Ctrl+S"));
     out.save->setToolTip("Save file (Ctrl+S)");
     QObject::connect(out.save, &QAction::triggered, window, [window]() {
@@ -50,7 +70,7 @@ MenuActions buildMenuBar(QMainWindow* window) {
 
     // File > Open Folder — native folder picker
     out.openFolder = fileMenu->addAction(
-        window->style()->standardIcon(QStyle::SP_DirOpenIcon), "&Open Folder...");
+        tintedIcon(Icons16::File_FolderOpen), "&Open Folder...");
     out.openFolder->setShortcut(QKeySequence("Ctrl+O"));
     out.openFolder->setToolTip("Open folder (Ctrl+O)");
     QObject::connect(out.openFolder, &QAction::triggered, window, [window]() {
@@ -72,24 +92,24 @@ MenuActions buildMenuBar(QMainWindow* window) {
     auto* viewMenu = menuBar->addMenu("&View");
 
     // Zoom In — Ctrl+= and Ctrl+Shift+= (Ctrl++)
-    out.zoomIn = viewMenu->addAction("Zoom &In");
+    out.zoomIn = viewMenu->addAction(tintedIcon(Icons16::Action_ZoomIn), "Zoom &In");
     out.zoomIn->setShortcuts({QKeySequence::ZoomIn, QKeySequence("Ctrl+=")});
     out.zoomIn->setShortcutContext(Qt::ApplicationShortcut);
 
     // Zoom Out — Ctrl+-
-    out.zoomOut = viewMenu->addAction("Zoom &Out");
+    out.zoomOut = viewMenu->addAction(tintedIcon(Icons16::Action_ZoomOut), "Zoom &Out");
     out.zoomOut->setShortcut(QKeySequence::ZoomOut);
     out.zoomOut->setShortcutContext(Qt::ApplicationShortcut);
 
     // Reset Zoom — Ctrl+0
-    out.zoomReset = viewMenu->addAction("&Reset Zoom");
+    out.zoomReset = viewMenu->addAction(tintedIcon(Icons16::Action_ZoomOriginal), "&Reset Zoom");
     out.zoomReset->setShortcut(QKeySequence("Ctrl+0"));
     out.zoomReset->setShortcutContext(Qt::ApplicationShortcut);
 
     // ── Windows ──────────────────────────────────────────────
     auto* windowsMenu = menuBar->addMenu("&Windows");
 
-    out.devTools = windowsMenu->addAction("&Developer Tools");
+    out.devTools = windowsMenu->addAction(tintedIcon(Icons16::Navigation_Settings), "&Developer Tools");
     out.devTools->setShortcut(QKeySequence("F12"));
     out.devTools->setShortcutContext(Qt::ApplicationShortcut);
 

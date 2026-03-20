@@ -20,6 +20,12 @@ end
 
 add_requires("catch2 3.x")
 
+
+-- ── For qlementine-icons ─────────────────────────────────────────────────
+
+add_repositories("SkyrimScriptingBeta https://github.com/SkyrimScriptingBeta/Packages")
+add_requires("qlementine-icons")
+
 -- ── Shared libraries ─────────────────────────────────────────────────
 
 includes("lib/todos/xmake.lua")
