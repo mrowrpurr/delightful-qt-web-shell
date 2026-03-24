@@ -24,7 +24,8 @@ struct MenuActions {
     QAction* zoomOut    = nullptr;
     QAction* zoomReset  = nullptr;
 
-    // Tabs
+    // Windows / Tabs
+    QAction* newWindow  = nullptr;
     QAction* newTab     = nullptr;
     QAction* closeTab   = nullptr;
 

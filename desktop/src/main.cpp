@@ -20,8 +20,17 @@ int main(int argc, char* argv[]) {
 
     MainWindow window;
 
-    // When another instance tries to launch, raise the existing window
+    // When another instance tries to launch, raise any visible MainWindow.
+    // Falls back to the original window if none are visible (e.g. all hidden to tray).
     QObject::connect(&app, &Application::activationRequested, &window, [&window]() {
+        for (auto* w : QApplication::topLevelWidgets()) {
+            if (auto* mw = qobject_cast<MainWindow*>(w); mw && mw->isVisible()) {
+                mw->raise();
+                mw->activateWindow();
+                return;
+            }
+        }
+        // No visible windows — show the original
         window.show();
         window.raise();
         window.activateWindow();

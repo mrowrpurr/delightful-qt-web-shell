@@ -83,7 +83,12 @@ MainWindow::MainWindow(QWidget* parent)
     splitter->setSizes({600, 300});
     setCentralWidget(splitter);
 
-    // ── Wire tab actions ──────────────────────────────────────
+    // ── Wire window + tab actions ───────────────────────────────
+    connect(actions.newWindow, &QAction::triggered, this, []() {
+        auto* win = new MainWindow();
+        win->show();
+    });
+
     connect(actions.newTab, &QAction::triggered, this, [this]() {
         createTab();
         tabs_->setCurrentIndex(tabs_->count() - 1);
@@ -208,16 +213,23 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
-    // Minimize to system tray instead of quitting.
-    // The app stays running — quit via File > Quit, Ctrl+Q, or tray > Quit.
+    // Count visible MainWindows. If this is the last one, minimize to tray
+    // instead of quitting. Secondary windows just close normally.
     //
     // To disable close-to-tray: remove this override. The default behavior
     // will close the window and quit the app (since it's the last window).
-    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+    int visibleCount = 0;
+    for (auto* w : QApplication::topLevelWidgets()) {
+        if (auto* mw = qobject_cast<MainWindow*>(w))
+            if (mw->isVisible()) ++visibleCount;
+    }
+
+    if (visibleCount <= 1 && QSystemTrayIcon::isSystemTrayAvailable()) {
         hide();
-        event->ignore();  // don't close — just hide
+        event->ignore();  // don't close — just hide to tray
     } else {
-        // No system tray — fall back to default (quit)
+        // Not the last window — just close normally.
+        // Qt won't quit the app because other windows are still visible.
         QMainWindow::closeEvent(event);
     }
 }

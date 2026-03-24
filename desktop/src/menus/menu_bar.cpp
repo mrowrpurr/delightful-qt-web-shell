@@ -83,15 +83,20 @@ MenuActions buildMenuBar(QMainWindow* window) {
 
     fileMenu->addSeparator();
 
+    // File > New Window — Ctrl+N
+    out.newWindow = fileMenu->addAction("New &Window");
+    out.newWindow->setShortcut(QKeySequence("Ctrl+N"));
+
+
     // File > New Tab — Ctrl+T
     out.newTab = fileMenu->addAction("&New Tab");
     out.newTab->setShortcut(QKeySequence("Ctrl+T"));
-    out.newTab->setShortcutContext(Qt::ApplicationShortcut);
+
 
     // File > Close Tab — Ctrl+W
     out.closeTab = fileMenu->addAction("&Close Tab");
     out.closeTab->setShortcut(QKeySequence("Ctrl+W"));
-    out.closeTab->setShortcutContext(Qt::ApplicationShortcut);
+
 
     fileMenu->addSeparator();
 
@@ -106,24 +111,24 @@ MenuActions buildMenuBar(QMainWindow* window) {
     // Zoom In — Ctrl+= and Ctrl+Shift+= (Ctrl++)
     out.zoomIn = viewMenu->addAction(tintedIcon(Icons16::Action_ZoomIn), "Zoom &In");
     out.zoomIn->setShortcuts({QKeySequence::ZoomIn, QKeySequence("Ctrl+=")});
-    out.zoomIn->setShortcutContext(Qt::ApplicationShortcut);
+
 
     // Zoom Out — Ctrl+-
     out.zoomOut = viewMenu->addAction(tintedIcon(Icons16::Action_ZoomOut), "Zoom &Out");
     out.zoomOut->setShortcut(QKeySequence::ZoomOut);
-    out.zoomOut->setShortcutContext(Qt::ApplicationShortcut);
+
 
     // Reset Zoom — Ctrl+0
     out.zoomReset = viewMenu->addAction(tintedIcon(Icons16::Action_ZoomOriginal), "&Reset Zoom");
     out.zoomReset->setShortcut(QKeySequence("Ctrl+0"));
-    out.zoomReset->setShortcutContext(Qt::ApplicationShortcut);
+
 
     // ── Windows ──────────────────────────────────────────────
     auto* windowsMenu = menuBar->addMenu("&Windows");
 
     out.devTools = windowsMenu->addAction(tintedIcon(Icons16::Navigation_Settings), "&Developer Tools");
     out.devTools->setShortcut(QKeySequence("F12"));
-    out.devTools->setShortcutContext(Qt::ApplicationShortcut);
+
 
     windowsMenu->addSeparator();
 
