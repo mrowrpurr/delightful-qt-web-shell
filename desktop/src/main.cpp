@@ -2,6 +2,8 @@
 // Everything interesting lives in the classes this file wires together.
 
 #include "application.hpp"
+#include "system_bridge.hpp"
+#include "web_shell.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "windows/main_window.hpp"
 
@@ -35,6 +37,20 @@ int main(int argc, char* argv[]) {
         window.raise();
         window.activateWindow();
     });
+
+    // When another instance passes args, forward to the SystemBridge.
+    // React subscribes to argsReceived and calls getReceivedArgs().
+    auto* systemBridge = qobject_cast<SystemBridge*>(
+        app.shell()->bridges().value("system"));
+    if (systemBridge) {
+        QObject::connect(&app, &Application::argsReceived,
+                         systemBridge, &SystemBridge::handleArgs);
+
+        // Also handle args on the primary instance's first launch
+        QStringList args = app.arguments().mid(1);
+        if (!args.isEmpty())
+            systemBridge->handleArgs(args);
+    }
 
     // Show invisible, let Qt paint the dark background, then reveal.
     // This prevents a white flash on the first frame.

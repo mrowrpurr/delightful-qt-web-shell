@@ -50,7 +50,9 @@ Application::Application(int& argc, char** argv)
     QCommandLineOption devOption("dev",
         "Dev mode: load from Vite dev servers (main=5173, docs=5174) with hot reload");
     parser.addOption(devOption);
-    parser.process(*this);
+    // parse() instead of process() — unknown args pass through to the app
+    // instead of showing an error dialog. Template users add their own options here.
+    parser.parse(arguments());
     devMode_ = parser.isSet(devOption);
 
     // ── Single instance guard ────────────────────────────────
@@ -117,8 +119,23 @@ void Application::setupSingleInstance() {
     QLocalSocket socket;
     socket.connectToServer(serverName);
     if (socket.waitForConnected(500)) {
-        // Another instance is running — ask it to activate and bail out
-        socket.write("activate");
+        // Another instance is running — send our args and bail out.
+        // Protocol: one line per arg, or just "activate" if no file args.
+        QStringList args = arguments().mid(1);  // skip argv[0]
+        // Filter out flags (--dev, etc.) — only pass file paths
+        QStringList filePaths;
+        for (const auto& arg : args) {
+            if (!arg.startsWith('-'))
+                filePaths.append(arg);
+        }
+        // Send all args (not just files) so the app can see everything
+        QStringList allArgs = arguments().mid(1);
+        if (allArgs.isEmpty()) {
+            socket.write("activate\n");
+        } else {
+            for (const auto& arg : allArgs)
+                socket.write(("arg:" + arg + "\n").toUtf8());
+        }
         socket.waitForBytesWritten(1000);
         socket.disconnectFromServer();
         isPrimary_ = false;
@@ -134,7 +151,16 @@ void Application::setupSingleInstance() {
     connect(instanceServer_, &QLocalServer::newConnection, this, [this]() {
         auto* client = instanceServer_->nextPendingConnection();
         connect(client, &QLocalSocket::readyRead, this, [this, client]() {
-            client->readAll();  // consume the "activate" message
+            // Parse messages: "activate\n" or "arg:<value>\n"
+            QString data = QString::fromUtf8(client->readAll());
+            QStringList lines = data.split('\n', Qt::SkipEmptyParts);
+            QStringList args;
+            for (const auto& line : lines) {
+                if (line.startsWith("arg:"))
+                    args.append(line.mid(4));
+            }
+            if (!args.isEmpty())
+                emit argsReceived(args);
             emit activationRequested();
             client->deleteLater();
         });

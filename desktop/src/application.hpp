@@ -46,6 +46,10 @@ signals:
     // icon is activated. MainWindow connects to this to raise itself.
     void activationRequested();
 
+    // Emitted when another instance passes command line args.
+    // e.g. myapp.exe --look-ma flags "and stuff" → primary instance receives all args.
+    void argsReceived(const QStringList& args);
+
 private:
     void setupSingleInstance();
     void setupSystemTray();

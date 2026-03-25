@@ -189,6 +189,22 @@ public:
         return arr;
     }
 
+    // ── Args from CLI / other instance ──────────────────────
+
+    // Called by main.cpp when another instance passes command line args.
+    void handleArgs(const QStringList& args) {
+        receivedArgs_ = args;
+        emit argsReceived();
+    }
+
+    // Get the args from the most recent instance launch.
+    Q_INVOKABLE QJsonArray getReceivedArgs() {
+        QJsonArray arr;
+        for (const auto& arg : receivedArgs_)
+            arr.append(arg);
+        return arr;
+    }
+
     // ── Native dialogs ─────────────────────────────────────
 
     // Request the Qt host to open a dialog. The bridge doesn't know about
@@ -205,11 +221,16 @@ signals:
     // React subscribes, then calls getDroppedFiles() to get the paths.
     void filesDropped();
 
+    // Emitted when another instance passes command line args.
+    // React subscribes, then calls getReceivedArgs() to get them.
+    void argsReceived();
+
     // Emitted when React requests a native dialog (e.g. Quick Add).
     // Connect to this in MainWindow or wherever you want to handle it.
     void openDialogRequested();
 
 private:
     QStringList droppedFiles_;
+    QStringList receivedArgs_;
     QMap<QString, QFile*> openFiles_;  // handle ID → open QFile
 };

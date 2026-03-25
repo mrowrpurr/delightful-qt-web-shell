@@ -31,6 +31,10 @@ export interface SystemBridge {
   getDroppedFiles(): Promise<string[]>
   filesDropped(callback: () => void): () => void
 
+  // ── Args from CLI / other instance ─────────────────────
+  getReceivedArgs(): Promise<string[]>
+  argsReceived(callback: () => void): () => void
+
   // ── Native dialogs ─────────────────────────────────────
   openDialog(): Promise<{ ok: boolean }>
   openDialogRequested(callback: () => void): () => void

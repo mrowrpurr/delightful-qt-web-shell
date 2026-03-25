@@ -29,6 +29,7 @@ export default function App() {
   const [imagePreview, setImagePreview] = useState<{ name: string; dataUrl: string } | null>(null)
   const [globPattern, setGlobPattern] = useState('')
   const [globResults, setGlobResults] = useState<string[] | null>(null)
+  const [receivedArgs, setReceivedArgs] = useState<string[]>([])
 
   const loadLists = useCallback(async () => {
     const result = await todos.listLists()
@@ -224,6 +225,18 @@ export default function App() {
     })
   }, [])
 
+  // Subscribe to args from CLI / other instances
+  useEffect(() => {
+    // Check for args on first mount (primary instance's own args)
+    system.getReceivedArgs().then(args => {
+      if (args.length > 0) setReceivedArgs(args)
+    })
+    return system.argsReceived(async () => {
+      const args = await system.getReceivedArgs()
+      setReceivedArgs(args)
+    })
+  }, [])
+
   return (
     <div className="app">
       <h1 data-testid="heading">{import.meta.env.VITE_APP_NAME}</h1>
@@ -238,6 +251,15 @@ export default function App() {
         </button>
         {copyFeedback && <span className="feedback">{copyFeedback}</span>}
       </div>
+
+      {receivedArgs.length > 0 && (
+        <div className="dropped-files" data-testid="received-args">
+          <strong>Args from CLI:</strong>
+          {receivedArgs.map((arg, i) => (
+            <div key={i} className="dropped-file">{arg}</div>
+          ))}
+        </div>
+      )}
 
       {droppedFiles.length > 0 && (
         <div className="dropped-files" data-testid="dropped-files">
