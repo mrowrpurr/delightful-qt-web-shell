@@ -66,7 +66,7 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 | E2e "locator not found" | A `data-testid` changed in React |
 | Desktop tests fail | Run `xmake build desktop` first |
 | Desktop tests flaky | GPU/window manager — inherently less stable |
-| App frozen with spinner | `signalReady()` missing or broken. See `App.tsx`. |
+| App frozen with spinner | `signalReady()` missing or broken. See `web/apps/main/src/App.tsx`. |
 
 ## Adding Tests
 

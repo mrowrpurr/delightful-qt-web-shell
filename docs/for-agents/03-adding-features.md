@@ -96,7 +96,7 @@ EMSCRIPTEN_BINDINGS(bridges) {
 
 ### 4. TypeScript interface
 
-`web/src/api/bridge.ts`:
+`web/shared/api/bridge.ts`:
 
 ```typescript
 export interface TodoBridge {
@@ -126,7 +126,7 @@ xmake run scaffold-bridge notes
 
 This does everything:
 1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — C++ bridge with `Q_OBJECT` + skeleton
-2. Creates `web/src/api/notes-bridge.ts` — TypeScript interface stub
+2. Creates `web/shared/api/notes-bridge.ts` — TypeScript interface stub
 3. Wires `#include` + `addBridge()` into both `desktop/src/application.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
 
 No xmake.lua edits needed — the `lib/bridges/qt/` target uses glob discovery.
@@ -136,8 +136,8 @@ No xmake.lua edits needed — the `lib/bridges/qt/` target uses glob discovery.
 1. Add `Q_INVOKABLE` methods to `lib/bridges/qt/include/notes_bridge.hpp`
 2. Create the WASM bridge: `lib/bridges/wasm/include/notes_wasm_bridge.hpp` — same method names, `emscripten::val` returns, `to_val()` helpers
 3. Register in `lib/bridges/wasm/src/wasm_bindings.cpp` with `EMSCRIPTEN_BINDINGS`
-4. Register in `web/src/api/wasm-transport.ts` — add `notes: new wasm.NotesBridge()` to the bridges map
-5. Mirror methods in `web/src/api/notes-bridge.ts`
+4. Register in `web/shared/api/wasm-transport.ts` — add `notes: new wasm.NotesBridge()` to the bridges map
+5. Mirror methods in `web/shared/api/notes-bridge.ts`
 6. Use it: `const notes = await getBridge<NotesBridge>('notes')`
 
 > The scaffolder handles Qt bridge + TS interface + wiring. WASM bridge creation is manual — see `todo_wasm_bridge.hpp` for the pattern.
@@ -226,6 +226,101 @@ xmake run test-all            # run all tests
 ```
 
 The bridge validator catches drift between C++ and TypeScript at dev time — before you find out at runtime.
+
+---
+
+## Adding a New Web App
+
+The web layer supports multiple Vite apps under `web/apps/`. Each app shares code from `web/shared/` via the `@shared` Vite alias.
+
+### 1. Create the app directory
+
+```
+web/apps/my-app/
+├── src/
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── App.css
+├── index.html
+├── vite.config.ts
+└── tsconfig.json
+```
+
+### 2. Vite config with @shared alias
+
+```typescript
+// web/apps/my-app/vite.config.ts
+import { resolve } from 'path'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  build: { target: 'esnext' },
+  resolve: {
+    alias: {
+      '@shared': resolve(__dirname, '../../shared'),
+    },
+  },
+})
+```
+
+### 3. Add scripts to web/package.json
+
+```json
+"dev:my-app": "cd apps/my-app && vite",
+"build:my-app": "cd apps/my-app && tsc -b && vite build"
+```
+
+**Important:** Vite's `--config` flag does NOT change the root directory. You must `cd` into the app directory first — that's why the scripts use `cd apps/my-app && vite`.
+
+### 4. Wire the SchemeHandler
+
+The C++ `SchemeHandler` routes `app://` URLs by host. Register your app so `app://my-app/` serves from the correct Qt resource prefix (`:/web-my-app/`).
+
+### 5. Use shared bridges
+
+Import from `@shared` — same bridges, same transport, same proxy:
+
+```typescript
+import { getBridge } from '@shared/api/bridge'
+```
+
+---
+
+## Adding Hash Routes (Dialog Pattern)
+
+To render different UIs from the same app build (e.g., dialogs):
+
+### 1. Create a new view component
+
+```typescript
+// web/apps/main/src/MyDialogView.tsx
+export default function MyDialogView() {
+  // signalReady() is required in every view!
+  useEffect(() => { signalReady() }, [])
+  return <div>...</div>
+}
+```
+
+### 2. Add the route in main.tsx
+
+```typescript
+const route = window.location.hash
+const Root = route === '#/my-dialog' ? MyDialogView
+           : route === '#/dialog' ? DialogView
+           : App
+```
+
+### 3. Set the hash from C++
+
+In your dialog C++ code, load the URL with the fragment:
+
+```cpp
+QUrl url("app://main/#/my-dialog");
+```
+
+**Remember:** If the bridge call that opens the dialog is itself called from JS, defer dialog creation with `QTimer::singleShot(0, ...)` to avoid blocking the bridge response.
 
 ### What validate-bridges output looks like
 

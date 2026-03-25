@@ -26,7 +26,7 @@ One React UI, one domain library, two deployment targets:
 
 The app has four layers:
 
-1. **React UI** (`web/`) — Everything the user sees. Standard React + Vite.
+1. **React UI** (`web/`) — Everything the user sees. Multiple Vite apps under `web/apps/`, shared code in `web/shared/`. Standard React + Vite.
 2. **Domain logic** (`lib/todos/`) — Pure C++, no Qt, no Emscripten. Your business logic, testable in isolation with Catch2. Compiled for both desktop and WASM.
 3. **Qt bridge** (`lib/bridges/qt/`) — A thin `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
 4. **WASM bridge** (`lib/bridges/wasm/`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
@@ -76,7 +76,51 @@ Only parameterless signals are auto-forwarded. If you need to push data, emit a 
 
 React calls `signalReady()` after mounting. This tells the C++ side to fade out the loading overlay. If it never fires (JS error, bridge broken), a 15-second timeout shows an error message.
 
-This call lives in `App.tsx`. If you refactor, move it — but never remove it. In WASM mode, `signalReady()` is a no-op — there's no loading overlay to dismiss.
+This call lives in `web/apps/main/src/App.tsx`. If you refactor, move it — but never remove it. In WASM mode, `signalReady()` is a no-op — there's no loading overlay to dismiss.
+
+## Multi-Web-App Architecture
+
+The `web/` directory holds multiple Vite apps, not just one:
+
+```
+web/
+├── shared/              # Shared code — bridge interfaces, transport, utilities
+│   └── api/
+│       ├── bridge.ts          # getBridge<T>(), domain types
+│       ├── bridge-transport.ts
+│       ├── system-bridge.ts   # File I/O, clipboard, drag & drop, CLI args
+│       └── wasm-transport.ts
+├── apps/
+│   ├── main/            # Main todo app (App.tsx, DialogView.tsx, vite.config.ts)
+│   └── docs/            # Docs app
+└── package.json         # Single package.json with per-app scripts
+```
+
+Each app has its own `vite.config.ts` and entry point. The Vite alias `@shared` resolves to `../../shared` in each app, so imports like `import { getBridge } from '@shared/api/bridge'` work everywhere.
+
+On the desktop side, the `SchemeHandler` routes requests by host to serve the correct app. This means you can add new apps (settings panel, onboarding flow, etc.) without touching the existing ones.
+
+## SystemBridge — Desktop Capabilities
+
+Beyond your domain bridges, the framework provides a built-in `SystemBridge` with desktop-native features:
+
+- **File choosers** — `openFileChooser(filter?)` and `openFolderChooser()` open native OS dialogs and return the selected path.
+- **Directory listing** — `listFolder(path)` returns entries with name, size, and isDir. `globFolder(path, pattern, recursive?)` returns matching paths.
+- **Simple file reads** — `readTextFile(path)` for text, `readFileBytes(path)` for base64-encoded binary data.
+- **Streaming file handles** — For large files: `openFileHandle(path)` returns a handle and size, then `readFileChunk(handle, offset, length)` reads base64 chunks, and `closeFileHandle(handle)` cleans up.
+- **Drag & drop** — Drop files onto the window. React subscribes to `filesDropped` and calls `getDroppedFiles()` to get the paths.
+- **CLI args & URL protocol** — `getReceivedArgs()` returns args from the command line, second-instance forwarding, or URL protocol invocations. Subscribe to `argsReceived` for real-time notifications.
+- **Clipboard** — `copyToClipboard(text)` and `readClipboard()`.
+
+All of these are available via `getSystemBridge()` from `@shared/api/system-bridge`.
+
+## Tabs, Windows, and Tray
+
+The framework handles multi-tab and multi-window behavior at the Qt level:
+
+- **Tabs** — Each window has a tab bar (hidden when there's only one tab). Ctrl+T opens a new tab, Ctrl+W closes the current one, middle-click closes a tab. Each tab is an independent web view with its own React instance. Tab titles update automatically from `document.title`.
+- **Multiple windows** — Ctrl+N opens a new window. All windows share the same bridge instances, so state changes in one window are visible in all of them.
+- **Close-to-tray** — Closing the last window hides the app to the system tray instead of quitting. Secondary windows close normally. To quit for real: File > Quit, Ctrl+Q, or right-click the tray icon.
 
 ## Cross-Platform
 

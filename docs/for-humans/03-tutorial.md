@@ -10,7 +10,7 @@ We'll add an `addItem` method — from C++ domain logic to React UI — and see 
 ├── lib/todos/include/todo_store.hpp              ← C++ domain logic
 ├── lib/bridges/qt/include/todo_bridge.hpp        ← Qt bridge (Q_INVOKABLE)
 ├── lib/bridges/wasm/include/todo_wasm_bridge.hpp ← WASM bridge (Embind)
-└── web/src/api/bridge.ts                         ← TypeScript interface
+└── web/shared/api/bridge.ts                      ← TypeScript interface
 ```
 
 ## Step 1: Write the C++ Logic
@@ -94,7 +94,7 @@ EMSCRIPTEN_BINDINGS(todo_bridge) {
 
 ## Step 4: Define the TypeScript Interface
 
-**`web/src/api/bridge.ts`:**
+**`web/shared/api/bridge.ts`:**
 
 ```typescript
 export interface TodoBridge {
@@ -119,7 +119,7 @@ That's it. Four files, no wiring, no glue code.
 | `todo_store.hpp` | The actual logic (shared by both targets) |
 | `todo_bridge.hpp` | Qt bridge: `Q_INVOKABLE` wrapper + `to_json()` |
 | `todo_wasm_bridge.hpp` | WASM bridge: Embind method + `to_val()` |
-| `bridge.ts` | TypeScript interface line (shared by both targets) |
+| `bridge.ts` | TypeScript interface line in `web/shared/api/` (shared by both targets) |
 
 The bridge infrastructure didn't change at all. The Qt side discovered your new method via `QMetaObject` introspection. The WASM side exposed it via Embind. Both are callable from the same React code.
 

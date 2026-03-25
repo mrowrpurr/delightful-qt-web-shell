@@ -60,7 +60,7 @@ xmake build desktop
 xmake run desktop
 ```
 
-The first build takes ~30 seconds (Vite + C++ compile). Subsequent builds skip Vite if `web/src/` hasn't changed.
+The first build takes ~30 seconds (Vite + C++ compile). Subsequent builds skip Vite if `web/` hasn't changed.
 
 ## Dev Mode
 
@@ -120,8 +120,15 @@ xmake run dev-wasm
 │       ├── menus/            #   Menu bar + toolbar
 │       ├── widgets/          #   WebShellWidget, LoadingOverlay, StatusBar, SchemeHandler
 │       └── dialogs/          #   AboutDialog, WebDialog (React in a popup!)
-├── web/                      # React app (Vite)
-│   └── src/api/bridge.ts     #   TypeScript bridge interfaces
+├── web/                      # React + Vite (multi-app)
+│   ├── shared/api/           #   Bridge interfaces & transport (shared by all apps)
+│   │   ├── bridge.ts         #     getBridge<T>(), signalReady(), domain types
+│   │   ├── bridge-transport.ts #   Qt + WebSocket transports
+│   │   ├── system-bridge.ts  #     File I/O, clipboard, drag & drop, CLI args
+│   │   └── wasm-transport.ts #     WASM/Embind transport
+│   └── apps/                 #   One Vite app per entry point
+│       ├── main/             #     Main todo app (App.tsx, DialogView.tsx)
+│       └── docs/             #     Docs app
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)
 │   ├── bridges/
@@ -147,6 +154,17 @@ xmake run test-all            # all layers: Catch2 + Bun + Playwright + pywinaut
 If that's green, everything works.
 
 > ⚠️ **Heads up:** `test-all` includes pywinauto tests that launch the Qt app and drive your mouse/keyboard for ~30 seconds. You won't be able to use your computer during that time. If you're working with an agent, you can ask them to run individual test layers first (Catch2, Bun, browser e2e) — those are completely invisible. See [Testing](04-testing.md) for details.
+
+## Desktop Features You Get for Free
+
+The framework includes a bunch of desktop-native behaviors out of the box:
+
+- **Tabs** — Ctrl+T opens a new tab, Ctrl+W closes the current one, middle-click closes a tab. The tab bar hides when there's only one tab. Tab titles update automatically from `document.title` in React.
+- **Multiple windows** — Ctrl+N opens a new window. All windows share the same bridges, so editing in one window shows up in all of them.
+- **Close-to-tray** — Closing the last window hides the app to the system tray instead of quitting. Secondary windows just close normally. To actually quit, use File > Quit, Ctrl+Q, or right-click the tray icon.
+- **Drag & drop** — Drop files from Explorer (or Finder/Nautilus) onto the app window. React receives the file paths via the `filesDropped` signal on `SystemBridge`.
+- **CLI argument passing** — Run the exe with command-line args, and they show up in React via `SystemBridge.getReceivedArgs()`. If the app is already running, a second instance forwards its args to the running one via a single-instance pipe.
+- **URL protocol** — The app registers as a handler for its custom URL scheme (derived from `APP_SLUG` in `xmake.lua`). The Tools menu lets you register/unregister the handler. First launch prompts for registration.
 
 ## Next Steps
 

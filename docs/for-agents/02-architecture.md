@@ -32,13 +32,13 @@ One React UI, one domain library, two deployment targets:
 
 3. **WASM bridge** (`lib/bridges/wasm/include/todo_wasm_bridge.hpp`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
 
-4. **TypeScript interface** (`web/src/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
+4. **TypeScript interface** (`web/shared/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
 
 ## Two Layers You Don't Touch
 
 - **WebShell** (`lib/web-shell/include/web_shell.hpp`) — Bridge registration, `appReady` lifecycle signal. You call `shell->addBridge("name", bridge)` and never think about it again. *(Desktop only — WASM doesn't use WebShell.)*
 
-- **Transport** (`web/src/api/bridge-transport.ts`, `wasm-transport.ts`) — The React app auto-detects which transport to use. You never touch this.
+- **Transport** (`web/shared/api/bridge-transport.ts`, `wasm-transport.ts`) — The React app auto-detects which transport to use. You never touch this.
 
 ## The Proxy Pattern
 
@@ -116,3 +116,104 @@ For the Qt bridge, the JS side sees different shapes depending on the C++ return
 React calls `signalReady()` after mounting. This fires `WebShell::ready()` on the C++ side, which fades out the loading overlay. If it never fires (bridge broken, JS error), a 15-second timeout shows an error message.
 
 **Never remove the `signalReady()` call in App.tsx.** Move it if you refactor, but it must run after your app mounts. In WASM mode, `signalReady()` is a no-op — there's no loading overlay to dismiss.
+
+## Multi-Web-App Architecture
+
+The web layer is organized as multiple Vite apps sharing common code:
+
+```
+web/
+├── shared/api/          # Bridge interfaces & transport — used by all apps
+│   ├── bridge.ts
+│   ├── bridge-transport.ts
+│   ├── system-bridge.ts
+│   └── wasm-transport.ts
+├── apps/main/           # Main todo app (App.tsx, DialogView.tsx, main.tsx)
+│   ├── src/
+│   └── vite.config.ts
+├── apps/docs/           # Docs app
+│   ├── src/
+│   └── vite.config.ts
+└── package.json         # Single package.json — per-app scripts
+```
+
+**One `package.json`, per-app scripts:** `build:main`, `build:docs`, `dev:main`, `dev:docs`. Each app's `vite.config.ts` defines a `@shared` alias resolving to `../../shared`, so imports look like `import { getBridge } from '@shared/api/bridge'`.
+
+**SchemeHandler routing:** The `app://` scheme routes by host. `app://main/` serves from `:/web-main/`, `app://docs/` serves from `:/web-docs/`. Each app is a separate Qt resource prefix, built independently.
+
+## Hash Routing for Dialogs
+
+`main.tsx` checks `window.location.hash` at startup. `#/dialog` renders `DialogView`, everything else renders `App`. No React Router needed — the hash is set once at load time.
+
+```typescript
+const route = window.location.hash
+const Root = route === '#/dialog' ? DialogView : App
+```
+
+On the C++ side, `WebDialog.cpp` sets the URL fragment when loading: `QUrl("app://main/#/dialog")`. This gives dialogs a lightweight UI sharing the same bridges and build as the main app. Add a todo in the dialog, and the main window updates instantly via the `dataChanged` signal.
+
+**QTimer::singleShot(0, ...) gotcha:** When a bridge method call triggers opening a modal dialog (e.g., `system.openDialog()`), you must defer the dialog creation with `QTimer::singleShot(0, ...)`. Without this, the synchronous modal blocks the bridge response, and the JS side hangs waiting for the promise to resolve.
+
+## SystemBridge — File I/O
+
+The `SystemBridge` (`web/shared/api/system-bridge.ts`) provides desktop file capabilities in three tiers:
+
+**File choosers:** `openFileChooser(filter?)` and `openFolderChooser()` return `{ path }` or `{ cancelled: true }`.
+
+**Directory operations:** `listFolder(path)` returns entries with name, isDir, and size. `globFolder(path, pattern, recursive?)` returns matching paths.
+
+**Simple reads — small files:**
+- `readTextFile(path)` — returns `{ text }` for text files
+- `readFileBytes(path)` — returns `{ data }` as base64 for binary files (images, etc.)
+
+**Streaming handles — large files:**
+- `openFileHandle(path)` — returns `{ handle, size }`
+- `readFileChunk(handle, offset, length)` — returns `{ data, bytesRead }` as base64
+- `closeFileHandle(handle)` — releases the handle
+
+Use the simple APIs for files under ~100KB. Use handles for anything larger — they avoid loading entire files into memory.
+
+## Drag & Drop
+
+`WebShellWidget` installs an event filter on `QWebEngineView`'s `focusProxy()` to intercept drag events. Without this, the web engine swallows drag/drop entirely — Qt events never reach your code.
+
+React subscribes via `system.filesDropped(callback)` and retrieves paths with `system.getDroppedFiles()`.
+
+## Tabs
+
+`QTabWidget` wraps the main app. Each tab contains a `WebShellWidget` with its own `QWebEngineView`.
+
+- **Ctrl+T** — new tab
+- **Ctrl+W** — close current tab
+- **Middle-click** or **X button** — close tab
+- Tab bar auto-hides with only 1 tab
+
+Tab titles are reactive: `QWebEnginePage::titleChanged` updates the tab text. Just set `document.title` in your React code — no bridge call needed.
+
+Zoom level and DevTools follow the active tab.
+
+## Multiple Windows
+
+**Ctrl+N** creates a new `MainWindow`. Bridges are shared across all windows, so changes in one window appear in all (via the same signal mechanism).
+
+Close-to-tray only applies to the **last visible window**. Secondary windows close normally. This means you can have several windows open and close them freely — the app only goes to tray when the final one is closed.
+
+## CLI Arg Passing
+
+The app is single-instance. When a second instance launches, it pipes **all its args** (not just an "activate" message) to the running instance via the single-instance pipe.
+
+React sees incoming args via:
+- `system.argsReceived(callback)` — signal fired when new args arrive
+- `system.getReceivedArgs()` — returns the accumulated args
+
+On the C++ side, `QCommandLineParser` uses `parser.parse()` instead of `process()` so unknown flags pass through to React instead of causing a hard exit.
+
+## URL Protocol Registration
+
+Cross-platform custom URL protocol (e.g., `yourapp://open?file=foo`):
+
+- **Windows:** Writes to `HKCU` registry
+- **Linux:** `.desktop` file + `xdg-mime`
+- **macOS:** `Info.plist` + `QEvent::FileOpen`
+
+The app prompts on first launch. Users can also register/unregister via the **Tools** menu. Incoming URLs arrive through the same `argsReceived` signal as CLI args.
