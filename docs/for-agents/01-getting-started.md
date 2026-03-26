@@ -29,10 +29,15 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 │       └── dialogs/
 │           ├── about_dialog.*     # Custom QDialog example
 │           └── web_dialog.*       # React-in-a-dialog (WebShellWidget in a QDialog!)
-├── web/                      # React app (Vite) — shared by desktop + WASM
-│   └── src/api/
-│       ├── bridge.ts         #   TypeScript bridge interfaces + transport auto-detect
-│       └── wasm-transport.ts #   WASM transport (Embind calls wrapped in Promises)
+├── web/                      # React apps (Vite) — shared by desktop + WASM
+│   ├── shared/api/           #   Bridge transport + TS interfaces (shared by all apps)
+│   │   ├── bridge.ts         #     TypeScript bridge interfaces + transport auto-detect
+│   │   ├── system-bridge.ts  #     SystemBridge — desktop capabilities (file I/O, clipboard, etc.)
+│   │   └── wasm-transport.ts #     WASM transport (Embind calls wrapped in Promises)
+│   ├── apps/
+│   │   ├── main/             #   Main app (todo demo + file browser + all bridge demos)
+│   │   └── docs/             #   Docs app (architecture guide, runs alongside main)
+│   └── package.json          #   Single deps, per-app scripts (build:main, dev:main, etc.)
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)
 │   ├── bridges/
@@ -94,7 +99,7 @@ xmake build desktop
 xmake run desktop
 ```
 
-The first build takes ~30s (Vite + C++ compile). Subsequent builds skip Vite if `web/src/` hasn't changed.
+The first build takes ~30s (Vite + C++ compile). Subsequent builds skip Vite if web code hasn't changed.
 
 ## Dev Mode
 

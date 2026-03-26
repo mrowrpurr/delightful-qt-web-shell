@@ -96,7 +96,7 @@ EMSCRIPTEN_BINDINGS(bridges) {
 
 ### 4. TypeScript interface
 
-`web/src/api/bridge.ts`:
+`web/shared/api/bridge.ts`:
 
 ```typescript
 export interface TodoBridge {
@@ -126,7 +126,7 @@ xmake run scaffold-bridge notes
 
 This does everything:
 1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — C++ bridge with `Q_OBJECT` + skeleton
-2. Creates `web/src/api/notes-bridge.ts` — TypeScript interface stub
+2. Creates `web/shared/api/notes-bridge.ts` — TypeScript interface stub
 3. Wires `#include` + `addBridge()` into both `desktop/src/application.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
 
 No xmake.lua edits needed — the `lib/bridges/qt/` target uses glob discovery.
@@ -136,8 +136,8 @@ No xmake.lua edits needed — the `lib/bridges/qt/` target uses glob discovery.
 1. Add `Q_INVOKABLE` methods to `lib/bridges/qt/include/notes_bridge.hpp`
 2. Create the WASM bridge: `lib/bridges/wasm/include/notes_wasm_bridge.hpp` — same method names, `emscripten::val` returns, `to_val()` helpers
 3. Register in `lib/bridges/wasm/src/wasm_bindings.cpp` with `EMSCRIPTEN_BINDINGS`
-4. Register in `web/src/api/wasm-transport.ts` — add `notes: new wasm.NotesBridge()` to the bridges map
-5. Mirror methods in `web/src/api/notes-bridge.ts`
+4. Register in `web/shared/api/wasm-transport.ts` — add `notes: new wasm.NotesBridge()` to the bridges map
+5. Mirror methods in `web/shared/api/notes-bridge.ts`
 6. Use it: `const notes = await getBridge<NotesBridge>('notes')`
 
 > The scaffolder handles Qt bridge + TS interface + wiring. WASM bridge creation is manual — see `todo_wasm_bridge.hpp` for the pattern.
@@ -215,6 +215,40 @@ useEffect(() => {
   return cleanup
 }, [])
 ```
+
+---
+
+## Adding a New Web App
+
+The web layer supports multiple Vite apps under `web/apps/`. Each shares code from `web/shared/` via the `@shared` alias.
+
+1. Copy `web/apps/docs/` to `web/apps/yourapp/`
+2. Edit its `vite.config.ts` — set a unique dev port, keep the `@shared` alias
+3. Add scripts to `web/package.json`: `"build:yourapp": "cd apps/yourapp && vite build"`, `"dev:yourapp": "cd apps/yourapp && vite --port 5175"`
+4. Register in `desktop/src/widgets/scheme_handler.cpp` — add host routing so `app://yourapp/` serves from `:/web-yourapp/`
+5. Add to `WEB_APPS` list in `desktop/xmake.lua` so it gets built and embedded in the qrc
+6. Create a `WebShellWidget` pointed at `app->appUrl("yourapp")` wherever you want it
+
+The new app automatically gets all shared bridges — `getBridge<TodoBridge>('todos')` works the same way.
+
+## Adding Hash Routes (Dialog Pattern)
+
+To render different UIs from the same app build (e.g., a dialog vs the main window):
+
+1. Create a view component (e.g., `SettingsView.tsx`)
+2. In `main.tsx`, check `window.location.hash`:
+   ```typescript
+   const hash = window.location.hash
+   if (hash === '#/settings') root.render(<SettingsView />)
+   else root.render(<App />)
+   ```
+3. From C++, set the hash when loading the URL:
+   ```cpp
+   QUrl url = app->appUrl("main");
+   url.setFragment("/settings");
+   ```
+
+**⚠️ QTimer::singleShot(0, ...) is required** when a bridge method triggers opening a modal dialog. Without deferring, the QWebChannel blocks and the dialog's own channel can't initialize. See `main_window.cpp` for the pattern.
 
 ---
 

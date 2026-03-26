@@ -32,13 +32,29 @@ One React UI, one domain library, two deployment targets:
 
 3. **WASM bridge** (`lib/bridges/wasm/include/todo_wasm_bridge.hpp`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
 
-4. **TypeScript interface** (`web/src/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
+4. **TypeScript interface** (`web/shared/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
 
 ## Two Layers You Don't Touch
 
 - **WebShell** (`lib/web-shell/include/web_shell.hpp`) — Bridge registration, `appReady` lifecycle signal. You call `shell->addBridge("name", bridge)` and never think about it again. *(Desktop only — WASM doesn't use WebShell.)*
 
-- **Transport** (`web/src/api/bridge-transport.ts`, `wasm-transport.ts`) — The React app auto-detects which transport to use. You never touch this.
+- **Transport** (`web/shared/api/bridge-transport.ts`, `wasm-transport.ts`) — The React app auto-detects which transport to use. You never touch this.
+
+## Multi-App Web Layer
+
+The web layer isn't a single Vite app — it's N apps sharing common code:
+
+```
+web/
+  shared/api/     ← bridge interfaces + transport (shared by all apps)
+  apps/main/      ← main app (todo demo, file browser, all bridge demos)
+  apps/docs/      ← docs app (architecture guide, runs in a side panel)
+  package.json    ← single deps, per-app scripts (build:main, dev:main, etc.)
+```
+
+Each app has its own `vite.config.ts` with a `@shared` alias pointing to `../../shared`. The SchemeHandler routes by host — `app://main/` serves the main app, `app://docs/` serves docs. `Application::appUrl("main")` returns the right URL for dev or production.
+
+To add a new app, copy `web/apps/docs/`, register it in the SchemeHandler, and add build scripts. See [Adding Features](03-adding-features.md) for the recipe.
 
 ## The Proxy Pattern
 

@@ -10,12 +10,14 @@ This is a concise index of traps. Details live in the doc where you're doing the
 | Return `QJsonObject` but got `{value: ...}` | You returned a scalar (`QString`, `int`) — scalars get wrapped | [03-adding-features.md](03-adding-features.md) |
 | Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s | [02-architecture.md, signalReady](02-architecture.md) |
 | Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
+| Bridge method opens modal dialog synchronously | Dialog's QWebChannel can't init — loading overlay forever | [03-adding-features.md, Hash Routes](03-adding-features.md) |
+| Drag & drop handler on WebShellWidget | QWebEngineView's focusProxy swallows all drag events | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
 
 > **Use `xmake run scaffold-bridge <name>`** to create new bridges. It handles registration in both entry points and MOC setup automatically — you won't hit the first gotcha above.
 
 ## Build Gotchas
 
-**Web build caching:** The build skips Vite if `web/src/` hasn't changed (timestamps vs `build/.web-build-stamp`). If you edited web code but see old output, delete `build/.web-build-stamp` to force a rebuild.
+**Web build caching:** The build skips Vite if web code hasn't changed (timestamps vs `build/.web-build-stamp-*`). If you edited web code but see old output, delete the stamp files in `build/` to force a rebuild.
 
 **First build is slow:** ~30s (Vite + C++ compile). Subsequent builds skip Vite and only recompile changed C++.
 
@@ -28,6 +30,14 @@ QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes
 - `tools/playwright-cdp/postinstall` → applies same patch to its copy
 
 **When bumping playwright-core**, check if the patch still applies and if the issue is fixed upstream.
+
+## Multi-App / Vite Gotchas
+
+**Vite `--config` doesn't change root:** `vite build --config apps/main/vite.config.ts` from `web/` fails. Vite needs CWD = config dir. Use `cd apps/main && vite build` in your scripts.
+
+**`@shared` alias requires vite.config.ts in each app:** Each app must define its own `@shared` → `../../shared` resolve alias. It's not inherited.
+
+**QCommandLineParser: `parse()` not `process()`:** `process()` shows an error dialog and exits on unknown flags. Use `parse()` so args (including URL protocol activations) pass through to the app.
 
 ## WASM Gotchas
 
