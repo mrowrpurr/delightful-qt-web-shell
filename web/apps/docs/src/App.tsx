@@ -12,11 +12,11 @@ import tutorial from '../../../../docs/for-humans/03-tutorial.md?raw'
 import testing from '../../../../docs/for-humans/04-testing.md?raw'
 
 const docs = [
-  { id: 'readme', title: 'README', content: readme },
-  { id: 'getting-started', title: 'Getting Started', content: gettingStarted },
-  { id: 'architecture', title: 'Architecture', content: architecture },
-  { id: 'tutorial', title: 'Tutorial', content: tutorial },
-  { id: 'testing', title: 'Testing', content: testing },
+  { value: 'readme', label: 'README', content: readme },
+  { value: 'getting-started', label: 'Getting Started', content: gettingStarted },
+  { value: 'architecture', label: 'Architecture', content: architecture },
+  { value: 'tutorial', label: 'Tutorial', content: tutorial },
+  { value: 'testing', label: 'Testing', content: testing },
 ]
 
 export default function App() {
@@ -24,7 +24,7 @@ export default function App() {
 
   useEffect(() => { signalReady() }, [])
 
-  const doc = docs.find(d => d.id === selectedDoc) ?? docs[0]
+  const doc = docs.find(d => d.value === selectedDoc) ?? docs[0]
 
   return (
     <div className="docs">
@@ -32,13 +32,10 @@ export default function App() {
         <h1>{import.meta.env.VITE_APP_NAME || 'App'}</h1>
         <Select
           value={selectedDoc}
-          onChange={e => setSelectedDoc(e.target.value)}
+          onChange={setSelectedDoc}
+          options={docs}
           className="doc-select"
-        >
-          {docs.map(d => (
-            <option key={d.id} value={d.id}>{d.title}</option>
-          ))}
-        </Select>
+        />
       </div>
       <div className="markdown-body">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.content}</ReactMarkdown>
