@@ -1,21 +1,10 @@
 @import "../../../shared/styles/globals.css";
 
-/* App-specific overrides (on top of shared theme) */
-:root {
-  --bg: #242424;
-  --text: #e0e0e0;
-  --text-muted: #888;
-  --accent: #7c6ef0;
-  --card-bg: #2a2a2a;
-  --border: #3a3a3a;
-  --code-bg: #1a1a1a;
-}
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--bg);
-  color: var(--text);
+  background: var(--color-background);
+  color: var(--color-foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.6;
 }
@@ -33,20 +22,13 @@ body {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .docs-header h1 {
-  color: var(--accent);
+  color: var(--color-primary);
   font-size: 1.2rem;
   white-space: nowrap;
-}
-
-.doc-select {
-  width: 200px;
-  background: var(--card-bg);
-  color: var(--text);
-  border-color: var(--border);
 }
 
 /* ── Markdown body styles ──────────────────────────────── */
@@ -59,33 +41,33 @@ body {
 .markdown-body h1 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--color-primary);
   margin: 1.5rem 0 0.75rem;
   padding-bottom: 0.3rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .markdown-body h2 {
   font-size: 1.15rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--color-foreground);
   margin: 1.25rem 0 0.5rem;
 }
 
 .markdown-body h3 {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--color-foreground);
   margin: 1rem 0 0.4rem;
 }
 
 .markdown-body p {
   margin: 0.5rem 0;
-  color: var(--text-muted);
+  color: var(--color-muted-foreground);
 }
 
 .markdown-body a {
-  color: var(--accent);
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -96,7 +78,7 @@ body {
 .markdown-body ul, .markdown-body ol {
   margin: 0.5rem 0;
   padding-left: 1.5rem;
-  color: var(--text-muted);
+  color: var(--color-muted-foreground);
 }
 
 .markdown-body li {
@@ -104,11 +86,11 @@ body {
 }
 
 .markdown-body strong {
-  color: var(--text);
+  color: var(--color-foreground);
 }
 
 .markdown-body code {
-  background: var(--code-bg);
+  background: #1a1a1a;
   padding: 0.15em 0.4em;
   border-radius: 3px;
   font-size: 0.85em;
@@ -116,8 +98,8 @@ body {
 }
 
 .markdown-body pre {
-  background: var(--code-bg);
-  border: 1px solid var(--border);
+  background: #1a1a1a;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.75rem 1rem;
   margin: 0.75rem 0;
@@ -134,11 +116,11 @@ body {
 }
 
 .markdown-body blockquote {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--color-primary);
   padding: 0.25rem 0.75rem;
   margin: 0.75rem 0;
-  color: var(--text-muted);
-  background: var(--code-bg);
+  color: var(--color-muted-foreground);
+  background: #1a1a1a;
   border-radius: 0 4px 4px 0;
 }
 
@@ -150,23 +132,23 @@ body {
 }
 
 .markdown-body th {
-  background: var(--code-bg);
+  background: #1a1a1a;
   font-weight: 600;
   text-align: left;
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
-  color: var(--text);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
 }
 
 .markdown-body td {
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted-foreground);
 }
 
 .markdown-body hr {
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
   margin: 1.5rem 0;
 }
 
