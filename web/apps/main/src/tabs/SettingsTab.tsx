@@ -308,6 +308,9 @@ export default function SettingsTab() {
   const [editorTheme, setEditorTheme] = useState(localStorage.getItem('editor-theme-name') || 'Default')
   const [editorUseAppFont, setEditorUseAppFont] = useState(localStorage.getItem('editor-use-app-font') !== 'false')
   const [editorFont, setEditorFont] = useState<string | null>(localStorage.getItem('editor-font-family'))
+  const [pageTransparency, setPageTransparency] = useState(
+    parseInt(localStorage.getItem('page-transparency') ?? '0', 10)
+  )
   const [editorTransparency, setEditorTransparency] = useState(
     parseInt(localStorage.getItem('editor-transparency') ?? '0', 10)
   )
@@ -364,6 +367,12 @@ export default function SettingsTab() {
     setEditorFont(family)
     applyFont(family, 'editor')
     window.dispatchEvent(new CustomEvent('editor-font-changed'))
+  }, [])
+
+  const onPageTransparency = useCallback((value: number) => {
+    setPageTransparency(value)
+    localStorage.setItem('page-transparency', String(value))
+    window.dispatchEvent(new CustomEvent('page-transparency-changed'))
   }, [])
 
   const onEditorTransparency = useCallback((value: number) => {
@@ -430,6 +439,23 @@ export default function SettingsTab() {
             <FontPicker value={editorFont} onChange={onEditorFont} />
           </div>
         )}
+      </div>
+
+      {/* Page Transparency */}
+      <div>
+        <p className="text-sm font-medium mb-1">Page Transparency</p>
+        <p className="text-sm text-muted-foreground mb-3">Make the page background see-through so wallpaper themes show through</p>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={pageTransparency}
+            onChange={e => onPageTransparency(parseInt(e.target.value, 10))}
+            className="flex-1 accent-primary"
+          />
+          <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{pageTransparency}%</span>
+        </div>
       </div>
 
       {/* Editor Transparency */}
