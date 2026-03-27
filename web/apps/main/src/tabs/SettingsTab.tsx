@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { cn } from '@shared/lib/utils'
 import { applyTheme, loadThemes, getThemesSync, isDarkMode, setDarkMode, extractPreviewColor, extractBgColor, type ThemeEntry } from '@shared/lib/themes'
 import { loadGoogleFonts, getGoogleFontsSync, applyFont, type GoogleFont } from '@shared/lib/fonts'
+import { applyThemeEffects } from '../theme-effects'
 
 // ── Toggle switch ─────────────────────────────────────────
 
@@ -320,6 +321,7 @@ export default function SettingsTab() {
     setDarkMode(newDark)
     const theme = themes.find(t => t.name === appTheme)
     if (theme) applyTheme(theme, newDark)
+    applyThemeEffects(appTheme)
     notifyEditor()
   }, [dark, themes, appTheme])
 
@@ -327,6 +329,7 @@ export default function SettingsTab() {
     setAppTheme(name)
     const theme = themes.find(t => t.name === name)
     if (theme) applyTheme(theme, dark)
+    applyThemeEffects(name)
     if (editorUseAppTheme) {
       setEditorTheme(name)
       localStorage.setItem('editor-theme-name', name)

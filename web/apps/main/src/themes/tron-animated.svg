@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+  <defs>
+    <!-- Pulse that travels along horizontal grid lines -->
+    <linearGradient id="hPulse" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(26,255,236,0)" />
+      <stop offset="40%" stop-color="rgba(26,255,236,0)" />
+      <stop offset="50%" stop-color="rgba(26,255,236,0.9)" />
+      <stop offset="60%" stop-color="rgba(26,255,236,0)" />
+      <stop offset="100%" stop-color="rgba(26,255,236,0)" />
+      <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="4s" repeatCount="indefinite" />
+    </linearGradient>
+
+    <!-- Pulse that travels down vertical/radial lines -->
+    <linearGradient id="vPulse" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(26,255,236,0)" />
+      <stop offset="40%" stop-color="rgba(26,255,236,0)" />
+      <stop offset="50%" stop-color="rgba(26,255,236,0.85)" />
+      <stop offset="60%" stop-color="rgba(26,255,236,0)" />
+      <stop offset="100%" stop-color="rgba(26,255,236,0)" />
+      <animateTransform attributeName="gradientTransform" type="translate" from="0 -1" to="0 1" dur="3s" repeatCount="indefinite" />
+    </linearGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Static grid (same as original, slightly dimmer) -->
+  <g stroke="rgba(26,255,236,0.15)" stroke-width="1" stroke-linecap="round">
+    <!-- Horizontal lines -->
+    <line x1="955.2" y1="379.5" x2="964.8" y2="379.5"/>
+    <line x1="941.0" y1="383.8" x2="979.0" y2="383.8"/>
+    <line x1="917.2" y1="391.1" x2="1002.8" y2="391.1"/>
+    <line x1="883.8" y1="401.2" x2="1036.2" y2="401.2"/>
+    <line x1="841.0" y1="414.3" x2="1079.0" y2="414.3"/>
+    <line x1="788.6" y1="430.2" x2="1131.4" y2="430.2"/>
+    <line x1="726.7" y1="449.1" x2="1193.3" y2="449.1"/>
+    <line x1="655.3" y1="470.8" x2="1264.7" y2="470.8"/>
+    <line x1="574.4" y1="495.5" x2="1345.6" y2="495.5"/>
+    <line x1="484.0" y1="523.0" x2="1436.0" y2="523.0"/>
+    <line x1="384.0" y1="553.5" x2="1536.0" y2="553.5"/>
+    <line x1="274.5" y1="586.9" x2="1645.5" y2="586.9"/>
+    <line x1="155.5" y1="623.1" x2="1764.5" y2="623.1"/>
+    <line x1="27.0" y1="662.3" x2="1893.0" y2="662.3"/>
+    <line x1="-111.1" y1="704.3" x2="2031.1" y2="704.3"/>
+    <line x1="-258.6" y1="749.3" x2="2178.6" y2="749.3"/>
+    <line x1="-415.7" y1="797.2" x2="2335.7" y2="797.2"/>
+    <line x1="-582.3" y1="847.9" x2="2502.3" y2="847.9"/>
+    <line x1="-758.5" y1="901.6" x2="2678.5" y2="901.6"/>
+    <line x1="-944.1" y1="958.2" x2="2864.1" y2="958.2"/>
+    <line x1="-1139.3" y1="1017.6" x2="3059.3" y2="1017.6"/>
+    <line x1="-1344.0" y1="1080.0" x2="3264.0" y2="1080.0"/>
+    <!-- Radial lines -->
+    <line x1="960.0" y1="378" x2="-1344.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-1200.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-1056.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-912.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-768.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-624.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-480.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-336.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-192.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-48.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="96.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="240.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="384.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="528.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="672.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="816.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="960.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1104.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1248.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1392.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1536.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1680.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1824.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1968.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2112.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2256.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2400.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2544.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2688.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2832.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2976.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="3120.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="3264.0" y2="1080"/>
+  </g>
+
+  <!-- Animated pulse layer — horizontal lines with traveling light -->
+  <g stroke="url(#hPulse)" stroke-width="2" stroke-linecap="round" filter="url(#glow)">
+    <line x1="883.8" y1="401.2" x2="1036.2" y2="401.2"/>
+    <line x1="788.6" y1="430.2" x2="1131.4" y2="430.2"/>
+    <line x1="655.3" y1="470.8" x2="1264.7" y2="470.8"/>
+    <line x1="484.0" y1="523.0" x2="1436.0" y2="523.0"/>
+    <line x1="274.5" y1="586.9" x2="1645.5" y2="586.9"/>
+    <line x1="27.0" y1="662.3" x2="1893.0" y2="662.3"/>
+    <line x1="-258.6" y1="749.3" x2="2178.6" y2="749.3"/>
+    <line x1="-582.3" y1="847.9" x2="2502.3" y2="847.9"/>
+    <line x1="-944.1" y1="958.2" x2="2864.1" y2="958.2"/>
+    <line x1="-1344.0" y1="1080.0" x2="3264.0" y2="1080.0"/>
+  </g>
+
+  <!-- Animated pulse layer — radial lines with downward traveling light -->
+  <g stroke="url(#vPulse)" stroke-width="1.5" stroke-linecap="round" filter="url(#glow)">
+    <line x1="960.0" y1="378" x2="-768.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="-192.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="384.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="672.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="960.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1248.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="1536.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2112.0" y2="1080"/>
+    <line x1="960.0" y1="378" x2="2688.0" y2="1080"/>
+  </g>
+
+  <!-- Vanishing point glow -->
+  <circle cx="960" cy="378" r="3" fill="rgba(26,255,236,0.6)" filter="url(#glow)">
+    <animate attributeName="r" values="2;5;2" dur="2s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" />
+  </circle>
+
+  <!-- Horizon scan line -->
+  <line x1="0" y1="378" x2="1920" y2="378" stroke="rgba(26,255,236,0.08)" stroke-width="1">
+    <animate attributeName="stroke-opacity" values="0.04;0.15;0.04" dur="3s" repeatCount="indefinite" />
+  </line>
+</svg>

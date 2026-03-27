@@ -44,3 +44,11 @@
 .markdown-body td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); color: var(--color-muted-foreground); }
 .markdown-body hr { border: none; border-top: 1px solid var(--color-border); margin: 1.5rem 0; }
 .markdown-body img { max-width: 100%; border-radius: 4px; }
+
+/* ── Special theme effects ─────────────────────────────── */
+.theme-glow h1, .theme-glow h2, .theme-glow .text-primary {
+  text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary), 0 0 40px var(--color-primary);
+}
+.theme-glow button[class*="bg-primary"] {
+  box-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+}

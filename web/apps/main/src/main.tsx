@@ -21,8 +21,10 @@ setThemeData(themesJson as any)
 setFontData(fontsJson as any)
 
 // Apply saved theme + font before first render to prevent flash
+import { applyThemeEffects } from './theme-effects'
 initTheme()
 initFont()
+applyThemeEffects(localStorage.getItem('theme-name') || 'Default')
 
 // Hash-based routing — same React app, different content.
 // The main window loads app://main/ (no hash) → full app.
