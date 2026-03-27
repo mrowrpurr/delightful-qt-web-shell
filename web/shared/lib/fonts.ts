@@ -8,7 +8,7 @@ let fontsPromise: Promise<GoogleFont[]> | null = null
 
 export function loadGoogleFonts(): Promise<GoogleFont[]> {
   if (fontsCache) return Promise.resolve(fontsCache)
-  fontsPromise ??= fetch('/google-fonts.json')
+  fontsPromise ??= fetch('./google-fonts.json')
     .then(r => r.json())
     .then((data: GoogleFont[]) => { fontsCache = data; return data })
   return fontsPromise

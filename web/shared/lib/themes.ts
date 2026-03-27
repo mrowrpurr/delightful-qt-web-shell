@@ -10,7 +10,7 @@ let themesPromise: Promise<ThemeEntry[]> | null = null
 
 export function loadThemes(): Promise<ThemeEntry[]> {
   if (themesCache) return Promise.resolve(themesCache)
-  themesPromise ??= fetch('/themes.json')
+  themesPromise ??= fetch('./themes.json')
     .then(r => r.json())
     .then((data: ThemeEntry[]) => { themesCache = data; return data })
   return themesPromise
