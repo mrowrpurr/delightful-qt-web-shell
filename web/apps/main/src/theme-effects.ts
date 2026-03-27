@@ -48,6 +48,10 @@ function clearEffects() {
   document.body.style.removeProperty('background')
   root.classList.remove('theme-glow')
   stopTronGrid()
+
+  // Restore opaque app background
+  const appDiv = document.getElementById('root')?.firstElementChild as HTMLElement | null
+  if (appDiv) appDiv.style.removeProperty('background')
 }
 
 function applyWallpaper(bg: string, bgColor: string) {
@@ -55,6 +59,10 @@ function applyWallpaper(bg: string, bgColor: string) {
   root.style.setProperty('background', bg)
   root.style.setProperty('background-color', bgColor)
   document.body.style.setProperty('background', 'transparent', 'important')
+
+  // Make the React app transparent so the wallpaper shows through
+  const appDiv = document.getElementById('root')?.firstElementChild as HTMLElement | null
+  if (appDiv) appDiv.style.setProperty('background', 'transparent', 'important')
 }
 
 export function applyThemeEffects(themeName: string) {

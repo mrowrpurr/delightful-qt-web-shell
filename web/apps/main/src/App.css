@@ -52,3 +52,9 @@
 .theme-glow button[class*="bg-primary"] {
   box-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
 }
+
+/* Wallpaper themes — make surfaces semi-transparent */
+html:has(> [style*="background"]) body,
+html[style*="background"] body {
+  background: transparent !important;
+}
