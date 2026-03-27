@@ -26,12 +26,10 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen text-foreground"
-      style={{
-        backgroundColor: pageTransparency > 0
-          ? `oklch(from var(--color-background) l c h / ${(100 - pageTransparency) / 100})`
-          : undefined,
-      }}
+      className={`min-h-screen text-foreground ${pageTransparency === 0 ? 'bg-background' : ''}`}
+      style={pageTransparency > 0 ? {
+        backgroundColor: `oklch(from var(--color-background) l c h / ${(100 - pageTransparency) / 100})`,
+      } : undefined}
     >
       <Tabs defaultValue="docs" className="w-full">
         <div className="border-b border-border flex justify-center py-2">
