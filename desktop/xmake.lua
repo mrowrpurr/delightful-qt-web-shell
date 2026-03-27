@@ -48,50 +48,18 @@ target("desktop")
 
         -- ── Build each web app ───────────────────────────────────
         -- Each app lives in web/apps/<name>/ with its own vite.config.ts.
-        -- A single stamp file per app tracks whether sources have changed.
+        -- Always rebuild — Vite is fast (~3s) and stamp files are a footgun.
+        -- Vite can import files from anywhere (?raw imports from root, docs/, etc.)
+        -- so there's no reliable way to detect "nothing changed" without Vite itself.
         local all_qrc_lines = {'<RCC>'}
+
+        os.execv("bun", {"install"}, {curdir = web_dir})
 
         for _, app_name in ipairs(WEB_APPS) do
             local app_dir = path.join(web_dir, "apps", app_name)
             local dist_dir = path.join(app_dir, "dist")
-            local src_dir = path.join(app_dir, "src")
-            local shared_dir = path.join(web_dir, "shared")
-            local stamp_file = path.join(project_root, "build", ".web-build-stamp-" .. app_name)
 
-            -- Check if this app needs rebuilding
-            local needs_build = not os.isdir(dist_dir) or not os.isfile(stamp_file)
-            if not needs_build then
-                local stamp_mtime = os.mtime(stamp_file)
-                -- Check app sources
-                for _, f in ipairs(os.files(path.join(src_dir, "**"))) do
-                    if os.mtime(f) > stamp_mtime then needs_build = true; break end
-                end
-                -- Check shared sources
-                if not needs_build then
-                    for _, f in ipairs(os.files(path.join(shared_dir, "**"))) do
-                        if os.mtime(f) > stamp_mtime then needs_build = true; break end
-                    end
-                end
-                -- Check index.html and package.json
-                if not needs_build then
-                    for _, f in ipairs({
-                        path.join(app_dir, "index.html"),
-                        path.join(web_dir, "package.json")
-                    }) do
-                        if os.isfile(f) and os.mtime(f) > stamp_mtime then
-                            needs_build = true; break
-                        end
-                    end
-                end
-            end
-
-            if needs_build then
-                os.execv("bun", {"install"}, {curdir = web_dir})
-                os.execv("bun", {"run", "build:" .. app_name}, {curdir = web_dir})
-                io.writefile(stamp_file, os.date())
-            else
-                print("Web app '" .. app_name .. "' is up to date — skipping.")
-            end
+            os.execv("bun", {"run", "build:" .. app_name}, {curdir = web_dir})
 
             -- Add this app's dist files to the qrc with prefix /web-<name>
             table.insert(all_qrc_lines, '    <qresource prefix="/web-' .. app_name .. '">')
