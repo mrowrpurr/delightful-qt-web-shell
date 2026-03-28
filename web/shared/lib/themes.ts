@@ -65,21 +65,34 @@ export function setDarkMode(dark: boolean) {
   localStorage.setItem('theme-mode', dark ? 'dark' : 'light')
 }
 
+// We inject a <style> element to override Tailwind's @layer theme vars.
+// Inline styles on :root SHOULD override @layer, but QWebEngine's Chromium
+// can be inconsistent. A <style> with :root {} is bulletproof.
+let themeStyleEl: HTMLStyleElement | null = null
+
 export function applyTheme(theme: ThemeEntry, dark: boolean) {
   const themeVars = dark ? theme.dark : theme.light
   const fallback = dark ? DEFAULT_DARK : DEFAULT_LIGHT
-  const root = document.documentElement
-  // Use theme vars if present, otherwise fall back to defaults.
-  // This ensures the Default theme (empty vars) still switches between dark/light.
   const hasVars = Object.keys(themeVars).length > 0
   const vars = hasVars ? themeVars : fallback
+
+  const lines: string[] = []
   for (const name of ALL_VARS) {
     const value = vars[`--${name}`] || fallback[`--${name}`]
     if (value) {
-      root.style.setProperty(`--${name}`, value)
-      root.style.setProperty(`--color-${name}`, value)
+      lines.push(`--${name}: ${value};`)
+      lines.push(`--color-${name}: ${value};`)
     }
   }
+
+  // Inject or update the theme <style> element
+  if (!themeStyleEl) {
+    themeStyleEl = document.createElement('style')
+    themeStyleEl.id = 'theme-overrides'
+    document.head.appendChild(themeStyleEl)
+  }
+  themeStyleEl.textContent = `:root { ${lines.join(' ')} }`
+
   localStorage.setItem('theme-name', theme.name)
 }
 
