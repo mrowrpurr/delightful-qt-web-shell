@@ -56,11 +56,11 @@ function clearEffects() {
 
 function applyWallpaper(bg: string, bgColor: string) {
   const root = document.documentElement
-  root.style.setProperty('background', bg)
-  root.style.setProperty('background-color', bgColor)
+  // background shorthand: color first, then image on top.
+  // SVGs have transparent backgrounds — the bgColor shows behind the lines.
+  root.style.setProperty('background', `${bgColor} ${bg}`)
   document.body.style.setProperty('background', 'transparent', 'important')
 
-  // Make the React app transparent so the wallpaper shows through
   const appDiv = document.getElementById('root')?.firstElementChild as HTMLElement | null
   if (appDiv) appDiv.style.setProperty('background', 'transparent', 'important')
 }
