@@ -32,6 +32,31 @@ const ALL_VARS = [
   'border', 'input', 'ring',
 ]
 
+// Fallback colors when theme has empty vars for a mode (e.g. Default theme)
+const DEFAULT_DARK: Record<string, string> = {
+  '--background': '#242424', '--foreground': '#e0e0e0',
+  '--card': '#2a2a2a', '--card-foreground': '#e0e0e0',
+  '--popover': '#2a2a2a', '--popover-foreground': '#e0e0e0',
+  '--primary': '#7c6ef0', '--primary-foreground': '#ffffff',
+  '--secondary': '#3a3a3a', '--secondary-foreground': '#e0e0e0',
+  '--muted': '#2a2a2a', '--muted-foreground': '#888888',
+  '--accent': '#3a3a4a', '--accent-foreground': '#e0e0e0',
+  '--destructive': '#ef4444', '--destructive-foreground': '#ffffff',
+  '--border': '#3a3a3a', '--input': '#3a3a3a', '--ring': '#7c6ef0',
+}
+
+const DEFAULT_LIGHT: Record<string, string> = {
+  '--background': '#ffffff', '--foreground': '#1a1a1a',
+  '--card': '#ffffff', '--card-foreground': '#1a1a1a',
+  '--popover': '#ffffff', '--popover-foreground': '#1a1a1a',
+  '--primary': '#7c6ef0', '--primary-foreground': '#ffffff',
+  '--secondary': '#f0f0f0', '--secondary-foreground': '#1a1a1a',
+  '--muted': '#f5f5f5', '--muted-foreground': '#666666',
+  '--accent': '#f0f0f5', '--accent-foreground': '#1a1a1a',
+  '--destructive': '#ef4444', '--destructive-foreground': '#ffffff',
+  '--border': '#e0e0e0', '--input': '#e0e0e0', '--ring': '#7c6ef0',
+}
+
 export function isDarkMode(): boolean {
   return localStorage.getItem('theme-mode') !== 'light'
 }
@@ -41,18 +66,18 @@ export function setDarkMode(dark: boolean) {
 }
 
 export function applyTheme(theme: ThemeEntry, dark: boolean) {
-  const vars = dark ? theme.dark : theme.light
+  const themeVars = dark ? theme.dark : theme.light
+  const fallback = dark ? DEFAULT_DARK : DEFAULT_LIGHT
   const root = document.documentElement
+  // Use theme vars if present, otherwise fall back to defaults.
+  // This ensures the Default theme (empty vars) still switches between dark/light.
+  const hasVars = Object.keys(themeVars).length > 0
+  const vars = hasVars ? themeVars : fallback
   for (const name of ALL_VARS) {
-    const value = vars[`--${name}`]
+    const value = vars[`--${name}`] || fallback[`--${name}`]
     if (value) {
-      // Set both formats: --background (for direct CSS var usage) and
-      // --color-background (for Tailwind v4 utility classes like bg-background)
       root.style.setProperty(`--${name}`, value)
       root.style.setProperty(`--color-${name}`, value)
-    } else {
-      root.style.removeProperty(`--${name}`)
-      root.style.removeProperty(`--color-${name}`)
     }
   }
   localStorage.setItem('theme-name', theme.name)
