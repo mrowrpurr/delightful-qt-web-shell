@@ -86,7 +86,7 @@ The web layer isn't one Vite app — it's several, sharing common code:
 web/
   shared/api/     ← bridge interfaces + transport (used by all apps)
   apps/main/      ← main app (todo demo, file browser, bridge demos)
-  apps/docs/      ← docs app (architecture guide, side panel)
+  apps/docs/      ← docs app (standalone multi-app example)
   package.json    ← single deps, per-app scripts (build:main, dev:main, etc.)
 ```
 

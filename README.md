@@ -16,6 +16,9 @@ Write React for the UI, C++ for the logic. The framework bridges them — zero b
 - **CLI args & URL protocol** — register `your-app://`, args forwarded between instances
 - **System tray** — close-to-tray, quit from tray menu
 - **Live docs** — embedded markdown viewer with doc selector
+- **1000+ themes** — shadcn color themes with searchable picker, dark/light toggle, custom wallpapers (Dragon, Tron)
+- **Google Fonts** — 1900+ fonts, separate settings for app vs code editor
+- **Monaco editor** — with vim mode, themed from app settings, editor transparency
 - **shadcn/ui + Tailwind** — production-ready components with Storybook
 - **Five test layers** — Catch2, Bun, Playwright (browser + desktop), pywinauto
 - **Agent tooling** — playwright-cdp + pywinauto + screenshots for AI agents
