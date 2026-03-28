@@ -5,7 +5,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [tailwindcss(), react()],
-  build: { target: 'esnext' },
+  build: {
+    target: 'esnext',
+    assetsInlineLimit: 0,  // never inline assets as data URIs — QWebEngine can choke on them
+  },
   server: { port: 5173 },
   resolve: {
     alias: {
