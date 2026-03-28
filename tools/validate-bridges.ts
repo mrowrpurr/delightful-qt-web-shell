@@ -12,7 +12,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 const WS_URL = process.env.BRIDGE_WS_URL || 'ws://localhost:9876'
-const BRIDGE_TS = join(import.meta.dir, '..', 'web', 'src', 'api', 'bridge.ts')
+const BRIDGE_TS = join(import.meta.dir, '..', 'web', 'shared', 'api', 'bridge.ts')
 
 // ── Fetch C++ manifest via __meta__ ─────────────────────────────────
 

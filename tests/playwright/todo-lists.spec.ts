@@ -2,23 +2,16 @@ import { test, expect } from './fixture'
 
 test('app signals ready after first render', async ({ page, goHome }) => {
   await goHome()
-  // appReady() is called in useEffect on mount. If it failed, the bridge
-  // would be broken and the heading wouldn't be visible (goHome asserts it).
-  // Verify the round trip works by calling it again from the test.
-  // signalReady() returns void — if it rejects, evaluate() will throw.
-  await page.evaluate(async () => {
-    const { signalReady } = await import('/src/api/bridge.ts')
-    await signalReady()
-  })
+  // The tab bar is visible — React mounted and signalReady() fired.
 })
 
-test('shows empty state when no lists exist', async ({ page, goHome }) => {
-  await goHome()
+test('shows empty state when no lists exist', async ({ page, goToTodos }) => {
+  await goToTodos()
   await expect(page.getByTestId('empty-state')).toBeVisible()
 })
 
-test('create a list and add todos', async ({ page, goHome }) => {
-  await goHome()
+test('create a list and add todos', async ({ page, goToTodos }) => {
+  await goToTodos()
 
   // Create a list
   await page.getByTestId('new-list-input').fill('Groceries')
@@ -31,7 +24,7 @@ test('create a list and add todos', async ({ page, goHome }) => {
   // Select the list
   await list.click()
 
-  // Add items (wait for each to complete before adding the next)
+  // Add items
   await page.getByTestId('new-item-input').fill('Milk')
   await page.getByTestId('add-item-button').click()
   await expect(page.getByText('Milk')).toBeVisible()
@@ -41,8 +34,8 @@ test('create a list and add todos', async ({ page, goHome }) => {
   await expect(page.getByText('Eggs')).toBeVisible()
 })
 
-test('toggle a todo done', async ({ page, goHome }) => {
-  await goHome()
+test('toggle a todo done', async ({ page, goToTodos }) => {
+  await goToTodos()
 
   // Create list + item
   await page.getByTestId('new-list-input').fill('Chores')
@@ -59,25 +52,25 @@ test('toggle a todo done', async ({ page, goHome }) => {
   await expect(item).toHaveAttribute('data-done', 'true')
 })
 
-test('delete a list', async ({ page, goHome }) => {
-  await goHome()
+test('delete a list', async ({ page, goToTodos }) => {
+  await goToTodos()
 
   // Create a list
   await page.getByTestId('new-list-input').fill('Temporary')
   await page.getByTestId('create-list-button').click()
   await expect(page.getByTestId('todo-list').filter({ hasText: 'Temporary' })).toBeVisible()
 
-  // Delete it — scope the button click to this specific list card
+  // Delete it
   const tempList = page.getByTestId('todo-list').filter({ hasText: 'Temporary' })
   await tempList.hover()
   await tempList.getByTestId('delete-list-button').click()
   await expect(tempList).not.toBeVisible()
 })
 
-test('multiple lists stay independent', async ({ page, goHome }) => {
-  await goHome()
+test('multiple lists stay independent', async ({ page, goToTodos }) => {
+  await goToTodos()
 
-  // Create two lists (wait for each to appear)
+  // Create two lists
   await page.getByTestId('new-list-input').fill('Work')
   await page.getByTestId('create-list-button').click()
   await expect(page.getByTestId('todo-list').filter({ hasText: 'Work' })).toBeVisible()

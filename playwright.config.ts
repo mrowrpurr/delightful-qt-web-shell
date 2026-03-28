@@ -30,7 +30,7 @@ export default defineConfig({
   // In desktop mode, the Qt app is the server — no Vite or backend needed.
   webServer: isDesktop ? [] : [
     {
-      command: 'bun run dev',
+      command: 'bun run dev:main',
       cwd: './web',
       port: 5173,
       reuseExistingServer: !process.env.CI,

@@ -20,7 +20,7 @@ function getExePath(): string {
   return fs.readFileSync('build/.desktop-binary.txt', 'utf8').trim()
 }
 
-type Fixtures = { page: Page; goHome: () => Promise<void> }
+type Fixtures = { page: Page; goHome: () => Promise<void>; goToTodos: () => Promise<void> }
 
 const desktopTest = base.extend<Fixtures>({
       page: async ({}, use) => {
@@ -80,7 +80,14 @@ const desktopTest = base.extend<Fixtures>({
       },
       goHome: async ({ page }, use) => {
         await use(async () => {
-          await expect(page.getByTestId('heading')).toBeVisible({ timeout: 10_000 })
+          // Wait for the tabbed app to load (tab bar visible = React mounted)
+          await expect(page.getByRole('button', { name: /Docs/ })).toBeVisible({ timeout: 10_000 })
+        })
+      },
+      goToTodos: async ({ page }, use) => {
+        await use(async () => {
+          await expect(page.getByRole('button', { name: /Todos/ })).toBeVisible({ timeout: 10_000 })
+          await page.getByRole('button', { name: /Todos/ }).click()
         })
       },
     })
@@ -89,7 +96,14 @@ const browserTest = base.extend<Fixtures>({
       goHome: async ({ page }, use) => {
         await use(async () => {
           await page.goto('/')
-          await expect(page.getByTestId('heading')).toBeVisible({ timeout: 10_000 })
+          await expect(page.getByRole('button', { name: /Docs/ })).toBeVisible({ timeout: 10_000 })
+        })
+      },
+      goToTodos: async ({ page }, use) => {
+        await use(async () => {
+          await page.goto('/')
+          await expect(page.getByRole('button', { name: /Todos/ })).toBeVisible({ timeout: 10_000 })
+          await page.getByRole('button', { name: /Todos/ }).click()
         })
       },
     })
