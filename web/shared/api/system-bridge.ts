@@ -41,6 +41,9 @@ export interface SystemBridge {
   getQtThemeFilePath(): Promise<{ path: string } | { embedded: boolean }>
   qtThemeChanged(callback: () => void): () => void
 
+  // ── Save ──────────────────────────────────────────────────
+  saveRequested(callback: () => void): () => void
+
   // ── Native dialogs ─────────────────────────────────────
   openDialog(): Promise<{ ok: boolean }>
   openDialogRequested(callback: () => void): () => void

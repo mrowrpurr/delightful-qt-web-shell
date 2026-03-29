@@ -280,6 +280,11 @@ signals:
     // React subscribes, then calls getReceivedArgs().
     void argsReceived();
 
+    // Emitted when the user triggers Save from Qt (toolbar/menu).
+    // React can intercept this — if the theme editor is active, save the theme
+    // instead of opening the file dialog.
+    void saveRequested();
+
     // Emitted when React requests a native dialog (e.g. Quick Add).
     // Connect to this in MainWindow or wherever you want to handle it.
     void openDialogRequested();

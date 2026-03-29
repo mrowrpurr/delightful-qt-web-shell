@@ -206,6 +206,16 @@ export default function EditorTab() {
     return () => window.removeEventListener('keydown', handler, true)
   }, [editingTheme])
 
+  // Listen for Qt toolbar/menu Save action (saveRequested signal from bridge).
+  // This makes the toolbar Save button and File > Save context-aware.
+  useEffect(() => {
+    if (!systemBridge || !editingTheme) return
+    const cleanup = systemBridge.saveRequested(() => {
+      window.dispatchEvent(new CustomEvent('editor-save'))
+    })
+    return cleanup
+  }, [editingTheme])
+
   // Listen for theme/font changes from Settings tab
   useEffect(() => {
     const onThemeChanged = () => applyEditorTheme()

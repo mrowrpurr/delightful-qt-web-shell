@@ -21,6 +21,7 @@
 #include "dialogs/demo_widget_dialog.hpp"
 #include "dialogs/web_dialog.hpp"
 #include "style_manager.hpp"
+#include "web_shell.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -63,17 +64,28 @@ MenuActions buildMenuBar(QMainWindow* window) {
     // ── File ─────────────────────────────────────────────────
     auto* fileMenu = menuBar->addMenu("&File");
 
-    // File > Save — native file picker (testable with pywinauto)
+    // File > Save — emits saveRequested signal to React.
+    // If the theme editor is active, React saves the QSS file.
+    // Otherwise falls back to a native file picker.
     out.save = fileMenu->addAction(
         tintedIcon(Icons16::Action_Save), "&Save...");
     out.save->setShortcut(QKeySequence("Ctrl+S"));
     out.save->setToolTip("Save file (Ctrl+S)");
-    QObject::connect(out.save, &QAction::triggered, window, [window]() {
-        QString path = QFileDialog::getSaveFileName(
-            window, "Save File", "", "JSON Files (*.json);;All Files (*)");
-        if (!path.isEmpty())
-            QMessageBox::information(window, "Save", "You selected file: " + path);
-    });
+    {
+        auto* appInstance = qobject_cast<Application*>(qApp);
+        QObject* bridge = appInstance ? appInstance->shell()->bridges().value("system") : nullptr;
+        QObject::connect(out.save, &QAction::triggered, window, [window, bridge]() {
+            if (bridge) {
+                // Emit saveRequested — React intercepts if editing a theme
+                QMetaObject::invokeMethod(bridge, "saveRequested");
+            } else {
+                QString path = QFileDialog::getSaveFileName(
+                    window, "Save File", "", "JSON Files (*.json);;All Files (*)");
+                if (!path.isEmpty())
+                    QMessageBox::information(window, "Save", "You selected file: " + path);
+            }
+        });
+    }
 
     // File > Open Folder — native folder picker
     out.openFolder = fileMenu->addAction(
