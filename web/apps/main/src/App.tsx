@@ -76,7 +76,7 @@ export default function App() {
       } : undefined}
     >
       <Tabs defaultValue="docs" className="w-full">
-        <div className="border-b border-border flex justify-center py-2">
+        <div className="border-b border-border flex justify-center py-2 sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
           <TabsList className="h-10">
             <TabsTrigger value="docs">📖 Docs</TabsTrigger>
             <TabsTrigger value="editor">✏️ Editor</TabsTrigger>
