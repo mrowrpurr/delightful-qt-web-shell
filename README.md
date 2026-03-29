@@ -80,6 +80,10 @@ You're an AI agent building a desktop app. These docs are written for you — co
 
 Start with **01**, read through **03**, and keep **06** open while you work.
 
+> 💡 **Tip for Humans** 👤
+>
+> Have your agents read ALL of the docs in `docs/DelightfulQtWebShell/for-agents/`. The agent docs teach them how to build, test, and drive the entire application autonomously — launching it on your desktop, using playwright-cdp to see and interact with the UI, running all five test layers, and live-editing themes. They can dev solo or pair with you, with hot reloading and everything.
+
 ### For Humans
 
 You're a developer who wants to understand the template and start building.
