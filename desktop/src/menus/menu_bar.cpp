@@ -235,9 +235,11 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
         completer->setFilterMode(Qt::MatchContains);
         themeCombo->setCompleter(completer);
 
-        // Apply theme (with current dark/light mode) when selected
-        QObject::connect(themeCombo, &QComboBox::currentTextChanged,
-                         window, [app](const QString& baseName) {
+        // Apply theme when user picks from dropdown or presses Enter.
+        // NOT currentTextChanged — that fires on every keystroke and fights typing.
+        QObject::connect(themeCombo, &QComboBox::activated,
+                         window, [app, themeCombo]() {
+            QString baseName = themeCombo->currentText();
             if (!baseName.isEmpty())
                 app->styleManager()->applyTheme(baseName, app->styleManager()->isDarkMode());
         });
