@@ -82,6 +82,8 @@ Application::Application(int& argc, char** argv)
     // ── Style manager ──────────────────────────────────────────
     // Handles QSS theme loading from QRC, AppData, or dev SCSS folder.
     // Must come after palette setup — the stylesheet overrides palette colors.
+    // Initial theme is set by React on startup (it owns localStorage state).
+    // We apply default-dark as a baseline to prevent unstyled flash.
     styleManager_ = new StyleManager(this);
     styleManager_->applyTheme("default-dark");
 

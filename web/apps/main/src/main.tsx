@@ -22,9 +22,19 @@ setFontData(fontsJson as any)
 
 // Apply saved theme + font before first render to prevent flash
 import { applyThemeEffects } from './theme-effects'
+import { isDarkMode } from '@shared/lib/themes'
 initTheme()
 initFont()
 applyThemeEffects(localStorage.getItem('theme-name') || 'Default')
+
+// Sync React's persisted theme state to Qt on startup.
+// React owns the truth (localStorage persists across sessions, Qt doesn't).
+import { getSystemBridge } from '@shared/api/system-bridge'
+getSystemBridge().then(system => {
+  const themeName = localStorage.getItem('theme-name') || 'Default'
+  const dark = isDarkMode()
+  system.setQtTheme(themeName, dark)
+}).catch(() => {}) // WASM/browser mode — no bridge
 
 // Hash-based routing — same React app, different content.
 // The main window loads app://main/ (no hash) → full app.
