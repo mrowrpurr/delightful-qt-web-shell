@@ -132,7 +132,10 @@ public:
     // Write a UTF-8 string to a file. Creates the file if it doesn't exist.
     Q_INVOKABLE QJsonObject writeTextFile(const QString& path, const QString& text) {
         QFile file(path);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        // WriteOnly without Text flag — write bytes exactly as received.
+        // Text flag converts \n to \r\n on Windows, which doubles line endings
+        // when the input already contains \r\n (e.g. from Monaco editor).
+        if (!file.open(QIODevice::WriteOnly))
             return {{"error", "Cannot write file: " + path}};
         file.write(text.toUtf8());
         return {{"ok", true}};
