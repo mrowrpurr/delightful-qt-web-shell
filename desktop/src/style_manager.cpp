@@ -92,6 +92,11 @@ void StyleManager::applyTheme(const QString& themeName) {
         lastLightTheme_ = themeName;
     }
 
+    // If no display name was set (e.g. theme applied from toolbar slug),
+    // default to "Default" so React can at least find the fallback theme.
+    if (currentDisplayName_.isEmpty())
+        currentDisplayName_ = "Default";
+
     // Update platform color scheme to match
     if (auto* hints = qApp->styleHints()) {
         hints->setColorScheme(isDark_ ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
@@ -130,17 +135,19 @@ void StyleManager::setDarkMode(bool dark) {
     QString baseName = currentBaseName();
     QString target = baseName + (dark ? "-dark" : "-light");
 
+    // Pick the display name for the target mode.
+    // If we've never been in that mode, keep the current display name
+    // (same theme base, just switching dark↔light).
+    QString targetDisplayName = dark ? lastDarkDisplayName_ : lastLightDisplayName_;
+    if (targetDisplayName.isEmpty()) targetDisplayName = currentDisplayName_;
+
     if (themeExists(target)) {
-        // Same theme exists in the other mode — switch to it
-        // Preserve display name
-        currentDisplayName_ = dark ? lastDarkDisplayName_ : lastLightDisplayName_;
-        if (currentDisplayName_.isEmpty()) currentDisplayName_ = currentDisplayName_;
+        currentDisplayName_ = targetDisplayName;
         applyTheme(target);
     } else {
-        // Try the last remembered theme for that mode
         QString& lastForMode = dark ? lastDarkTheme_ : lastLightTheme_;
         if (!lastForMode.isEmpty() && themeExists(lastForMode)) {
-            currentDisplayName_ = dark ? lastDarkDisplayName_ : lastLightDisplayName_;
+            currentDisplayName_ = targetDisplayName;
             applyTheme(lastForMode);
         } else {
             currentDisplayName_ = "Default";
