@@ -61,6 +61,9 @@ xmake run desktop              # run the app
 xmake f -p wasm && xmake build wasm-app
 xmake f -p windows --qt=/path/to/qt   # switch back to desktop
 xmake run dev-wasm                      # serve in browser
+
+# Storybook (component library)
+xmake run storybook            # opens on http://localhost:6006
 ```
 
 ## Documentation

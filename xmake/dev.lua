@@ -35,6 +35,16 @@ target("dev-web-docs")
         os.execv("bun", {"run", "dev:docs"}, {curdir = web_dir, envs = envs})
     end)
 
+-- ── Storybook ──────────────────────────────────────────────────────────
+
+target("storybook")
+    set_kind("phony")
+    set_default(false)
+    on_run(function()
+        local web_dir = path.join(os.projectdir(), "web")
+        os.execv("bun", {"run", "storybook"}, {curdir = web_dir})
+    end)
+
 -- ── Desktop with DevTools ────────────────────────────────────────────
 
 target("dev-desktop")

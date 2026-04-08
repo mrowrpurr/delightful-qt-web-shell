@@ -173,6 +173,14 @@ PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts snapsho
 npx tsx tools/playwright-cdp/cli.ts close
 ```
 
+### Storybook (component library)
+
+```bash
+xmake run storybook   # opens on http://localhost:6006
+```
+
+Browse and test shared UI components (Button, Card, Select, Tabs) in isolation. Useful for verifying component styling without running the full app.
+
 ### Background launch (for automation)
 
 ```bash

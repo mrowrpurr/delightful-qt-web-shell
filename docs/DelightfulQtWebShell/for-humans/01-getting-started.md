@@ -121,6 +121,14 @@ xmake run dev-wasm
 
 > **Note:** After `xmake f -p wasm`, switching back to desktop with `xmake f -p windows` loses the `--qt=` path. Always pass it explicitly.
 
+### Storybook (component library)
+
+```bash
+xmake run storybook   # opens on http://localhost:6006
+```
+
+Browse and test shared UI components (Button, Card, Select, Tabs) in isolation.
+
 ## Project Structure
 
 ```
