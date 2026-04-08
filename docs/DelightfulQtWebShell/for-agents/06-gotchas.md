@@ -20,9 +20,9 @@ This is a concise index of traps. Details live in the doc where you're doing the
 
 ## Build Gotchas
 
-**First build is slow:** ~30s (Vite + C++ compile). Subsequent builds always run Vite (~3s) then only recompile changed C++.
+**First build is slow:** ~40s (Vite + C++ compile). Subsequent builds always run Vite (~30s) then only recompile changed C++.
 
-**Skip Vite for C++ iteration:** `SKIP_VITE=1 xmake build desktop` reuses the previous web bundle (~2s instead of ~30s). Works with `run desktop` and `run start-desktop` too.
+**Skip Vite for C++ iteration:** `SKIP_VITE=1 xmake build desktop` reuses the previous web bundle (~2s instead of ~40s). Works with `run desktop` and `run start-desktop` too.
 
 **`xmake build desktop` before desktop tests:** Desktop e2e and pywinauto tests need the app binary. Build first.
 

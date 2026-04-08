@@ -53,7 +53,7 @@ target("desktop")
         local cpp_path = path.join(base, "web_dist_resources.cpp")
 
         -- ── Skip Vite build when SKIP_VITE=1 ──────────────────────
-        -- Use this when iterating on C++ only — saves ~25s per build.
+        -- Use this when iterating on C++ only — saves ~30s per build.
         -- Requires a previous Vite build (web_dist_resources.cpp must exist).
         local skip_vite = os.getenv("SKIP_VITE") == "1" and os.isfile(cpp_path)
         if skip_vite then

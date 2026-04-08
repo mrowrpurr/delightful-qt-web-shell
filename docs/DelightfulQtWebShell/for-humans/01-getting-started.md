@@ -60,14 +60,14 @@ xmake build desktop
 xmake run desktop
 ```
 
-The first build takes ~30 seconds (Vite + C++ compile). Subsequent builds always run Vite (~3s) then only recompile changed C++.
+The first build takes ~40 seconds (Vite + C++ compile). Subsequent builds always run Vite (~30s) then only recompile changed C++.
 
 ### Skip Vite (C++ iteration)
 
 If you're only working on C++, skip the Vite build entirely:
 
 ```bash
-SKIP_VITE=1 xmake build desktop       # ~2s instead of ~30s
+SKIP_VITE=1 xmake build desktop       # ~2s instead of ~40s
 SKIP_VITE=1 xmake run desktop         # build + run, no Vite
 SKIP_VITE=1 xmake run start-desktop   # background launch, no Vite
 ```
