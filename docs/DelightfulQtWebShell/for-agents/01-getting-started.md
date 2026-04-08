@@ -179,7 +179,21 @@ npx tsx tools/playwright-cdp/cli.ts close
 xmake run storybook   # opens on http://localhost:6006
 ```
 
-Browse and test shared UI components (Button, Card, Select, Tabs) in isolation. Useful for verifying component styling without running the full app.
+Browse and test shared UI components (Button, Card, Select, Tabs) in isolation. No backend needed — no Qt, no WASM, no WebSocket.
+
+**Custom panels** — the **🎨 Theme** panel (bottom, next to Controls/Actions) has:
+- **Theme picker** — searchable list of 1000+ shadcn themes with color preview dots
+- **Dark/Light toggle** — switches all components instantly
+- **Font picker** — searchable list of 1900+ Google Fonts with category labels
+
+Themes and fonts are the same system the app uses (`shared/lib/themes.ts`, `shared/lib/fonts.ts`). Selection persists in localStorage across Storybook sessions.
+
+**Story files** live in `web/shared/components/ui/*.stories.tsx`. To add a story for a new component, create a `.stories.tsx` file next to it — Storybook scans `shared/**/*.stories.@(ts|tsx)`.
+
+**Key files:**
+- `.storybook/main.ts` — Vite config, addons, story glob
+- `.storybook/preview.ts` — global CSS, theme/font initialization, addon channel listeners
+- `.storybook/manager.tsx` — theme/font addon panel UI
 
 ### Background launch (for automation)
 

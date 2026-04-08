@@ -127,7 +127,16 @@ xmake run dev-wasm
 xmake run storybook   # opens on http://localhost:6006
 ```
 
-Browse and test shared UI components (Button, Card, Select, Tabs) in isolation.
+Browse and test shared UI components (Button, Card, Select, Tabs) in isolation. No backend needed.
+
+The **🎨 Theme** panel (bottom of Storybook, next to Controls) lets you:
+- **Search and switch** between 1000+ shadcn color themes with preview dots
+- **Toggle dark/light mode** — instant preview across all components
+- **Search and apply** 1900+ Google Fonts with category labels (Sans, Serif, Mono, etc.)
+
+This is the same theme and font system the app uses — great for verifying how your components look across different themes before shipping.
+
+Story files live in `web/shared/components/ui/*.stories.tsx`. Add a `.stories.tsx` next to any shared component and Storybook picks it up automatically.
 
 ## Project Structure
 
