@@ -15,8 +15,8 @@ loader.config({ monaco })
 // Load theme + font data (imported at build time — fetch doesn't work with app:// scheme)
 import { setThemeData, initTheme } from '@shared/lib/themes'
 import { setFontData, initFont } from '@shared/lib/fonts'
-import themesJson from './data/themes.json'
-import fontsJson from './data/google-fonts.json'
+import themesJson from '@shared/data/themes.json'
+import fontsJson from '@shared/data/google-fonts.json'
 setThemeData(themesJson as any)
 setFontData(fontsJson as any)
 
