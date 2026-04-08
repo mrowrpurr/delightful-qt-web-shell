@@ -19,7 +19,7 @@ Things that will bite you if you don't know about them.
 
 ## Build
 
-- **First build is slow** (~40s). Subsequent builds always run Vite (~30s) then recompile changed C++.
+- **Every build runs Vite** (~30s) then compiles C++ (~10s).
 - **Skip Vite for C++ iteration:** `SKIP_VITE=1 xmake build desktop` reuses the previous web bundle (~2s). Works with `run desktop` and `run start-desktop` too.
 - **`xmake build desktop` before desktop tests.** The app binary must exist.
 
