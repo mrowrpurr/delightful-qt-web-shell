@@ -314,11 +314,35 @@ uv run pytest tests/pywinauto/ -v
 - **`close_dialogs` fixture prevents test pollution** — runs automatically via `autouse=True`
 - **`FileDialog` context manager auto-closes** on exit if still open (safety net)
 
-## Desktop Screenshots — Your Eyes on the Full Screen
+## Prefer Headless Playwright Screenshots Over Desktop Screenshots
 
-Agents can't see the screen. playwright-cdp `screenshot` only captures web content inside the
-WebEngine. For native dialogs, menus, taskbar, error popups — anything outside the
-web view — use the desktop screenshot tool.
+Before reaching for the desktop screenshot tool, consider whether **headless Playwright** can do the job. It almost always can — and it's better in every way:
+
+```bash
+# Screenshot via playwright-cdp (captures web content only — safe, fast, invisible)
+echo 'console.log(await screenshot("debug.png"))' | npx tsx tools/playwright-cdp/run.ts
+
+# Or via WASM/browser headless mode
+PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts screenshot debug.png
+```
+
+Playwright screenshots capture exactly what's in the web view — components, themes, layout — without touching the OS. They're invisible to the human, run on any platform, and never capture anything sensitive.
+
+**Use playwright-cdp screenshots as your default.** They work for:
+- Verifying UI renders correctly after a change
+- Checking theme application
+- Debugging layout issues
+- Storybook component verification (via `PLAYWRIGHT_URL=http://localhost:6006`)
+
+## Desktop Screenshots — Last Resort
+
+Desktop screenshots capture the entire monitor — including personal content, other apps, and anything visible on screen. **Ask the human before using this.**
+
+Two important caveats:
+1. **The human may have multiple desktops/monitors.** The app might be on monitor 2 while the screenshot captures monitor 1 (the default). You'll see their wallpaper, not the app. Use `--list` to find monitors, or `--all` for a composite.
+2. **Privacy.** You're capturing their entire screen. That may include personal messages, browser tabs, or sensitive content. Always ask first: *"I need to see the native Qt chrome — can I take a desktop screenshot?"*
+
+Only use desktop screenshots when you need to see something **outside** the web view: native Qt dialogs, menus, the taskbar, system tray, or OS-level error popups.
 
 ### CLI (from any agent)
 

@@ -28,6 +28,8 @@ uv run python tools/screenshot.py                 # primary monitor
 uv run python tools/screenshot.py -o debug.png     # custom path
 ```
 
+> **Note for agent pairing:** If an agent is taking desktop screenshots, be aware it captures your entire primary monitor — not just the app. If the app is on a different monitor, the agent may not see it (use `--monitor 2` or `--all`). For most UI debugging, agents should prefer **playwright-cdp screenshots** (`npx tsx tools/playwright-cdp/cli.ts screenshot`) which capture only web content inside the app — safer and more reliable.
+
 ## Platform Support
 
 | Tool | Windows | macOS | Linux |
