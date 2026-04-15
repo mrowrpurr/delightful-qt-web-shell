@@ -29,3 +29,7 @@ Ideas, observations, and future work. Not urgent — just catalogued.
   - Storybook toolbar addon or decorator for theme/font picking
   - Tron/wallpaper effects are app-specific (Vite asset imports) — skip in Storybook, that's fine
   - Goal: someone who clones this template can immediately preview all themes + fonts in Storybook without setup pain
+
+## Docks
+
+- Question: do we support dock splitting in the main window yet? creating and deleting docs? including with tabifying.
