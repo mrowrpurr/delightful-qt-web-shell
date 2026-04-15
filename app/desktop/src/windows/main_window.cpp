@@ -70,11 +70,15 @@ MainWindow::MainWindow(QWidget* parent)
     // Tab bar on top (Qt default for tabified docks is bottom).
     setTabPosition(Qt::TopDockWidgetArea, QTabWidget::North);
 
-    // Create docks — restore previous count if we have saved state, otherwise just one.
+    // Create docks — restore previous count and URLs if we have saved state.
     int dockCount = settings.value("window/dockCount", 1).toInt();
     if (dockCount < 1) dockCount = 1;
-    for (int i = 0; i < dockCount; ++i)
-        createDock();
+    QStringList savedUrls = settings.value("window/dockUrls").toStringList();
+    for (int i = 0; i < dockCount; ++i) {
+        QUrl url = (i < savedUrls.size() && !savedUrls[i].isEmpty())
+            ? QUrl(savedUrls[i]) : QUrl();
+        createDock(url);
+    }
     activeDock_ = docks_.first();
 
     // Restore dock layout (positions, floating state, tabification order).
@@ -129,6 +133,13 @@ MainWindow::MainWindow(QWidget* parent)
         if (auto* tab = activeTab())
             s.setValue("window/zoomFactor", tab->view()->zoomFactor());
 
+        // Save each dock's URL so we can restore them to the same page.
+        QStringList dockUrls;
+        for (auto* dock : docks_) {
+            auto* widget = qobject_cast<WebShellWidget*>(dock->widget());
+            dockUrls.append(widget ? widget->view()->url().toString() : QString());
+        }
+        s.setValue("window/dockUrls", dockUrls);
     });
 
     // ── Restore zoom on first dock ───────────────────────────
@@ -136,10 +147,11 @@ MainWindow::MainWindow(QWidget* parent)
         tab->view()->setZoomFactor(settings.value("window/zoomFactor", 1.0).toReal());
 }
 
-QDockWidget* MainWindow::createDock() {
+QDockWidget* MainWindow::createDock(const QUrl& contentUrl) {
     auto* app = qobject_cast<Application*>(qApp);
+    QUrl url = contentUrl.isEmpty() ? app->appUrl("main") : contentUrl;
     auto* tab = new WebShellWidget(
-        app->webProfile(), app->shell(), app->appUrl("main"),
+        app->webProfile(), app->shell(), url,
         WebShellWidget::FullOverlay, this);
 
     auto* dock = new QDockWidget(APP_NAME, this);

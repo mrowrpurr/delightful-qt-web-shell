@@ -13,6 +13,7 @@
 
 #include <QMainWindow>
 #include <QList>
+#include <QUrl>
 
 class QDockWidget;
 class StatusBar;
@@ -34,7 +35,7 @@ protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
-    QDockWidget* createDock();
+    QDockWidget* createDock(const QUrl& contentUrl = {});
     QDockWidget* activeDock() const;
     WebShellWidget* activeTab() const;
     void closeDock(QDockWidget* dock);

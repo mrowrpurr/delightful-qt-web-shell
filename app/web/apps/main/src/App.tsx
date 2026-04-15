@@ -64,12 +64,24 @@ const TAB_TITLES: Record<string, string> = {
 export default function App() {
   useEffect(() => { signalReady() }, [])
 
-  const [currentTab, setCurrentTab] = useState('docs')
+  // Initialize tab from URL hash if present (e.g. #tab=editor).
+  // The hash is set by this component on tab change, and the URL is
+  // saved/restored by the Qt shell across app restarts.
+  const [currentTab, setCurrentTab] = useState(() => {
+    const hash = window.location.hash
+    if (hash.startsWith('#tab=')) {
+      const tab = hash.slice(5)
+      if (tab in TAB_TITLES) return tab
+    }
+    return 'docs'
+  })
 
-  // Update document.title when the active tab changes — this drives
-  // the dock widget tab label on the Qt side via titleChanged signal.
+  // Update document.title and URL hash when the active tab changes.
+  // Title drives the dock widget tab label via the web engine's titleChanged signal.
+  // Hash is part of the URL that the shell can read and restore.
   useEffect(() => {
     document.title = TAB_TITLES[currentTab] ?? import.meta.env.VITE_APP_NAME ?? 'App'
+    history.replaceState(null, '', `#tab=${currentTab}`)
   }, [currentTab])
 
   const [pageTransparency, setPageTransparency] = useState(
