@@ -4,16 +4,17 @@
 //   - menu bar   (from menus/)
 //   - tool bar   (from menus/)
 //   - status bar (from widgets/)
-//   - QTabWidget with WebShellWidgets (main app tabs)
+//   - Tabified QDockWidgets with WebShellWidgets (main app docks)
 //
 // Business logic, bridges, and app-level concerns live in Application.
-// Window-level concerns (geometry, zoom, tabs) live here.
+// Window-level concerns (geometry, zoom, docks) live here.
 
 #pragma once
 
 #include <QMainWindow>
+#include <QList>
 
-class QTabWidget;
+class QDockWidget;
 class StatusBar;
 class WebShellWidget;
 struct MenuActions;
@@ -29,14 +30,18 @@ protected:
     // Quit via File > Quit, Ctrl+Q, or the tray icon's Quit action.
     // To disable close-to-tray: remove this override.
     void closeEvent(QCloseEvent* event) override;
+    void changeEvent(QEvent* event) override;
     bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
-    WebShellWidget* createTab();
-    WebShellWidget* currentTab() const;
-    void closeTabAt(int index);
-    void wireZoomToCurrentTab(const MenuActions& actions);
+    QDockWidget* createDock();
+    QDockWidget* activeDock() const;
+    WebShellWidget* activeTab() const;
+    void closeDock(QDockWidget* dock);
+    void wireToActiveDock();
 
-    QTabWidget* tabs_ = nullptr;
+    QList<QDockWidget*> docks_;
+    QDockWidget* activeDock_ = nullptr;
     StatusBar* statusBar_ = nullptr;
+    MenuActions* actions_ = nullptr;  // owned, stored for rewiring on tab switch
 };

@@ -43,6 +43,10 @@ The fiddly part. Figure out which dock is "raised" and wire actions to it.
 - [ ] Audit close-to-tray behavior with floating docks
 - [ ] UX pass — anything that feels off after real usage
 
+## Current Limitations
+
+- **Floating docks always stay on top of the main window.** Qt enforces this via the parent-child relationship — floating docks are children of QMainWindow and the window manager keeps children above their parent. `setParent(nullptr)` crashes because the docking system holds references. `setWindowFlags()` changes don't help. Purr has prior dock code that may solve this — revisit later.
+
 ## Known Gotchas (from experience + research)
 
 - **`visibilityChanged` can be noisy** — fires for hide/show during rearrangement, not just user-initiated tab switches. May need debouncing or a different approach.
