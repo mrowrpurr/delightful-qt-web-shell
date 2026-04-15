@@ -14,6 +14,7 @@
 
 #include <QCloseEvent>
 #include <QDockWidget>
+#include <QMouseEvent>
 #include <QScreen>
 #include <QSettings>
 #include <QSystemTrayIcon>
@@ -69,9 +70,20 @@ MainWindow::MainWindow(QWidget* parent)
     // Tab bar on top (Qt default for tabified docks is bottom).
     setTabPosition(Qt::TopDockWidgetArea, QTabWidget::North);
 
-    // Create the first dock
-    auto* firstDock = createDock();
-    activeDock_ = firstDock;
+    // Create docks — restore previous count if we have saved state, otherwise just one.
+    int dockCount = settings.value("window/dockCount", 1).toInt();
+    if (dockCount < 1) dockCount = 1;
+    for (int i = 0; i < dockCount; ++i)
+        createDock();
+    activeDock_ = docks_.first();
+
+    // Restore dock layout (positions, floating state, tabification order).
+    // restoreState() may hide some docks — ensure they're all visible after.
+    if (settings.contains("window/state")) {
+        restoreState(settings.value("window/state").toByteArray());
+        for (auto* dock : docks_)
+            dock->setVisible(true);
+    }
 
     auto* app = qobject_cast<Application*>(qApp);
 
@@ -112,8 +124,11 @@ MainWindow::MainWindow(QWidget* parent)
     connect(qApp, &QApplication::aboutToQuit, this, [this]() {
         QSettings s(APP_ORG, APP_SLUG);
         s.setValue("window/geometry", saveGeometry());
+        s.setValue("window/state", saveState());
+        s.setValue("window/dockCount", docks_.size());
         if (auto* tab = activeTab())
             s.setValue("window/zoomFactor", tab->view()->zoomFactor());
+
     });
 
     // ── Restore zoom on first dock ───────────────────────────
@@ -194,9 +209,10 @@ QDockWidget* MainWindow::createDock() {
     // Deferred because tabifyDockWidget() may not have created the tab bar yet.
     QTimer::singleShot(0, this, [this]() {
         for (auto* tabBar : findChildren<QTabBar*>()) {
-            // Enable close buttons if not already done
+            // Enable close buttons and middle-click if not already done
             if (!tabBar->tabsClosable()) {
                 tabBar->setTabsClosable(true);
+                tabBar->installEventFilter(this);  // for middle-click close
                 connect(tabBar, &QTabBar::tabCloseRequested, this, [this](int index) {
                     if (docks_.isEmpty()) return;
                     auto tabified = tabifiedDockWidgets(docks_.first());
@@ -289,14 +305,37 @@ void MainWindow::closeDock(QDockWidget* dock) {
 }
 
 bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
+    // ── Floating dock activation ─────────────────────────────
     if (event->type() == QEvent::WindowActivate) {
         auto* dock = qobject_cast<QDockWidget*>(obj);
         if (dock && dock->isFloating() && activeDock_ != dock && docks_.contains(dock)) {
-            // Floating dock clicked — make it active.
             activeDock_ = dock;
             wireToActiveDock();
         }
     }
+
+    // ── Middle-click to close a tabified tab ─────────────────
+    // The QTabBar is a child of QMainWindow's dock area. We install
+    // an event filter on it (in wireTabBar) to catch middle-click.
+    if (event->type() == QEvent::MouseButtonRelease) {
+        auto* tabBar = qobject_cast<QTabBar*>(obj);
+        if (tabBar) {
+            auto* me = static_cast<QMouseEvent*>(event);
+            if (me->button() == Qt::MiddleButton) {
+                int index = tabBar->tabAt(me->pos());
+                if (index >= 0 && !docks_.isEmpty()) {
+                    auto tabified = tabifiedDockWidgets(docks_.first());
+                    QList<QDockWidget*> allTabbed;
+                    allTabbed.append(docks_.first());
+                    allTabbed.append(tabified);
+                    if (index < allTabbed.size())
+                        closeDock(allTabbed[index]);
+                    return true;
+                }
+            }
+        }
+    }
+
     return QMainWindow::eventFilter(obj, event);
 }
 
