@@ -48,6 +48,10 @@ Application::Application(int& argc, char** argv)
     // ── Identity ─────────────────────────────────────────────
     setOrganizationName(APP_ORG);
     setApplicationName(APP_NAME);
+
+    // Use INI files for QSettings instead of the Windows registry.
+    // Settings file lives in AppData/Local/<org>/<app>.ini.
+    QSettings::setDefaultFormat(QSettings::IniFormat);
     setApplicationVersion(APP_VERSION);
     setWindowIcon(QIcon(":/icon.ico"));
 
@@ -306,7 +310,7 @@ void Application::unregisterUrlProtocol() {
 
 void Application::promptUrlProtocolRegistration() {
     // If already registered or user said "don't ask", skip.
-    QSettings settings(APP_ORG, APP_SLUG);
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
     if (settings.value("urlProtocol/dontAsk", false).toBool()) return;
     if (isUrlProtocolRegistered()) return;
 

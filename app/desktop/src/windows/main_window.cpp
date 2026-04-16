@@ -33,7 +33,7 @@ MainWindow::MainWindow(QWidget* parent)
     setWindowTitle(APP_NAME);
 
     // ── Restore geometry or default to 900×640 centered ──────
-    QSettings settings(APP_ORG, APP_SLUG);
+    QSettings settings(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
     if (settings.contains("window/geometry")) {
         restoreGeometry(settings.value("window/geometry").toByteArray());
     } else {
@@ -126,7 +126,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // ── Save state on exit ───────────────────────────────────
     connect(qApp, &QApplication::aboutToQuit, this, [this]() {
-        QSettings s(APP_ORG, APP_SLUG);
+        QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
         s.setValue("window/geometry", saveGeometry());
         s.setValue("window/state", saveState());
         s.setValue("window/dockCount", docks_.size());
