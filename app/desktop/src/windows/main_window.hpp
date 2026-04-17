@@ -25,7 +25,9 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
+    // restoreDocks: if true, restore saved docks from settings.
+    // Pass false for Ctrl+N windows — they get one fresh dock.
+    explicit MainWindow(bool restoreDocks = true, QWidget* parent = nullptr);
 
     // Add a dock to this window's UI. Called by DockManager after creating the dock.
     void addDock(QDockWidget* dock);

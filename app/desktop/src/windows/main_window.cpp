@@ -29,7 +29,7 @@
 #include "system_bridge.hpp"
 #include "web_shell.hpp"
 
-MainWindow::MainWindow(QWidget* parent)
+MainWindow::MainWindow(bool shouldRestoreDocks, QWidget* parent)
     : QMainWindow(parent)
 {
     setWindowTitle(APP_NAME);
@@ -64,13 +64,14 @@ MainWindow::MainWindow(QWidget* parent)
     setDockNestingEnabled(true);
     setTabPosition(Qt::TopDockWidgetArea, QTabWidget::North);
 
-    // ── Restore docks via DockManager ────────────────────────
+    // ── Docks ─────────────────────────────────────────────────
     auto* app = qobject_cast<Application*>(qApp);
     auto* dm = app->dockManager();
 
-    dm->restoreDocks(this);
+    if (shouldRestoreDocks)
+        dm->restoreDocks(this);
 
-    // If no docks were restored, create a default one.
+    // If no docks were restored (or this is a fresh window), create a default one.
     if (docks_.isEmpty()) {
         auto* dock = dm->createDock({}, this);
         Q_UNUSED(dock);
@@ -80,7 +81,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // ── Wire window + dock actions ───────────────────────────
     connect(actions_->newWindow, &QAction::triggered, this, []() {
-        auto* win = new MainWindow();
+        auto* win = new MainWindow(false);
         win->show();
     });
 
@@ -336,6 +337,13 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         hide();
         event->ignore();
     } else {
+        // Close all docks in this window via DockManager so it
+        // cleans up its tracking and settings. Take a copy because
+        // closeDock() modifies docks_ via removeDock().
+        auto docksToClose = docks_;
+        for (auto* dock : docksToClose)
+            dm->closeDock(dock);
+
         QMainWindow::closeEvent(event);
     }
 }
