@@ -61,7 +61,7 @@ MainWindow::MainWindow(QWidget* parent)
     placeholder->setMaximumSize(0, 0);
     setCentralWidget(placeholder);
 
-    setDockNestingEnabled(false);
+    setDockNestingEnabled(true);
     setTabPosition(Qt::TopDockWidgetArea, QTabWidget::North);
 
     // ── Restore docks via DockManager ────────────────────────

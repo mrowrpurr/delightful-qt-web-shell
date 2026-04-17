@@ -64,6 +64,7 @@ QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host) {
     QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     dock->setObjectName(id);
     dock->setWidget(widget);
+    dock->setAllowedAreas(Qt::AllDockWidgetAreas);
     dock->setFeatures(
         QDockWidget::DockWidgetClosable |
         QDockWidget::DockWidgetMovable |
