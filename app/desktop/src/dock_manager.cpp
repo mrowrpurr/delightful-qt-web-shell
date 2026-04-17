@@ -334,10 +334,7 @@ void DockManager::wirePersistence(QDockWidget* dock) {
     }
 
     // Dock floated or re-docked → save immediately.
-    // NOTE: Floating docks stay on top of the parent MainWindow. This is
-    // a known Qt6 limitation. setParent(nullptr) fixes z-order but crashes
-    // Qt's dock internals. Revisit later — potential patterns exist but
-    // require turning docks into non-dockable QWidgets, which we don't want.
+    // NOTE: Floating docks stay on top of the parent MainWindow (Qt6 limitation).
     connect(dock, &QDockWidget::topLevelChanged,
             this, [this, dock](bool floating) {
         if (restoring_ || quitting_) return;

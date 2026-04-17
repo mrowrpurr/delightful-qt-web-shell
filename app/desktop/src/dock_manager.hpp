@@ -2,12 +2,9 @@
 //
 // Owned by Application. Tracks all docks across all MainWindows.
 // Persists each dock individually (URL, floating state, geometry) keyed by UUID.
+// Grid layout (tabified groups, splits, splitter ratios) persisted via
+// QMainWindow::saveState/restoreState with stable dock UUIDs.
 // Saves on every meaningful state change — not just on quit.
-//
-// Does NOT handle (yet):
-//   - Tabification groups (which docks are tabbed together)
-//   - Dock area positions (compass direction)
-//   - Multi-MainWindow dock assignment
 
 #pragma once
 
