@@ -195,7 +195,8 @@ void MainWindow::wireTabBar() {
     auto* dm = qobject_cast<Application*>(qApp)->dockManager();
 
     for (auto* tabBar : findChildren<QTabBar*>()) {
-        if (!tabBar->tabsClosable()) {
+        if (!tabBar->property("dockWired").toBool()) {
+            tabBar->setProperty("dockWired", true);
             tabBar->setTabsClosable(true);
             tabBar->installEventFilter(this);
 
