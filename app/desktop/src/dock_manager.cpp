@@ -179,38 +179,44 @@ void DockManager::restoreDocks(MainWindow* host) {
 // ── Shutdown ─────────────────────────────────────────────────
 
 void DockManager::shutdownAll() {
+    if (quitting_) return;  // idempotent — aboutToQuit may re-enter
     quitting_ = true;
     log(QString("shutdownAll: %1 docks, %2 top-level widgets")
         .arg(docks_.size()).arg(QApplication::topLevelWidgets().size()));
 
-    // Remove each dock from its parent MainWindow's dock system, then delete it.
-    // removeDockWidget() cleans up Qt's internal layout bookkeeping.
-    // Without it, deleting a dock corrupts the parent's state and crashes.
-    // We do this BEFORE closing MainWindows so they don't cascade-delete
-    // docks while QWebEngine views are still mid-teardown.
-    // Hide all docks so they vanish immediately, then close everything.
-    for (auto* dock : docks_) {
-        log(QString("  hiding dock %1 floating=%2").arg(dock->objectName()).arg(dock->isFloating()));
+    // Detach each dock from its parent MainWindow, then delete it.
+    // removeDockWidget() cleans up Qt's internal dock layout bookkeeping —
+    // without it, deleting a dock corrupts the parent and crashes.
+    // We take a copy of the list because removeDock() modifies docks_.
+    auto docksToClose = docks_;
+    for (auto* dock : docksToClose) {
+        log(QString("  detaching dock %1 floating=%2").arg(dock->objectName()).arg(dock->isFloating()));
+
+        // Find the host MainWindow and cleanly remove the dock from it.
+        for (auto* w : QApplication::topLevelWidgets()) {
+            if (auto* mw = qobject_cast<MainWindow*>(w)) {
+                if (mw->docks().contains(dock)) {
+                    mw->removeDockWidget(dock);
+                    mw->removeDock(dock);
+                    break;
+                }
+            }
+        }
+
         dock->hide();
+        dock->deleteLater();
     }
     docks_.clear();
 
-    // Close all top-level widgets. Process floating docks and other
-    // windows before MainWindow — MainWindow must close last because
-    // it's the parent and closing it first orphans the children.
-    QList<QWidget*> mainWindows;
+    // Process deferred deletes now — the event loop is still alive
+    // (requestQuit calls us before quit()).
+    QApplication::processEvents();
+
+    // Close all remaining top-level widgets.
     const auto widgets = QApplication::topLevelWidgets();
     for (auto* w : widgets) {
-        if (qobject_cast<MainWindow*>(w)) {
-            mainWindows.append(w);
-        } else {
-            log(QString("  closing: %1 (%2)")
-                .arg(w->objectName(), w->metaObject()->className()));
-            w->close();
-        }
-    }
-    for (auto* w : mainWindows) {
-        log(QString("  closing MainWindow: %1").arg(w->objectName()));
+        log(QString("  closing: %1 (%2)")
+            .arg(w->objectName(), w->metaObject()->className()));
         w->close();
     }
 }

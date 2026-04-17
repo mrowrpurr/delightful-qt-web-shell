@@ -158,11 +158,19 @@ Application::Application(int& argc, char** argv)
     dockManager_ = new DockManager(this);
 
     // ── Shutdown ─────────────────────────────────────────────
-    // Close all top-level windows on quit. Persistence is already
-    // saved incrementally — this just ensures nothing lingers.
+    // Safety net only — requestQuit() should have already run shutdownAll().
+    // This catches edge cases like the OS terminating the app.
     connect(this, &QApplication::aboutToQuit, this, [this]() {
         dockManager_->shutdownAll();
     });
+}
+
+void Application::requestQuit() {
+    // Run shutdown while the event loop is still alive.
+    // This is the key difference from aboutToQuit — deleteLater()
+    // and event processing still work here.
+    dockManager_->shutdownAll();
+    quit();
 }
 
 void Application::setupSingleInstance() {
@@ -392,7 +400,7 @@ void Application::setupSystemTray() {
     trayMenu->addSeparator();
 
     auto* quitAction = trayMenu->addAction("&Quit");
-    connect(quitAction, &QAction::triggered, this, &QApplication::quit);
+    connect(quitAction, &QAction::triggered, this, &Application::requestQuit);
 
     trayIcon_->setContextMenu(trayMenu);
 

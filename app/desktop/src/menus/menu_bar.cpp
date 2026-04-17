@@ -126,7 +126,7 @@ MenuActions buildMenuBar(QMainWindow* window) {
     auto* quitAction = fileMenu->addAction("&Quit");
     quitAction->setShortcut(QKeySequence("Ctrl+Q"));
     QObject::connect(quitAction, &QAction::triggered,
-                     QApplication::instance(), &QApplication::quit);
+                     QApplication::instance(), [](){ qobject_cast<Application*>(qApp)->requestQuit(); });
 
     // ── View ─────────────────────────────────────────────────
     auto* viewMenu = menuBar->addMenu("&View");

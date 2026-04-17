@@ -57,6 +57,12 @@ public:
     // Returns the protocol name (from APP_SLUG, lowercased)
     static QString urlProtocolName();
 
+public slots:
+    // Cleanly shut down all docks and windows, then quit.
+    // Use this instead of QApplication::quit() so cleanup runs
+    // while the event loop is still alive.
+    void requestQuit();
+
 signals:
     // Emitted when another instance tries to launch, or the system tray
     // icon is activated. MainWindow connects to this to raise itself.
