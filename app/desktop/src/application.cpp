@@ -24,6 +24,7 @@
 #include <QSystemTrayIcon>
 #include <QWebEngineProfile>
 
+#include "dock_manager.hpp"
 #include "style_manager.hpp"
 #include "widgets/scheme_handler.hpp"
 
@@ -150,6 +151,18 @@ Application::Application(int& argc, char** argv)
     // The tray icon lets the app live in the background without a visible window.
     // To disable: remove this call and the tray-related code.
     setupSystemTray();
+
+    // ── Dock manager ─────────────────────────────────────────
+    // Tracks all docks across all windows. Persists per-dock state
+    // on every meaningful change (create, close, URL, float, geometry).
+    dockManager_ = new DockManager(this);
+
+    // ── Shutdown ─────────────────────────────────────────────
+    // Close all top-level windows on quit. Persistence is already
+    // saved incrementally — this just ensures nothing lingers.
+    connect(this, &QApplication::aboutToQuit, this, [this]() {
+        dockManager_->shutdownAll();
+    });
 }
 
 void Application::setupSingleInstance() {

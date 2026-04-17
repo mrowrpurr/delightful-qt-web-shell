@@ -55,3 +55,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+
+# Agent handoff or kickoff documents (keep local, never commit)
+*[Hh][Aa][Nn][Dd][Oo][Ff][Ff]*
+*[Kk][Ii][Cc][Kk][Oo][Ff][Ff]*

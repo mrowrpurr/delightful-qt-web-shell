@@ -11,6 +11,7 @@
 #include <QApplication>
 #include <QUrl>
 
+class DockManager;
 class QLocalServer;
 class QSystemTrayIcon;
 class QWebEngineProfile;
@@ -34,6 +35,9 @@ public:
 
     // Style manager — handles QSS theme loading, live reload, SCSS compilation
     StyleManager* styleManager() const { return styleManager_; }
+
+    // Dock manager — tracks all docks across all windows
+    DockManager* dockManager() const { return dockManager_; }
 
     // Returns the URL for a named web app.
     // Production: app://<appName>/  (served from embedded Qt resources)
@@ -79,4 +83,5 @@ private:
     QLocalServer* instanceServer_ = nullptr;
     QSystemTrayIcon* trayIcon_ = nullptr;
     StyleManager* styleManager_ = nullptr;
+    DockManager* dockManager_ = nullptr;
 };

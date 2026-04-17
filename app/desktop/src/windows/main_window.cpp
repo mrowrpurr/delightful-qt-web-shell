@@ -2,12 +2,14 @@
 //
 // This file should stay short. If you're adding logic here, ask yourself:
 //   - App-level concern? → Application
+//   - Dock lifecycle/persistence? → DockManager
 //   - Menu/toolbar action? → menus/menu_bar.cpp
 //   - Reusable widget? → widgets/
 //   - Business logic? → lib/
 
 #include "main_window.hpp"
 #include "application.hpp"
+#include "dock_manager.hpp"
 #include "menus/menu_bar.hpp"
 #include "widgets/status_bar.hpp"
 #include "widgets/web_shell_widget.hpp"
@@ -46,7 +48,6 @@ MainWindow::MainWindow(QWidget* parent)
     }
 
     // ── Menu bar + toolbar ───────────────────────────────────
-    // Store actions on the heap so we can rewire zoom/devtools when active dock changes.
     actions_ = new MenuActions(buildMenuBar(this));
     buildToolBar(this, *actions_);
 
@@ -55,41 +56,27 @@ MainWindow::MainWindow(QWidget* parent)
     setStatusBar(statusBar_);
 
     // ── Dock-based tab system ────────────────────────────────
-    // Each "tab" is a QDockWidget wrapping a WebShellWidget.
-    // Docks are tabified in the top dock area so they look like tabs,
-    // but can be torn off into floating windows and re-docked.
-
     // Hide the central widget — all content lives in docks.
     auto* placeholder = new QWidget(this);
     placeholder->setMaximumSize(0, 0);
     setCentralWidget(placeholder);
 
-    // Dock nesting disabled for now — may try true later for IDE-style splits.
     setDockNestingEnabled(false);
-
-    // Tab bar on top (Qt default for tabified docks is bottom).
     setTabPosition(Qt::TopDockWidgetArea, QTabWidget::North);
 
-    // Create docks — restore previous count and URLs if we have saved state.
-    int dockCount = settings.value("window/dockCount", 1).toInt();
-    if (dockCount < 1) dockCount = 1;
-    QStringList savedUrls = settings.value("window/dockUrls").toStringList();
-    for (int i = 0; i < dockCount; ++i) {
-        QUrl url = (i < savedUrls.size() && !savedUrls[i].isEmpty())
-            ? QUrl(savedUrls[i]) : QUrl();
-        createDock(url);
-    }
-    activeDock_ = docks_.first();
-
-    // Restore dock layout (positions, floating state, tabification order).
-    // restoreState() may hide some docks — ensure they're all visible after.
-    if (settings.contains("window/state")) {
-        restoreState(settings.value("window/state").toByteArray());
-        for (auto* dock : docks_)
-            dock->setVisible(true);
-    }
-
+    // ── Restore docks via DockManager ────────────────────────
     auto* app = qobject_cast<Application*>(qApp);
+    auto* dm = app->dockManager();
+
+    dm->restoreDocks(this);
+
+    // If no docks were restored, create a default one.
+    if (docks_.isEmpty()) {
+        auto* dock = dm->createDock({}, this);
+        Q_UNUSED(dock);
+    }
+
+    activeDock_ = docks_.first();
 
     // ── Wire window + dock actions ───────────────────────────
     connect(actions_->newWindow, &QAction::triggered, this, []() {
@@ -97,16 +84,15 @@ MainWindow::MainWindow(QWidget* parent)
         win->show();
     });
 
-    connect(actions_->newTab, &QAction::triggered, this, [this]() {
-        auto* dock = createDock();
-        // Raise the new dock so it's the active tab
+    connect(actions_->newTab, &QAction::triggered, this, [this, dm]() {
+        auto* dock = dm->createDock({}, this);
         dock->raise();
         dock->setFocus();
     });
 
-    connect(actions_->closeTab, &QAction::triggered, this, [this]() {
-        if (activeDock_)
-            closeDock(activeDock_);
+    connect(actions_->closeTab, &QAction::triggered, this, [this, dm]() {
+        if (activeDock_ && docks_.size() > 1)
+            dm->closeDock(activeDock_);
     });
 
     // ── Initial zoom/devtools wiring ─────────────────────────
@@ -124,22 +110,14 @@ MainWindow::MainWindow(QWidget* parent)
         });
     }
 
-    // ── Save state on exit ───────────────────────────────────
+    // ── Save main window geometry on exit ────────────────────
+    // Dock persistence is handled by DockManager. MainWindow only
+    // saves its own geometry and zoom level.
     connect(qApp, &QApplication::aboutToQuit, this, [this]() {
         QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
         s.setValue("window/geometry", saveGeometry());
-        s.setValue("window/state", saveState());
-        s.setValue("window/dockCount", docks_.size());
         if (auto* tab = activeTab())
             s.setValue("window/zoomFactor", tab->view()->zoomFactor());
-
-        // Save each dock's URL so we can restore them to the same page.
-        QStringList dockUrls;
-        for (auto* dock : docks_) {
-            auto* widget = qobject_cast<WebShellWidget*>(dock->widget());
-            dockUrls.append(widget ? widget->view()->url().toString() : QString());
-        }
-        s.setValue("window/dockUrls", dockUrls);
     });
 
     // ── Restore zoom on first dock ───────────────────────────
@@ -147,52 +125,20 @@ MainWindow::MainWindow(QWidget* parent)
         tab->view()->setZoomFactor(settings.value("window/zoomFactor", 1.0).toReal());
 }
 
-QDockWidget* MainWindow::createDock(const QUrl& contentUrl) {
-    auto* app = qobject_cast<Application*>(qApp);
-    QUrl url = contentUrl.isEmpty() ? app->appUrl("main") : contentUrl;
-    auto* tab = new WebShellWidget(
-        app->webProfile(), app->shell(), url,
-        WebShellWidget::FullOverlay, this);
+// ── Dock hosting ─────────────────────────────────────────────
 
-    auto* dock = new QDockWidget(APP_NAME, this);
-    dock->setObjectName(QString("dock_%1").arg(docks_.size()));
-    dock->setWidget(tab);
-
-    // Allow closing, moving (drag to reorder/tear-off), and floating.
-    // DockWidgetMovable is required for the user to initiate a drag — without it,
-    // DockWidgetFloatable alone won't let them tear off a tabified dock.
-    dock->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
-
-    // All docks go to the top area. If we already have docks, tabify with the first.
+void MainWindow::addDock(QDockWidget* dock) {
     addDockWidget(Qt::TopDockWidgetArea, dock);
     if (!docks_.isEmpty())
         tabifyDockWidget(docks_.first(), dock);
 
     docks_.append(dock);
 
-    // ── Floating docks shouldn't stay on top ───────────────────
-    // By default Qt gives floating docks WindowStaysOnTopHint, which means
-    // they obscure the main window. We defer the flag change because Qt may
-    // re-apply flags after the topLevelChanged signal fires.
-    // Install event filter on the dock to catch window activation (for floating docks).
-    // When a floating dock is clicked, QEvent::WindowActivate fires on it — this is
-    // the only reliable way to detect focus on a floating dock since no Qt signal fires.
+    // Event filter for floating dock activation and close detection.
     dock->installEventFilter(this);
 
-    // ── Floating dock z-order ─────────────────────────────────
-    // Qt intentionally keeps floating docks above their parent QMainWindow.
-    // This is by design — the parent-child relationship enforces it, and
-    // setParent(nullptr) crashes because the docking system holds references.
-    // TODO: Investigate Qt-Advanced-Docking-System (ADS) or proxy widget
-    //       approach if "float behind main window" is required.
-
-    // ── Track active dock + rewire zoom/devtools ─────────────
-    // Three signals cover all the ways a dock can become "active":
-    //   1. QTabBar::currentChanged — clicking between tabified tabs (wired below)
-    //   2. topLevelChanged — dock torn off to floating (or re-docked)
-    //   3. visibilityChanged — floating dock focused, or dock shown/hidden
+    // ── Track active dock ────────────────────────────────────
     connect(dock, &QDockWidget::topLevelChanged, this, [this, dock](bool) {
-        // When a dock is torn off or re-docked, it's the one the user is interacting with.
         if (activeDock_ != dock) {
             activeDock_ = dock;
             wireToActiveDock();
@@ -207,65 +153,74 @@ QDockWidget* MainWindow::createDock(const QUrl& contentUrl) {
     });
 
     // ── Reactive dock title from document.title ──────────────
-    // When React sets document.title, update the dock's window title.
-    // This shows in both the dock title bar and the tabified tab label.
-    connect(tab->view()->page(), &QWebEnginePage::titleChanged,
-            this, [dock](const QString& title) {
-        dock->setWindowTitle(title.isEmpty() ? APP_NAME : title);
-    });
+    auto* widget = qobject_cast<WebShellWidget*>(dock->widget());
+    if (widget) {
+        connect(widget->view()->page(), &QWebEnginePage::titleChanged,
+                this, [dock](const QString& title) {
+            dock->setWindowTitle(title.isEmpty() ? APP_NAME : title);
+        });
+    }
 
-    // ── Wire up the tabified tab bar ───────────────────────────
-    // When docks are tabified, Qt creates an internal QTabBar. We need it for:
-    //   1. Close buttons on tabs
-    //   2. Reliable active-dock tracking when clicking between tabified tabs
-    // Deferred because tabifyDockWidget() may not have created the tab bar yet.
-    QTimer::singleShot(0, this, [this]() {
-        for (auto* tabBar : findChildren<QTabBar*>()) {
-            // Enable close buttons and middle-click if not already done
-            if (!tabBar->tabsClosable()) {
-                tabBar->setTabsClosable(true);
-                tabBar->installEventFilter(this);  // for middle-click close
-                connect(tabBar, &QTabBar::tabCloseRequested, this, [this](int index) {
-                    if (docks_.isEmpty()) return;
-                    auto tabified = tabifiedDockWidgets(docks_.first());
-                    QList<QDockWidget*> allTabbed;
-                    allTabbed.append(docks_.first());
-                    allTabbed.append(tabified);
-
-                    if (index >= 0 && index < allTabbed.size())
-                        closeDock(allTabbed[index]);
-                });
-
-                // Track active dock when the user clicks a tab — more reliable
-                // than visibilityChanged for tabified tab switches.
-                connect(tabBar, &QTabBar::currentChanged, this, [this](int index) {
-                    if (docks_.isEmpty() || index < 0) return;
-                    auto tabified = tabifiedDockWidgets(docks_.first());
-                    QList<QDockWidget*> allTabbed;
-                    allTabbed.append(docks_.first());
-                    allTabbed.append(tabified);
-
-                    if (index < allTabbed.size()) {
-                        auto* dock = allTabbed[index];
-                        if (activeDock_ != dock) {
-                            activeDock_ = dock;
-                            wireToActiveDock();
-                        }
-                    }
-                });
-            }
-        }
-    });
-
-    return dock;
+    // ── Wire tab bar (deferred — Qt may not have created it yet) ──
+    QTimer::singleShot(0, this, [this]() { wireTabBar(); });
 }
+
+void MainWindow::removeDock(QDockWidget* dock) {
+    docks_.removeOne(dock);
+
+    if (activeDock_ == dock) {
+        activeDock_ = docks_.isEmpty() ? nullptr : docks_.last();
+        wireToActiveDock();
+    }
+}
+
+// ── Tab bar wiring ───────────────────────────────────────────
+
+void MainWindow::wireTabBar() {
+    auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+
+    for (auto* tabBar : findChildren<QTabBar*>()) {
+        if (!tabBar->tabsClosable()) {
+            tabBar->setTabsClosable(true);
+            tabBar->installEventFilter(this);
+
+            connect(tabBar, &QTabBar::tabCloseRequested, this, [this, dm](int index) {
+                if (docks_.isEmpty()) return;
+                auto tabified = tabifiedDockWidgets(docks_.first());
+                QList<QDockWidget*> allTabbed;
+                allTabbed.append(docks_.first());
+                allTabbed.append(tabified);
+
+                if (index >= 0 && index < allTabbed.size() && docks_.size() > 1)
+                    dm->closeDock(allTabbed[index]);
+            });
+
+            connect(tabBar, &QTabBar::currentChanged, this, [this](int index) {
+                if (docks_.isEmpty() || index < 0) return;
+                auto tabified = tabifiedDockWidgets(docks_.first());
+                QList<QDockWidget*> allTabbed;
+                allTabbed.append(docks_.first());
+                allTabbed.append(tabified);
+
+                if (index < allTabbed.size()) {
+                    auto* dock = allTabbed[index];
+                    if (activeDock_ != dock) {
+                        activeDock_ = dock;
+                        wireToActiveDock();
+                    }
+                }
+            });
+        }
+    }
+}
+
+// ── Active dock wiring ───────────────────────────────────────
 
 void MainWindow::wireToActiveDock() {
     auto* tab = activeTab();
     if (!tab) return;
     auto* view = tab->view();
 
-    // Disconnect previous zoom/devtools connections — reconnect to the active dock's view.
     actions_->zoomIn->disconnect();
     actions_->zoomOut->disconnect();
     actions_->zoomReset->disconnect();
@@ -284,16 +239,11 @@ void MainWindow::wireToActiveDock() {
         tab->toggleDevTools();
     });
 
-    // Update status bar zoom for active dock
     auto updateZoom = [this, view]() {
         statusBar_->setZoomLevel(qRound(view->zoomFactor() * 100));
     };
     connect(view->page(), &QWebEnginePage::zoomFactorChanged, this, updateZoom);
     updateZoom();
-}
-
-QDockWidget* MainWindow::activeDock() const {
-    return activeDock_;
 }
 
 WebShellWidget* MainWindow::activeTab() const {
@@ -302,22 +252,10 @@ WebShellWidget* MainWindow::activeTab() const {
     return nullptr;
 }
 
-void MainWindow::closeDock(QDockWidget* dock) {
-    if (docks_.size() <= 1) return;  // never close the last dock
-
-    docks_.removeOne(dock);
-
-    // If we're closing the active dock, pick another one and rewire
-    if (activeDock_ == dock) {
-        activeDock_ = docks_.isEmpty() ? nullptr : docks_.last();
-        wireToActiveDock();
-    }
-
-    dock->deleteLater();
-}
+// ── Event handling ───────────────────────────────────────────
 
 bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
-    // ── Floating dock activation ─────────────────────────────
+    // Floating dock activation — track which dock the user is interacting with.
     if (event->type() == QEvent::WindowActivate) {
         auto* dock = qobject_cast<QDockWidget*>(obj);
         if (dock && dock->isFloating() && activeDock_ != dock && docks_.contains(dock)) {
@@ -326,22 +264,36 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
         }
     }
 
-    // ── Middle-click to close a tabified tab ─────────────────
-    // The QTabBar is a child of QMainWindow's dock area. We install
-    // an event filter on it (in wireTabBar) to catch middle-click.
+    // Floating dock close — user clicked X on a floating dock.
+    // Skip during shutdown — shutdownAll handles cleanup.
+    if (event->type() == QEvent::Close) {
+        auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+        auto* dock = qobject_cast<QDockWidget*>(obj);
+        if (dock && !dm->isQuitting() && dock->isFloating()
+            && docks_.contains(dock) && docks_.size() > 1) {
+            QTimer::singleShot(0, this, [this, dm, dock]() {
+                if (!dm->isQuitting() && docks_.contains(dock) && docks_.size() > 1)
+                    dm->closeDock(dock);
+            });
+        }
+    }
+
+    // Middle-click to close a tabified tab.
     if (event->type() == QEvent::MouseButtonRelease) {
         auto* tabBar = qobject_cast<QTabBar*>(obj);
         if (tabBar) {
             auto* me = static_cast<QMouseEvent*>(event);
             if (me->button() == Qt::MiddleButton) {
                 int index = tabBar->tabAt(me->pos());
-                if (index >= 0 && !docks_.isEmpty()) {
+                if (index >= 0 && !docks_.isEmpty() && docks_.size() > 1) {
                     auto tabified = tabifiedDockWidgets(docks_.first());
                     QList<QDockWidget*> allTabbed;
                     allTabbed.append(docks_.first());
                     allTabbed.append(tabified);
-                    if (index < allTabbed.size())
-                        closeDock(allTabbed[index]);
+                    if (index < allTabbed.size()) {
+                        auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+                        dm->closeDock(allTabbed[index]);
+                    }
                     return true;
                 }
             }
@@ -351,11 +303,8 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
     return QMainWindow::eventFilter(obj, event);
 }
 
-// When the main window itself is activated (clicked back into from a floating dock),
-// find which tabified dock is currently raised and make it the active dock.
 void MainWindow::changeEvent(QEvent* event) {
     if (event->type() == QEvent::ActivationChange && isActiveWindow()) {
-        // Find the currently visible (raised) dock in the tabified group
         for (auto* dock : docks_) {
             if (!dock->isFloating() && dock->isVisible() && !dock->visibleRegion().isEmpty()) {
                 if (activeDock_ != dock) {
@@ -370,11 +319,13 @@ void MainWindow::changeEvent(QEvent* event) {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
-    // Count visible MainWindows. If this is the last one, minimize to tray
-    // instead of quitting. Secondary windows just close normally.
-    //
-    // To disable close-to-tray: remove this override. The default behavior
-    // will close the window and quit the app (since it's the last window).
+    // During shutdown, always accept the close — don't hide to tray.
+    auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+    if (dm->isQuitting()) {
+        QMainWindow::closeEvent(event);
+        return;
+    }
+
     int visibleCount = 0;
     for (auto* w : QApplication::topLevelWidgets()) {
         if (auto* mw = qobject_cast<MainWindow*>(w))
@@ -383,10 +334,8 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
     if (visibleCount <= 1 && QSystemTrayIcon::isSystemTrayAvailable()) {
         hide();
-        event->ignore();  // don't close — just hide to tray
+        event->ignore();
     } else {
-        // Not the last window — just close normally.
-        // Qt won't quit the app because other windows are still visible.
         QMainWindow::closeEvent(event);
     }
 }

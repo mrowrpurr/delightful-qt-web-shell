@@ -7,7 +7,8 @@
 //   - Tabified QDockWidgets with WebShellWidgets (main app docks)
 //
 // Business logic, bridges, and app-level concerns live in Application.
-// Window-level concerns (geometry, zoom, docks) live here.
+// Dock lifecycle and persistence live in DockManager.
+// Window-level concerns (geometry, zoom, active dock UI) live here.
 
 #pragma once
 
@@ -26,23 +27,27 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget* parent = nullptr);
 
+    // Add a dock to this window's UI. Called by DockManager after creating the dock.
+    void addDock(QDockWidget* dock);
+
+    // Remove a dock from this window's UI tracking (does not delete it).
+    void removeDock(QDockWidget* dock);
+
+    // Docks currently hosted in this window.
+    const QList<QDockWidget*>& docks() const { return docks_; }
+
 protected:
-    // Override close to minimize to system tray instead of quitting.
-    // Quit via File > Quit, Ctrl+Q, or the tray icon's Quit action.
-    // To disable close-to-tray: remove this override.
     void closeEvent(QCloseEvent* event) override;
     void changeEvent(QEvent* event) override;
     bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
-    QDockWidget* createDock(const QUrl& contentUrl = {});
-    QDockWidget* activeDock() const;
     WebShellWidget* activeTab() const;
-    void closeDock(QDockWidget* dock);
     void wireToActiveDock();
+    void wireTabBar();
 
     QList<QDockWidget*> docks_;
     QDockWidget* activeDock_ = nullptr;
     StatusBar* statusBar_ = nullptr;
-    MenuActions* actions_ = nullptr;  // owned, stored for rewiring on tab switch
+    MenuActions* actions_ = nullptr;
 };
