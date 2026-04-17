@@ -71,11 +71,13 @@ QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host) {
 
     docks_.append(dock);
     wirePersistence(dock);
-    saveDock(dock);
 
-    // Add to host MainWindow if provided.
+    // Add to host MainWindow BEFORE saving — otherwise isFloating()
+    // returns true because the dock has no parent yet.
     if (host)
         host->addDock(dock);
+
+    saveDock(dock);
 
     log(QString("createDock: id=%1 url=%2 host=%3 total=%4")
         .arg(id, url.toString(),
@@ -185,24 +187,29 @@ void DockManager::shutdownAll() {
     // Without it, deleting a dock corrupts the parent's state and crashes.
     // We do this BEFORE closing MainWindows so they don't cascade-delete
     // docks while QWebEngine views are still mid-teardown.
-    // removeDockWidget + hide — don't delete.
-    // Deleting docks during aboutToQuit crashes because QWebEngineView
-    // destructors run while Chromium is mid-teardown. Instead, just
-    // hide everything and let process exit handle cleanup.
+    // Hide all docks so they vanish immediately, then close everything.
     for (auto* dock : docks_) {
         log(QString("  hiding dock %1 floating=%2").arg(dock->objectName()).arg(dock->isFloating()));
-        auto* mw = qobject_cast<QMainWindow*>(dock->parentWidget());
-        if (mw)
-            mw->removeDockWidget(dock);
         dock->hide();
     }
     docks_.clear();
 
-    // Close all remaining top-level widgets (MainWindows, menus, etc.)
+    // Close all top-level widgets. Process floating docks and other
+    // windows before MainWindow — MainWindow must close last because
+    // it's the parent and closing it first orphans the children.
+    QList<QWidget*> mainWindows;
     const auto widgets = QApplication::topLevelWidgets();
     for (auto* w : widgets) {
-        log(QString("  closing: %1 (%2)")
-            .arg(w->objectName(), w->metaObject()->className()));
+        if (qobject_cast<MainWindow*>(w)) {
+            mainWindows.append(w);
+        } else {
+            log(QString("  closing: %1 (%2)")
+                .arg(w->objectName(), w->metaObject()->className()));
+            w->close();
+        }
+    }
+    for (auto* w : mainWindows) {
+        log(QString("  closing MainWindow: %1").arg(w->objectName()));
         w->close();
     }
 }
@@ -214,10 +221,17 @@ void DockManager::saveDock(QDockWidget* dock) {
     QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
 
     QString key = "dock/" + dock->objectName();
-    s.setValue(key + "/url", widget ? widget->view()->url().toString() : QString());
-    s.setValue(key + "/floating", dock->isFloating());
-    s.setValue(key + "/order", docks_.indexOf(dock));
-    if (dock->isFloating())
+    QString url = widget ? widget->view()->url().toString() : QString();
+    bool floating = dock->isFloating();
+    int order = docks_.indexOf(dock);
+
+    log(QString("saveDock: %1 floating=%2 order=%3 url=%4")
+        .arg(dock->objectName()).arg(floating).arg(order).arg(url));
+
+    s.setValue(key + "/url", url);
+    s.setValue(key + "/floating", floating);
+    s.setValue(key + "/order", order);
+    if (floating)
         s.setValue(key + "/geometry", dock->saveGeometry());
 }
 
@@ -236,7 +250,7 @@ void DockManager::wirePersistence(QDockWidget* dock) {
     if (widget) {
         connect(widget->view(), &QWebEngineView::urlChanged,
                 this, [this, dock](const QUrl& url) {
-            if (restoring_) return;
+            if (restoring_ || quitting_) return;
             log(QString("urlChanged: %1 → %2").arg(dock->objectName(), url.toString()));
             saveDock(dock);
         });
@@ -249,7 +263,7 @@ void DockManager::wirePersistence(QDockWidget* dock) {
     // require turning docks into non-dockable QWidgets, which we don't want.
     connect(dock, &QDockWidget::topLevelChanged,
             this, [this, dock](bool floating) {
-        if (restoring_) return;
+        if (restoring_ || quitting_) return;
         log(QString("topLevelChanged: %1 floating=%2").arg(dock->objectName()).arg(floating));
         saveDock(dock);
     });
@@ -261,13 +275,22 @@ void DockManager::wirePersistence(QDockWidget* dock) {
 }
 
 bool DockManager::eventFilter(QObject* obj, QEvent* event) {
-    if (restoring_) return QObject::eventFilter(obj, event);
+    if (restoring_ || quitting_) return QObject::eventFilter(obj, event);
 
     // Save geometry when the user finishes dragging a floating dock.
     if (event->type() == QEvent::NonClientAreaMouseButtonRelease) {
         auto* dock = qobject_cast<QDockWidget*>(obj);
         if (dock && dock->isFloating() && docks_.contains(dock)) {
             log(QString("dragEnd: %1 saving geometry").arg(dock->objectName()));
+            saveDock(dock);
+        }
+    }
+
+    // Save geometry after a floating dock is resized.
+    if (event->type() == QEvent::Resize) {
+        auto* dock = qobject_cast<QDockWidget*>(obj);
+        if (dock && dock->isFloating() && docks_.contains(dock)) {
+            log(QString("resize: %1 saving geometry").arg(dock->objectName()));
             saveDock(dock);
         }
     }
