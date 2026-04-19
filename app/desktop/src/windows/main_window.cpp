@@ -16,7 +16,9 @@
 #include "widgets/web_shell_widget.hpp"
 
 #include <QCloseEvent>
+#include <QContextMenuEvent>
 #include <QDockWidget>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QScreen>
 #include <QSettings>
@@ -102,7 +104,7 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
     });
 
     connect(actions_->closeTab, &QAction::triggered, this, [this, dm]() {
-        if (activeDock_ && docks_.size() > 1)
+        if (activeDock_)
             dm->closeDock(activeDock_);
     });
 
@@ -206,7 +208,7 @@ void MainWindow::wireTabBar() {
             tabManager_->manageTabBar(tabBar);
 
             connect(tabBar, &QTabBar::tabCloseRequested, this, [this, tabBar, dm](int index) {
-                if (docks_.size() <= 1 || index < 0 || index >= tabBar->count()) return;
+                if (index < 0 || index >= tabBar->count()) return;
                 QString title = tabBar->tabText(index);
                 for (auto* dock : docks_) {
                     if (dock->windowTitle() == title) {
@@ -302,9 +304,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             auto* me = static_cast<QMouseEvent*>(event);
             if (me->button() == Qt::MiddleButton) {
                 int index = tabBar->tabAt(me->pos());
-                if (index >= 0 && docks_.size() > 1) {
-                    // Resolve by tab title — index-based lookup is unreliable
-                    // because tabifiedDockWidgets() order != visual tab order.
+                if (index >= 0) {
                     QString title = tabBar->tabText(index);
                     for (auto* dock : docks_) {
                         if (dock->windowTitle() == title) {
@@ -315,6 +315,83 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
                     }
                     return true;
                 }
+            }
+        }
+    }
+
+    // Right-click context menu on tabified tabs.
+    if (event->type() == QEvent::ContextMenu) {
+        auto* tabBar = qobject_cast<QTabBar*>(obj);
+        if (tabBar) {
+            auto* ce = static_cast<QContextMenuEvent*>(event);
+            int index = tabBar->tabAt(ce->pos());
+            if (index >= 0) {
+                auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+
+                // Resolve the right-clicked dock by title.
+                QString clickedTitle = tabBar->tabText(index);
+                QDockWidget* clickedDock = nullptr;
+                for (auto* dock : docks_) {
+                    if (dock->windowTitle() == clickedTitle) {
+                        clickedDock = dock;
+                        break;
+                    }
+                }
+                if (!clickedDock) return QMainWindow::eventFilter(obj, event);
+
+                QMenu menu;
+                auto* closeTab = menu.addAction("Close tab");
+                auto* closeOthers = menu.addAction("Close other tabs");
+                auto* closeRight = menu.addAction("Close to the right");
+                auto* closeAll = menu.addAction("Close all");
+
+                // Disabled rules:
+                // "Close other tabs" — disabled if this is the only tab.
+                closeOthers->setEnabled(tabBar->count() > 1);
+                // "Close to the right" — disabled if this is the rightmost tab.
+                closeRight->setEnabled(index < tabBar->count() - 1);
+
+                auto* chosen = menu.exec(ce->globalPos());
+                if (!chosen) return true;
+
+                if (chosen == closeTab) {
+                    dm->closeDock(clickedDock);
+                } else if (chosen == closeOthers) {
+                    // Collect docks to close — everything except the clicked one.
+                    QList<QDockWidget*> toClose;
+                    for (int i = 0; i < tabBar->count(); ++i) {
+                        if (i == index) continue;
+                        QString title = tabBar->tabText(i);
+                        for (auto* dock : docks_) {
+                            if (dock->windowTitle() == title) {
+                                toClose.append(dock);
+                                break;
+                            }
+                        }
+                    }
+                    for (auto* dock : toClose)
+                        dm->closeDock(dock);
+                } else if (chosen == closeRight) {
+                    // Close tabs to the right of the clicked one.
+                    QList<QDockWidget*> toClose;
+                    for (int i = index + 1; i < tabBar->count(); ++i) {
+                        QString title = tabBar->tabText(i);
+                        for (auto* dock : docks_) {
+                            if (dock->windowTitle() == title) {
+                                toClose.append(dock);
+                                break;
+                            }
+                        }
+                    }
+                    for (auto* dock : toClose)
+                        dm->closeDock(dock);
+                } else if (chosen == closeAll) {
+                    QList<QDockWidget*> toClose(docks_);
+                    for (auto* dock : toClose)
+                        dm->closeDock(dock);
+                }
+
+                return true;
             }
         }
     }
