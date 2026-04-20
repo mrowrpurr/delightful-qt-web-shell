@@ -75,12 +75,12 @@ MenuActions buildMenuBar(QMainWindow* window) {
     {
         auto* appInstance = qobject_cast<Application*>(qApp);
         auto* sysBridge = appInstance
-            ? qobject_cast<SystemBridge*>(appInstance->shell()->bridges().value("system"))
+            ? static_cast<SystemBridge*>(appInstance->shell()->typedBridges().value("system"))
             : nullptr;
         QObject::connect(out.save, &QAction::triggered, window, [window, sysBridge]() {
-            if (sysBridge && sysBridge->hasSaveHandler()) {
+            if (sysBridge && sysBridge->has_listeners("saveRequested")) {
                 // React is listening — let it handle the save
-                emit sysBridge->saveRequested();
+                sysBridge->emitSaveRequested();
             } else {
                 // No listener — fall back to native file picker
                 QString path = QFileDialog::getSaveFileName(

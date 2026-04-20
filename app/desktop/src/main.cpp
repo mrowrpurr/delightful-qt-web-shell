@@ -45,11 +45,13 @@ int main(int argc, char* argv[]) {
 
     // Forward args to the SystemBridge so React can see them.
     // Handles: first launch args, second-instance args, and URL protocol activations.
-    auto* systemBridge = qobject_cast<SystemBridge*>(
-        app.shell()->bridges().value("system"));
+    auto* systemBridge = static_cast<SystemBridge*>(
+        app.shell()->typedBridges().value("system"));
     if (systemBridge) {
         QObject::connect(&app, &Application::argsReceived,
-                         systemBridge, &SystemBridge::handleArgs);
+                         &app, [systemBridge](const QStringList& args) {
+            systemBridge->handleArgs(args);
+        });
 
         // Pass the primary instance's own args on first launch
         QStringList args = app.arguments().mid(1);

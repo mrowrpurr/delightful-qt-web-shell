@@ -121,24 +121,21 @@ Application::Application(int& argc, char** argv)
     auto* todoBridge = new TodoBridge;
     shell_->addBridge("todos", static_cast<web_shell::typed_bridge*>(todoBridge));
     auto* systemBridge = new SystemBridge;
-    shell_->addBridge("system", systemBridge);
+    shell_->addBridge("system", static_cast<web_shell::typed_bridge*>(systemBridge));
 
     // ── Wire StyleManager ↔ SystemBridge ──────────────────────
     // When StyleManager changes theme (toolbar, live reload) → update bridge state → React gets signal
     connect(styleManager_, &StyleManager::themeChanged, this, [this, systemBridge]() {
         systemBridge->updateQtThemeState(
             styleManager_->currentDisplayName(), styleManager_->isDarkMode());
-        // Update theme file path for the editor
         QString filePath = styleManager_->currentThemeFilePath();
-        if (filePath.startsWith(":/")) {
-            systemBridge->setQtThemeFilePath({{"embedded", true}});
-        } else {
-            systemBridge->setQtThemeFilePath({{"path", filePath}});
-        }
+        systemBridge->setQtThemeFilePath(
+            filePath.toStdString(), filePath.startsWith(":/"));
     });
     // When React requests a theme change via bridge → apply to StyleManager
-    connect(systemBridge, &SystemBridge::qtThemeRequested,
-            this, [this](const QString& displayName, bool isDark) {
+    systemBridge->on_signal("qtThemeRequested", [this](const nlohmann::json& data) {
+        auto displayName = QString::fromStdString(data["displayName"].get<std::string>());
+        bool isDark = data["isDark"].get<bool>();
         styleManager_->applyThemeByDisplayName(displayName, isDark);
     });
 

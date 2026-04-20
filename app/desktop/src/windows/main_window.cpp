@@ -112,10 +112,10 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
     wireToActiveDock();
 
     // ── Wire React → native dialog ──────────────────────────
-    auto* systemBridge = qobject_cast<SystemBridge*>(
-        app->shell()->bridges().value("system"));
+    auto* systemBridge = static_cast<SystemBridge*>(
+        app->shell()->typedBridges().value("system"));
     if (systemBridge) {
-        connect(systemBridge, &SystemBridge::openDialogRequested, this, [this]() {
+        systemBridge->on_signal("openDialogRequested", [this](const nlohmann::json&) {
             QTimer::singleShot(0, this, [this]() {
                 WebDialog dlg(this);
                 dlg.exec();

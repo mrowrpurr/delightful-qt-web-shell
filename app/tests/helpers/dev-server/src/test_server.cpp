@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     auto* todoBridge = new TodoBridge;
     shell.addBridge("todos", static_cast<web_shell::typed_bridge*>(todoBridge));
     auto* systemBridge = new SystemBridge;
-    shell.addBridge("system", systemBridge);
+    shell.addBridge("system", static_cast<web_shell::typed_bridge*>(systemBridge));
     auto* typeTest = new TypeTestBridge;
     shell.addBridge("typeTest", typeTest);
     auto* server = expose_as_ws(&shell, port);

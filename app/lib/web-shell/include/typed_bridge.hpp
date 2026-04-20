@@ -14,6 +14,11 @@
 #include <def_type.hpp>
 #include <nlohmann/json.hpp>
 
+// Generic response for void-like operations. Shared by all bridges.
+struct OkResponse {
+    def_type::field<bool> ok{.value = true};
+};
+
 namespace web_shell {
 
 namespace detail {
@@ -78,6 +83,11 @@ public:
     }
 
     bool has_signal(const std::string& name) const { return signals_.contains(name); }
+
+    bool has_listeners(const std::string& name) const {
+        auto it = signals_.find(name);
+        return it != signals_.end() && !it->second.empty();
+    }
 
     std::vector<std::string> signal_names() const {
         std::vector<std::string> names;

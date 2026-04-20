@@ -40,8 +40,3 @@ struct RenameListRequest {
 struct SearchRequest {
     field<std::string> query;
 };
-
-// Generic response for delete/void operations
-struct OkResponse {
-    field<bool> ok{.value = true};
-};

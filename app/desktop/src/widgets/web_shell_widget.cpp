@@ -138,8 +138,8 @@ bool WebShellWidget::eventFilter(QObject* obj, QEvent* event) {
                 paths.append(url.toLocalFile());
         }
         if (!paths.isEmpty()) {
-            auto* bridge = qobject_cast<SystemBridge*>(
-                shell_->bridges().value("system"));
+            auto* bridge = static_cast<SystemBridge*>(
+                shell_->typedBridges().value("system"));
             if (bridge)
                 bridge->handleFilesDropped(paths);
         }
