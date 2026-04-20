@@ -3,14 +3,14 @@
 // QWebChannel requires QObject instances. This adapter wraps a typed_bridge
 // with a single Q_INVOKABLE dispatch method that routes calls through the
 // typed_bridge dispatch engine.
-//
-// The TS side calls: channel.objects.todos.dispatch("addList", {name: "Groceries"})
 
 #pragma once
 
-#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonValue>
 #include <QObject>
 #include <QString>
+#include <QVariant>
 
 #include "json_adapter.hpp"
 #include "typed_bridge.hpp"
@@ -23,10 +23,12 @@ public:
     BridgeChannelAdapter(web_shell::typed_bridge* bridge, QObject* parent = nullptr)
         : QObject(parent), bridge_(bridge) {}
 
-    Q_INVOKABLE QJsonObject dispatch(const QString& method, const QJsonObject& args) {
+    // Returns QJsonValue (not QJsonObject) so arrays pass through correctly.
+    // QWebChannel serializes QJsonValue to JS natively.
+    Q_INVOKABLE QJsonValue dispatch(const QString& method, const QJsonObject& args) {
         auto result = bridge_->dispatch(
             method.toStdString(),
             web_shell::from_qt_json(args));
-        return web_shell::to_qt_json(result);
+        return web_shell::to_qt_json_value(result);
     }
 };
