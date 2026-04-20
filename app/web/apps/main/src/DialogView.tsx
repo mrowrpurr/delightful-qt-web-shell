@@ -35,7 +35,7 @@ export default function DialogView() {
   const handleAdd = useCallback(async () => {
     const text = itemText.trim()
     if (!text || !selectedListId) return
-    await todos.addItem(selectedListId, text).catch(console.error)
+    await todos.addItem({ list_id: selectedListId, text }).catch(console.error)
     setItemText('')
     setFeedback('Added!')
     setTimeout(() => setFeedback(''), 1500)

@@ -31,15 +31,15 @@ export interface ListDetail {
 
 export interface TodoBridge {
   listLists(): Promise<TodoList[]>
-  getList(listId: string): Promise<ListDetail>
-  addList(name: string): Promise<TodoList>
-  addItem(listId: string, text: string): Promise<TodoItem>
-  toggleItem(itemId: string): Promise<TodoItem>
-  deleteList(listId: string): Promise<{ ok: boolean }>
-  deleteItem(itemId: string): Promise<{ ok: boolean }>
-  renameList(listId: string, newName: string): Promise<TodoList>
-  search(query: string): Promise<TodoItem[]>
-  dataChanged(callback: () => void): () => void
+  getList(req: { list_id: string }): Promise<ListDetail>
+  addList(req: { name: string }): Promise<TodoList>
+  addItem(req: { list_id: string; text: string }): Promise<TodoItem>
+  toggleItem(req: { item_id: string }): Promise<TodoItem>
+  deleteList(req: { list_id: string }): Promise<{ ok: boolean }>
+  deleteItem(req: { item_id: string }): Promise<{ ok: boolean }>
+  renameList(req: { list_id: string; new_name: string }): Promise<TodoList>
+  search(req: { query: string }): Promise<TodoItem[]>
+  dataChanged(callback: (data?: any) => void): () => void
 }
 
 // ── Connection singleton ────────────────────────────────────────────

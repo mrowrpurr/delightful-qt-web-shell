@@ -29,30 +29,25 @@ export default function FileBrowserTab() {
 
   const handleBrowseFolder = useCallback(async () => {
     const result = await system.openFolderChooser()
-    if ('cancelled' in result) return
+    if (result.cancelled) return
     setBrowseFolder(result.path)
     clearPreviews()
     setGlobResults(null)
     setGlobPattern('')
-    const listing = await system.listFolder(result.path)
-    if ('error' in listing) return
+    const listing = await system.listFolder({ path: result.path })
     setBrowseEntries(listing.entries)
   }, [clearPreviews])
 
   const handleOpenFile = useCallback(async () => {
-    const result = await system.openFileChooser()
-    if ('cancelled' in result) return
-    const read = await system.readTextFile(result.path)
+    const result = await system.openFileChooser({ filter: '' })
+    if (result.cancelled) return
+    const read = await system.readTextFile({ path: result.path })
     const fileName = result.path.split(/[/\\]/).pop() || result.path
     clearPreviews()
-    if ('error' in read) {
-      setFilePreview({ name: fileName, text: `⚠️ ${read.error}`, method: 'readTextFile' })
-    } else {
-      const preview = read.text.length > 4000
-        ? read.text.slice(0, 4000) + `\n\n… truncated (${formatSize(read.text.length)})`
-        : read.text
-      setFilePreview({ name: fileName, text: preview, method: 'readTextFile' })
-    }
+    const preview = read.text.length > 4000
+      ? read.text.slice(0, 4000) + `\n\n… truncated (${formatSize(read.text.length)})`
+      : read.text
+    setFilePreview({ name: fileName, text: preview, method: 'readTextFile' })
   }, [clearPreviews])
 
   const handleBrowseEntry = useCallback(async (name: string, isDir: boolean, size: number) => {
@@ -63,8 +58,7 @@ export default function FileBrowserTab() {
       clearPreviews()
       setGlobResults(null)
       setGlobPattern('')
-      const listing = await system.listFolder(fullPath)
-      if ('error' in listing) return
+      const listing = await system.listFolder({ path: fullPath })
       setBrowseEntries(listing.entries)
       return
     }
@@ -72,41 +66,25 @@ export default function FileBrowserTab() {
     const ext = name.split('.').pop()?.toLowerCase() || ''
 
     if (imageExts.has(ext) && size < 10 * 1024 * 1024) {
-      const result = await system.readFileBytes(fullPath)
+      const result = await system.readFileBytes({ path: fullPath })
       clearPreviews()
-      if ('error' in result) {
-        setFilePreview({ name, text: `⚠️ ${result.error}`, method: 'readFileBytes' })
-      } else {
-        const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`
-        setImagePreview({ name, dataUrl: `data:${mime};base64,${result.data}` })
-      }
+      const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`
+      setImagePreview({ name, dataUrl: `data:${mime};base64,${result.data}` })
       return
     }
 
     if (size < 100 * 1024) {
-      const result = await system.readTextFile(fullPath)
+      const result = await system.readTextFile({ path: fullPath })
       clearPreviews()
-      if ('error' in result) {
-        setFilePreview({ name, text: `⚠️ ${result.error}`, method: 'readTextFile' })
-      } else {
-        setFilePreview({ name, text: result.text, method: 'readTextFile' })
-      }
+      setFilePreview({ name, text: result.text, method: 'readTextFile' })
       return
     }
 
-    const handle = await system.openFileHandle(fullPath)
+    const handle = await system.openFileHandle({ path: fullPath })
     clearPreviews()
-    if ('error' in handle) {
-      setFilePreview({ name, text: `⚠️ ${handle.error}`, method: 'openFileHandle' })
-      return
-    }
     const sizeLabel = formatSize(handle.size)
-    const chunk = await system.readFileChunk(handle.handle, 0, 4096)
-    await system.closeFileHandle(handle.handle)
-    if ('error' in chunk) {
-      setFilePreview({ name, text: `⚠️ ${chunk.error}`, method: 'readFileChunk' })
-      return
-    }
+    const chunk = await system.readFileChunk({ handle: handle.handle, offset: 0, length: 4096 })
+    await system.closeFileHandle({ handle: handle.handle })
     const text = atob(chunk.data)
     setFilePreview({
       name,
@@ -123,15 +101,13 @@ export default function FileBrowserTab() {
     clearPreviews()
     setGlobResults(null)
     setGlobPattern('')
-    const listing = await system.listFolder(parent)
-    if ('error' in listing) return
+    const listing = await system.listFolder({ path: parent })
     setBrowseEntries(listing.entries)
   }, [browseFolder, clearPreviews])
 
   const handleGlob = useCallback(async () => {
     if (!browseFolder || !globPattern.trim()) return
-    const result = await system.globFolder(browseFolder, globPattern.trim(), true)
-    if ('error' in result) return
+    const result = await system.globFolder({ path: browseFolder, pattern: globPattern.trim(), recursive: true })
     setGlobResults(result.paths)
   }, [browseFolder, globPattern])
 

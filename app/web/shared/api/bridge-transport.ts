@@ -25,7 +25,7 @@ export interface BridgeConnection {
 export async function createWsConnection(url: string): Promise<BridgeConnection> {
   let nextId = 0
   const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>()
-  const eventListeners: Record<string, Array<() => void>> = {}
+  const eventListeners: Record<string, Array<(...args: any[]) => void>> = {}
 
   // Maps bridge name → set of signal names
   const bridgeSignals = new Map<string, Set<string>>()

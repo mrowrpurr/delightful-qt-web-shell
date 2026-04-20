@@ -29,7 +29,7 @@ export default function SystemTab() {
 
   const handleCopy = useCallback(async () => {
     const now = new Date().toLocaleString()
-    await system.copyToClipboard(`[Clipboard Test] ${now}`)
+    await system.copyToClipboard({ text: `[Clipboard Test] ${now}` })
     setCopyFeedback('Copied!')
     setTimeout(() => setCopyFeedback(''), 2000)
   }, [])
