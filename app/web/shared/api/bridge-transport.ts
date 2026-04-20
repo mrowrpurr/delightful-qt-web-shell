@@ -135,12 +135,13 @@ export async function createQtConnection(): Promise<BridgeConnection> {
   const shell = channel._shell
 
   function makeBridgeProxy<T extends object>(bridgeName: string): T {
-    const raw = channel[bridgeName]
-    if (!raw) throw new Error(`Unknown bridge: ${bridgeName}`)
+    const adapter = channel[bridgeName]
+    if (!adapter) throw new Error(`Unknown bridge: ${bridgeName}`)
 
+    // BridgeChannelAdapter exposes signals as Qt signal properties
     const signals = new Set<string>()
-    for (const key of Object.keys(raw)) {
-      if (raw[key]?.connect && raw[key]?.disconnect)
+    for (const key of Object.keys(adapter)) {
+      if (adapter[key]?.connect && adapter[key]?.disconnect)
         signals.add(key)
     }
 
@@ -151,14 +152,16 @@ export async function createQtConnection(): Promise<BridgeConnection> {
 
         if (signals.has(name)) {
           return (callback: (...args: any[]) => void) => {
-            raw[name].connect(callback)
-            return () => { raw[name].disconnect(callback) }
+            adapter[name].connect(callback)
+            return () => { adapter[name].disconnect(callback) }
           }
         }
 
+        // Route all method calls through BridgeChannelAdapter.dispatch(method, args)
         return (...args: any[]) =>
           new Promise((resolve, reject) => {
-            raw[name](...args, (result: any) => {
+            const requestArg = args.length === 1 && typeof args[0] === 'object' ? args[0] : (args.length === 0 ? {} : args[0])
+            adapter.dispatch(name, requestArg, (result: any) => {
               try {
                 const data = typeof result === 'string' ? JSON.parse(result) : result
                 if (data?.error) reject(new Error(data.error))
