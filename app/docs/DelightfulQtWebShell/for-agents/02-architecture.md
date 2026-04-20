@@ -5,34 +5,32 @@
 One React UI, one domain library, two deployment targets:
 
 ```
-                                ┌──────────────┐
-                          ┌────►│ Qt Bridge    │──┐
-                          │     │ QObject      │  │
-                          │     │ Q_INVOKABLE  │  │    ┌──────────────┐
- React (Vite)             │     └──────────────┘  ├───►│ TodoStore    │
- ┌──────────┐    transport│                       │    │ pure C++     │
- │  UI      │◄────────────┤                       │    │ no framework │
- │  bridge  │  auto-detect│     ┌──────────────┐  │    │ deps         │
- │  proxy   │             └────►│ WASM Bridge  │──┘    └──────────────┘
- └──────────┘                   │ Embind       │
-                                │ emscripten:: │
-      transport:                │ val          │
-      ├── QWebChannel           └──────────────┘
+                                ┌──────────────────┐
+                          ┌────>│ BridgeChannel    │
+                          │     │ Adapter (QObject) │
+                          │     │ dispatch()        │    ┌──────────────┐
+ React (Vite)             │     └──────────────────┘    │ TodoBridge   │
+ ┌──────────┐    transport│            │                │ extends      │
+ │  UI      │<────────────┤            └───────────────>│ web_shell::  │───> TodoStore
+ │  bridge  │  auto-detect│                             │ bridge       │    (pure C++)
+ │  proxy   │             │     ┌──────────────────┐    │              │
+ └──────────┘             └────>│ WasmBridgeWrapper│───>│ One class.   │
+                                │ (generic Embind) │    │ Both targets.│
+      transport:                └──────────────────┘    └──────────────┘
+      ├── QWebChannel
       ├── WebSocket
       └── WASM (Embind)
 ```
 
-**The bridge is a controller.** `TodoStore` is the model. The Qt bridge and WASM bridge are two thin controllers over the same model — one speaks `QJsonObject`, the other speaks `emscripten::val`. React is the view. The transport is invisible.
+**The bridge is a controller.** `TodoStore` is the model. There is one bridge class per domain area — it's pure C++, no Qt types, no Emscripten types. The transport layer (QWebChannel adapter, WebSocket server, or WASM wrapper) handles serialization at the edges. React is the view. The transport is invisible.
 
-## Four Layers You Touch
+## Three Layers You Touch
 
 1. **Domain logic** (`lib/todos/include/todo_store.hpp`) — Pure C++, no Qt, no Emscripten. Your business logic lives here. Testable with Catch2 in isolation. Compiled for both desktop and WASM.
 
-2. **Qt bridge** (`lib/bridges/qt/include/todo_bridge.hpp`) — A `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
+2. **Bridge** (`lib/todos/include/todo_bridge.hpp`) — A class extending `web_shell::bridge`. Methods are registered with `method("name", &Bridge::fn)`. Each method takes a plain C++ request DTO and returns a plain C++ response struct. No `Q_INVOKABLE`, no `QVariant`, no `emscripten::val`. One bridge class serves both desktop and WASM.
 
-3. **WASM bridge** (`lib/bridges/wasm/include/todo_wasm_bridge.hpp`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
-
-4. **TypeScript interface** (`web/shared/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
+3. **TypeScript interface** (`web/shared/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
 
 ## Two Layers You Don't Touch
 
@@ -46,20 +44,57 @@ The web layer isn't a single Vite app — it's N apps sharing common code:
 
 ```
 web/
-  shared/api/     ← bridge interfaces + transport (shared by all apps)
-  apps/main/      ← main app (todo demo, file browser, all bridge demos)
-  package.json    ← single deps, per-app scripts (build:main, dev:main, etc.)
+  shared/api/     <- bridge interfaces + transport (shared by all apps)
+  apps/main/      <- main app (todo demo, file browser, all bridge demos)
+  package.json    <- single deps, per-app scripts (build:main, dev:main, etc.)
 ```
 
 Each app has its own `vite.config.ts` with a `@shared` alias pointing to `../../shared`. The SchemeHandler routes by host — `app://main/` serves the main app. `Application::appUrl("main")` returns the right URL for dev or production.
 
 To add a new app, copy `web/apps/main/`, register it in the SchemeHandler, and add build scripts. See [Adding Features](03-adding-features.md) for the recipe.
 
-## The Proxy Pattern
+## The Bridge System
 
-Both sides are zero-boilerplate:
+### How Dispatch Works
 
-**C++ side:** `invoke_bridge_method` finds your method via `QMetaObject`, converts JSON args to C++ types via `QVariant::convert`, calls the method, converts the return value back to JSON via `QJsonValue::fromVariant`. No type lists, no registration, no switch statements.
+```
+TypeScript -> WebSocket JSON-RPC -> expose_as_ws.hpp
+                                       |
+                                       +-- bridge::dispatch()
+                                            +-- from_json<Request>(args)
+                                            +-- call bridge method
+                                            +-- serialize_response(result)
+                                            +-- return nlohmann::json
+```
+
+No QObject dispatch. No QMetaObject. No `coerce_arg`. No `QGenericArgument`. The bridge base class (`web_shell::bridge` in `bridge.hpp`) handles everything:
+
+- **Method registration:** `method("name", &Bridge::fn)` — template deduction figures out the request/response types automatically.
+- **Deserialization:** `def_type::from_json<Request>(args)` converts the incoming JSON to a typed C++ request struct via PFR reflection. No hand-written deserialization.
+- **Serialization:** `detail::serialize_response(result)` converts the return value to JSON via `def_type::to_json`. Handles plain structs, vectors, booleans, and raw `nlohmann::json`.
+- **Error handling:** Exceptions become `{"error": "message"}` responses. Unknown methods return a clear error.
+
+### Request/Response DTOs
+
+Every bridge method takes a plain C++ struct as its request and returns a plain C++ struct as its response. `def_type` provides `to_json` and `from_json` via PFR — no macros, no registration, no hand-written serializers.
+
+```cpp
+// Request DTO — plain struct, auto-serialized by PFR
+struct AddListRequest {
+    std::string name;
+};
+
+// The bridge method — takes a DTO, returns a domain struct
+TodoList addList(AddListRequest req) {
+    auto list = store_.add_list(req.name);
+    emit_signal("listAdded", list);
+    return list;
+}
+```
+
+Methods that take no arguments omit the request parameter. Methods that return nothing (void) automatically return `{"ok": true}`. Methods that return `OkResponse` (a shared DTO) also return `{"ok": true}`.
+
+### TypeScript Side
 
 **TypeScript side:** `getBridge<TodoBridge>('todos')` queries the C++ backend for all methods and signals via the `__meta__` protocol, returns a JavaScript `Proxy`. Property access on a signal name returns a subscribe function. Property access on anything else returns a function that sends JSON-RPC and returns a Promise.
 
@@ -74,57 +109,59 @@ export default function App() {
 }
 ```
 
-**WASM side:** No proxy needed — Embind exposes C++ methods directly as JavaScript functions. The WASM transport wraps synchronous Embind calls in Promises for API consistency with the other transports.
+**Bridge calls use request objects, not positional args:**
+```typescript
+// Correct — pass a request object
+await todos.addList({ name: "Groceries" })
+await todos.addItem({ list_id: id, text: "Milk" })
 
-**The result:** Add a method to your domain logic, wrap it in both bridges (Qt + WASM), add a line to the TypeScript interface. The transport connects them.
+// Wrong — positional args don't work
+await todos.addList("Groceries")  // will fail
+```
+
+**WASM side:** The generic `WasmBridgeWrapper` wraps any `web_shell::bridge` for Embind. It exposes `call(method, args)`, `subscribe(signal, callback)`, `methods()`, and `signals()`. No per-bridge WASM code needed.
 
 ## Three Transports, Same React Code
 
-| Mode | Transport | Bridge type | When |
-|------|-----------|-------------|------|
-| **Desktop prod** | QWebChannel (in-process) | Qt (`QObject`) | `xmake run desktop` |
-| **Desktop dev/test** | WebSocket JSON-RPC | Qt (`QObject`) | `xmake run dev-server`, Playwright, Bun tests |
-| **Browser (WASM)** | Direct Embind calls | WASM (`emscripten::val`) | `xmake run dev-wasm` |
+| Mode | Transport | Bridge adapter | When |
+|------|-----------|----------------|------|
+| **Desktop prod** | QWebChannel (in-process) | `BridgeChannelAdapter` (QObject with `dispatch()`) | `xmake run desktop` |
+| **Desktop dev/test** | WebSocket JSON-RPC | `expose_as_ws.hpp` | `xmake run dev-server`, Playwright, Bun tests |
+| **Browser (WASM)** | Direct Embind calls | `WasmBridgeWrapper` (generic) | `xmake run dev-wasm` |
 
-React auto-detects: `VITE_TRANSPORT=wasm` → Embind. `window.qt?.webChannelTransport` → QWebChannel. Otherwise → WebSocket to `localhost:9876`. Your React components don't know or care which transport is active.
+React auto-detects: `VITE_TRANSPORT=wasm` -> Embind. `window.qt?.webChannelTransport` -> QWebChannel. Otherwise -> WebSocket to `localhost:9876`. Your React components don't know or care which transport is active.
+
+All three transports talk to the same `web_shell::bridge` instance. The bridge is pure C++. The transport adapters handle conversion at the edges:
+- **WebSocket:** nlohmann::json passes through directly.
+- **QWebChannel:** `BridgeChannelAdapter` converts between nlohmann::json and Qt JSON (via `json_adapter.hpp`) at the boundary.
+- **WASM:** `WasmBridgeWrapper` converts between nlohmann::json and `emscripten::val` at the boundary.
 
 ## Type System
 
-There is **no whitelist**. The bridge uses `QVariant::convert()` dynamically — any type with a registered `QMetaType` converter works. You never need to modify the framework to support a new type.
+Bridge methods use plain C++ types. `def_type` with PFR auto-reflection handles serialization — no type registration, no macros, no `QVariant`.
 
-Common types:
+Common types in DTOs:
 
 | JSON | C++ | Notes |
 |------|-----|-------|
-| string | `QString` | |
+| string | `std::string` | |
 | number | `int`, `double` | |
 | boolean | `bool` | |
-| object | `QJsonObject` | Returned unwrapped |
-| array | `QJsonArray` | Returned unwrapped |
-| array of strings | `QStringList` | Qt auto-converts |
-| anything | `QVariant` | Catch-all |
+| object | Plain C++ struct | Serialized via `def_type::to_json` |
+| array | `std::vector<T>` | Each element serialized recursively |
+| null | (no direct equivalent) | Void methods return `{"ok": true}` |
 
-### Return Value Wrapping (Qt bridge only)
+### Return Value Serialization
 
-This applies to the **Qt bridge** (desktop). The WASM bridge returns `emscripten::val` objects directly — no wrapping, no special cases.
+All transports use the same serialization — `detail::serialize_response()` in `bridge.hpp`. No wrapping surprises, no special cases per transport:
 
-For the Qt bridge, the JS side sees different shapes depending on the C++ return type:
-
-| C++ returns | JS receives | Example |
-|------------|-------------|---------|
-| `QJsonObject` | The object directly | `{id: "1", name: "Groceries"}` |
-| `QJsonArray` | The array directly | `[{id: "1"}, {id: "2"}]` |
-| `QString` | `{"value": "hello"}` | Wrapped in `value` |
-| `int`, `double` | `{"value": 42}` | Wrapped in `value` |
-| `bool` | `{"value": true}` | Wrapped in `value` |
-| `void` | `{"ok": true}` | Special case |
-
-**Why?** `QJsonObject` and `QJsonArray` are already structured — returning them directly is ergonomic. Scalars need a wrapper because raw JSON-RPC requires an object response.
-
-**In practice:** Most bridge methods return `QJsonObject` or `QJsonArray` (unwrapped). If you return a scalar, access it via `result.value` on the JS side.
-
-**Max parameters:** 10 per method (Qt's `QMetaObject::invokeMethod` limit — pass a `QJsonObject` if you need more).
-**Arg count mismatch:** Returns a clear error: `"addItem: expected 2 args, got 1"`.
+| C++ returns | JSON result | Notes |
+|------------|-------------|-------|
+| A def_type struct | The struct as a JSON object | `{"id": "1", "name": "Groceries"}` |
+| `std::vector<T>` | A JSON array | Each element serialized recursively |
+| `bool` | `{"ok": value}` | |
+| `void` / `OkResponse` | `{"ok": true}` | |
+| `nlohmann::json` | Passthrough | For manually constructed responses |
 
 ## signalReady() Contract (Desktop Only)
 

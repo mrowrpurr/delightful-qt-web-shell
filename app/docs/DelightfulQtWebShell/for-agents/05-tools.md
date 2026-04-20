@@ -381,6 +381,18 @@ execSync('uv run python tools/screenshot.py -o test-results/desktop.png')
 Disabled in CI by default (screenshots may capture sensitive content). Set
 `SCREENSHOTS_ENABLED=1` to enable in CI environments.
 
+## Calling Bridge Methods from playwright-cdp
+
+Bridge methods take request objects, not positional arguments. When using `eval_js()` to call bridge methods directly:
+
+```bash
+# Correct — request object
+echo 'console.log(await eval_js("window.bridges.system.setQtTheme({displayName: \"Default\", isDark: true})"))' | npx tsx tools/playwright-cdp/run.ts
+
+# Wrong — positional args (old API, no longer works)
+# eval_js("window.bridges.system.setQtTheme(\"Default\", true)")
+```
+
 ## Cross-Layer Testing
 
 Sometimes you need both tools together. Example: test that a React button triggers a native dialog.

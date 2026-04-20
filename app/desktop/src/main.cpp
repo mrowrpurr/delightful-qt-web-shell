@@ -45,16 +45,18 @@ int main(int argc, char* argv[]) {
 
     // Forward args to the SystemBridge so React can see them.
     // Handles: first launch args, second-instance args, and URL protocol activations.
-    auto* systemBridge = qobject_cast<SystemBridge*>(
+    auto* systemBridge = static_cast<SystemBridge*>(
         app.shell()->bridges().value("system"));
     if (systemBridge) {
-        QObject::connect(&app, &Application::argsReceived,
-                         systemBridge, &SystemBridge::handleArgs);
+        QObject::connect(&app, &Application::appLaunchArgsReceived,
+                         &app, [systemBridge](const QStringList& args) {
+            systemBridge->handleAppLaunchArgs(args);
+        });
 
         // Pass the primary instance's own args on first launch
         QStringList args = app.arguments().mid(1);
         if (!args.isEmpty())
-            systemBridge->handleArgs(args);
+            systemBridge->handleAppLaunchArgs(args);
     }
 
     // Show all windows. First one gets the anti-flash treatment.

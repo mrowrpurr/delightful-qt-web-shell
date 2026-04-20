@@ -333,7 +333,7 @@ export default function SettingsTab() {
     notifyEditor()
     // Sync to Qt
     if (systemBridge) {
-      systemBridge.setQtTheme(appTheme, newDark).catch(() => {})
+      systemBridge.setQtTheme({ displayName: appTheme, isDark: newDark }).catch(() => {})
     }
   }, [dark, themes, appTheme])
 
@@ -349,7 +349,7 @@ export default function SettingsTab() {
     notifyEditor()
     // Sync to Qt
     if (systemBridge) {
-      systemBridge.setQtTheme(name, dark).catch(() => {})
+      systemBridge.setQtTheme({ displayName: name, isDark: dark }).catch(() => {})
     }
   }, [themes, dark, editorUseAppTheme])
 

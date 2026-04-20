@@ -4,7 +4,7 @@
 
 ## Adding a Method to an Existing Bridge
 
-Four files. No wiring.
+Three files. No wiring.
 
 ### 1. C++ domain logic
 
@@ -18,101 +18,76 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 }
 ```
 
-### 2. Qt bridge wrapper (desktop)
+### 2. Request DTO + bridge method
 
-`lib/bridges/qt/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`. Parameters can be `QString`, `int`, `double`, `bool`, `QJsonObject`, `QJsonArray`, or `QStringList` — the bridge converts JSON args automatically:
-
-```cpp
-Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
-    auto item = store_.add_item(listId.toStdString(), text.toStdString());
-    emit dataChanged();
-    return to_json(item);
-}
-```
-
-`to_json()` is a hand-written helper — **you write one for each domain struct** you want to return:
+Define a request DTO in `lib/todos/include/todo_dtos.hpp` — a plain C++ struct:
 
 ```cpp
-static QJsonObject to_json(const TodoItem& i) {
-    return {
-        {"id",         QString::fromStdString(i.id)},
-        {"text",       QString::fromStdString(i.text)},
-        {"done",       i.done},
-        {"created_at", QString::fromStdString(i.created_at)},
-    };
-}
+struct AddItemRequest {
+    std::string list_id;
+    std::string text;
+};
 ```
 
-### 3. WASM bridge wrapper (browser)
-
-`lib/bridges/wasm/include/todo_wasm_bridge.hpp` — same method names, same domain call, but returns `emscripten::val` instead of `QJsonObject`:
+Add the method to `lib/todos/include/todo_bridge.hpp` and register it in the constructor:
 
 ```cpp
-emscripten::val addItem(const std::string& listId, const std::string& text) {
-    auto item = store_.add_item(listId, text);
-    notify();
-    return to_val(item);
-}
+class TodoBridge : public web_shell::bridge {
+public:
+    TodoBridge() {
+        // ... existing registrations ...
+        method("addItem", &TodoBridge::addItem);
+
+        signal("itemAdded");
+    }
+
+    TodoItem addItem(AddItemRequest req) {
+        auto item = store_.add_item(req.list_id, req.text);
+        emit_signal("itemAdded", item);
+        return item;
+    }
+};
 ```
 
-`to_val()` is the WASM equivalent of `to_json()`:
+That's it on the C++ side. `def_type::from_json` deserializes the request automatically via PFR. `def_type::to_json` serializes the response automatically. No hand-written `to_json()` helpers, no `to_val()` helpers. One bridge class serves both desktop and WASM.
 
-```cpp
-static emscripten::val to_val(const TodoItem& i) {
-    auto obj = emscripten::val::object();
-    obj.set("id", i.id);
-    obj.set("text", i.text);
-    obj.set("done", i.done);
-    obj.set("created_at", i.created_at);
-    return obj;
-}
-```
-
-Then register it with Embind in `lib/bridges/wasm/src/wasm_bindings.cpp`:
-
-```cpp
-EMSCRIPTEN_BINDINGS(bridges) {
-    emscripten::class_<TodoWasmBridge>("TodoBridge")
-        .constructor()
-        .function("addItem", &TodoWasmBridge::addItem);
-        // ... all other methods
-}
-```
-
-**The pattern:** `to_json()` for Qt, `to_val()` for WASM. Same fields, same structure, different types. Both are thin wrappers around the same domain logic — they should produce identical JSON shapes.
-
-**Return type matters on the JS side (Qt bridge only):**
-
-| C++ returns | JS receives | Why |
-|------------|-------------|-----|
-| `QJsonObject` | The object directly | `{id: "1", name: "Groceries"}` |
-| `QJsonArray` | The array directly | `[{id: "1"}, {id: "2"}]` |
-| `QString`, `int`, `double`, `bool` | Wrapped: `{value: ...}` | Scalars need a JSON wrapper |
-| `void` | `{ok: true}` | Acknowledgement |
-
-**WASM bridge returns are always direct** — `emscripten::val` creates JS objects, so there's no wrapping.
-
-**Errors are thrown as JS exceptions.** Wrong arg count → `"addItem: expected 2 args, got 1"`. Unknown method → clear error. You'll see these in the browser console (F12) or in Playwright test output — they don't fail silently.
-
-### 4. TypeScript interface
+### 3. TypeScript interface
 
 `web/shared/api/bridge.ts`:
 
 ```typescript
 export interface TodoBridge {
   // ... existing methods ...
-  addItem(listId: string, text: string): Promise<TodoItem>
+  addItem(req: { list_id: string; text: string }): Promise<TodoItem>
 }
+```
+
+Note that TS calls pass a **request object**, not positional arguments:
+
+```typescript
+await todos.addItem({ list_id: id, text: "Buy milk" })
 ```
 
 ### Use it
 
 ```typescript
 const todos = await getBridge<TodoBridge>('todos')
-await todos.addItem(listId, 'Buy milk')
+await todos.addItem({ list_id: listId, text: 'Buy milk' })
 ```
 
 Done. The proxy connects them automatically.
+
+### Return types
+
+| C++ returns | JSON result | Notes |
+|------------|-------------|-------|
+| A def_type struct | The struct as a JSON object | `{"id": "1", "name": "Groceries"}` |
+| `std::vector<T>` | A JSON array | Each element serialized recursively |
+| `bool` | `{"ok": value}` | |
+| `void` / `OkResponse` | `{"ok": true}` | For side-effect-only methods |
+| `nlohmann::json` | Passthrough | For manually constructed responses |
+
+**Errors are thrown as JS exceptions.** Unknown method -> clear error. C++ exceptions -> `{"error": "message"}`. You'll see these in the browser console (F12) or in test output — they don't fail silently.
 
 ---
 
@@ -124,83 +99,84 @@ When you need a new domain area (not just a new method on `todos`):
 xmake run scaffold-bridge notes
 ```
 
-This does everything:
-1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — C++ bridge with `Q_OBJECT` + skeleton
-2. Creates `web/shared/api/notes-bridge.ts` — TypeScript interface stub
-3. Wires `#include` + `addBridge()` into both `desktop/src/application.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
+This creates a new bridge class with def_type DTOs:
+1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — bridge class extending `web_shell::bridge` with method/signal registration skeleton
+2. Creates a DTOs header for request/response structs
+3. Creates `web/shared/api/notes-bridge.ts` — TypeScript interface stub
+4. Wires `#include` + `addBridge()` into both `desktop/src/application.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
 
-No xmake.lua edits needed — the `lib/bridges/qt/` target uses glob discovery.
+No xmake.lua edits needed — the bridge targets use glob discovery.
 
 ### After scaffolding
 
-1. Add `Q_INVOKABLE` methods to `lib/bridges/qt/include/notes_bridge.hpp`
-2. Create the WASM bridge: `lib/bridges/wasm/include/notes_wasm_bridge.hpp` — same method names, `emscripten::val` returns, `to_val()` helpers
-3. Register in `lib/bridges/wasm/src/wasm_bindings.cpp` with `EMSCRIPTEN_BINDINGS`
-4. Register in `web/shared/api/wasm-transport.ts` — add `notes: new wasm.NotesBridge()` to the bridges map
-5. Mirror methods in `web/shared/api/notes-bridge.ts`
+1. Define request DTOs as plain C++ structs
+2. Add methods to the bridge class — each takes a request DTO and returns a response struct
+3. Register each method: `method("name", &MyBridge::fn)`
+4. Register signals: `signal("itemCreated")`, `signal("itemArchived")`
+5. Mirror methods in the TypeScript interface
 6. Use it: `const notes = await getBridge<NotesBridge>('notes')`
 
-> The scaffolder handles Qt bridge + TS interface + wiring. WASM bridge creation is manual — see `todo_wasm_bridge.hpp` for the pattern.
+No WASM-specific bridge needed. The generic `WasmBridgeWrapper` handles any `web_shell::bridge` automatically.
 
 ### Checklist
 
 - [ ] Domain logic in `lib/` — pure C++, no framework deps
-- [ ] Qt bridge: `Q_INVOKABLE` methods + `to_json()` helpers
-- [ ] WASM bridge: Embind-registered class + `to_val()` helpers + `EMSCRIPTEN_BINDINGS`
-- [ ] WASM transport: bridge instance registered in `wasm-transport.ts`
-- [ ] TypeScript interface matching both bridges
-- [ ] Run `xmake run validate-bridges` to verify C++ and TS match
+- [ ] Request DTOs — plain C++ structs (auto-serialized by PFR)
+- [ ] Bridge class extending `web_shell::bridge` — methods registered with `method("name", &fn)`
+- [ ] Bridge registered in `application.cpp` and `test_server.cpp`: `shell.addBridge("name", bridge)`
+- [ ] TypeScript interface with request objects matching the DTOs
+- [ ] Compiles — compile-time type safety catches DTO mismatches
 
 ---
 
-## Signals (C++ → JavaScript Events)
+## Signals (C++ -> JavaScript Events)
 
-Push real-time updates from C++ to React.
+Push real-time updates from C++ to React. Signals carry typed data — no parameterless-signal-plus-getter pattern.
 
 ### Emit from C++
 
-Add a parameterless signal and emit it:
+Register signals in the constructor and emit them with payload data:
 
 ```cpp
-// todo_bridge.hpp
-signals:
-    void dataChanged();
+// In the constructor:
+signal("itemAdded");
+signal("listDeleted");
 
 // In a method:
-Q_INVOKABLE QJsonObject addItem(...) {
-    // ...
-    emit dataChanged();
-    return result;
+TodoItem addItem(AddItemRequest req) {
+    auto item = store_.add_item(req.list_id, req.text);
+    emit_signal("itemAdded", item);   // item is serialized via def_type::to_json
+    return item;
+}
+
+OkResponse deleteList(DeleteListRequest req) {
+    store_.delete_list(req.list_id);
+    emit_signal("listDeleted", req);  // any def_type struct works as payload
+    return {};
 }
 ```
 
-**Only parameterless signals are auto-forwarded** to connected clients. Signals with parameters (e.g., `void itemAdded(QString id)`) are listed in `__meta__` but are NOT forwarded over WebSocket — the forwarding mechanism uses a generic slot that can't receive arbitrary parameter types. If you need to push data, emit a parameterless signal and have the client re-fetch.
+**Signals carry data.** The second argument to `emit_signal` is serialized to JSON via `def_type::to_json` and delivered to all listeners. Use specific signal names with specific payload types (e.g., `listAdded` always carries a `TodoList`, `itemToggled` always carries a `TodoItem`).
 
-**WASM equivalent:** Signals don't exist in Embind. Instead, expose an `onDataChanged(callback)` method that stores a JS callback. Call it from mutation methods:
-
-```cpp
-// In the WASM bridge:
-std::vector<emscripten::val> data_changed_listeners_;
-void notify() { for (auto& cb : data_changed_listeners_) cb(); }
-void onDataChanged(emscripten::val callback) { data_changed_listeners_.push_back(callback); }
-```
-
-The WASM transport maps `onDataChanged` to the same `dataChanged` signal interface React expects — no changes needed in your components.
+The signal system works the same across all transports:
+- **WebSocket:** `expose_as_ws.hpp` forwards signals as JSON messages with the payload.
+- **QWebChannel:** `BridgeChannelAdapter` re-emits bridge signals as Qt signals with JSON string payloads.
+- **WASM:** `WasmBridgeWrapper.subscribe()` converts the JSON payload to a JS object and calls the callback.
 
 ### Subscribe in TypeScript
 
 Add to your interface:
 ```typescript
 export interface TodoBridge {
-  dataChanged(callback: () => void): () => void
+  itemAdded(callback: (item: TodoItem) => void): () => void
 }
 ```
 
 Use it:
 ```typescript
 const todos = await getBridge<TodoBridge>('todos')
-const cleanup = todos.dataChanged(() => {
-  console.log('data changed, refreshing...')
+const cleanup = todos.itemAdded((item) => {
+  console.log('item added:', item)
   refresh()
 })
 
@@ -211,7 +187,9 @@ const cleanup = todos.dataChanged(() => {
 
 ```typescript
 useEffect(() => {
-  const cleanup = todos.dataChanged(() => setStale(true))
+  const cleanup = todos.itemAdded((item) => {
+    setItems(prev => [...prev, item])
+  })
   return cleanup
 }, [])
 ```
@@ -248,36 +226,14 @@ To render different UIs from the same app build (e.g., a dialog vs the main wind
    url.setFragment("/settings");
    ```
 
-**⚠️ QTimer::singleShot(0, ...) is required** when a bridge method triggers opening a modal dialog. Without deferring, the QWebChannel blocks and the dialog's own channel can't initialize. See `main_window.cpp` for the pattern.
+**QTimer::singleShot(0, ...) is required** when a bridge method triggers opening a modal dialog. Without deferring, the QWebChannel blocks and the dialog's own channel can't initialize. See `main_window.cpp` for the pattern.
 
 ---
 
 ## Validate Your Work
 
 ```bash
-xmake run validate-bridges   # checks TS interfaces match C++ methods
 xmake run test-all            # run all tests
 ```
 
-The bridge validator catches drift between C++ and TypeScript at dev time — before you find out at runtime.
-
-### What validate-bridges output looks like
-
-**Passing:**
-```
-Bridge "todos": 9 methods, 1 signal — all match ✓
-Bridge "typeTest": 18 methods, 0 signals — all match ✓
-All bridges validated successfully.
-```
-
-**Failing (TS method missing in C++):**
-```
-ERROR: Bridge "todos" — TS declares "removeItem" but C++ has no matching Q_INVOKABLE method
-```
-
-**Warning (C++ method missing in TS):**
-```
-WARNING: Bridge "todos" — C++ has "search" but TS interface doesn't declare it (won't be callable from JS)
-```
-
-Errors (TS declares something C++ doesn't have) cause exit code 1. Warnings (C++ has extras) are informational.
+Compile-time type safety catches DTO mismatches between your request structs and bridge method signatures. If the types don't match, the code won't compile — no separate validation step needed.

@@ -7,7 +7,6 @@ This is a concise index of traps. Details live in the doc where you're doing the
 | What you forgot | What happens | Where it's explained |
 |---|---|---|
 | Register bridge in `application.cpp` and `test_server.cpp` | Bridge silently doesn't exist | [03-adding-features.md](03-adding-features.md) |
-| Return `QJsonObject` but got `{value: ...}` | You returned a scalar (`QString`, `int`) — scalars get wrapped | [03-adding-features.md](03-adding-features.md) |
 | Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s | [02-architecture.md, signalReady](02-architecture.md) |
 | Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
 | Bridge method opens modal dialog synchronously | Dialog's QWebChannel can't init — loading overlay forever | [03-adding-features.md, Hash Routes](03-adding-features.md) |
@@ -16,7 +15,7 @@ This is a concise index of traps. Details live in the doc where you're doing the
 | `fetch()` with `app://` scheme | Fetch API cannot load `app://` URLs. Use Vite JSON import at build time instead. | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
 | Vite asset inlining | SVGs < 4KB get inlined as data URIs which break in QWebEngine. Set `assetsInlineLimit: 0` in `vite.config.ts` | [06-gotchas.md](#theming-gotchas) |
 
-> **Use `xmake run scaffold-bridge <name>`** to create new bridges. It handles registration in both entry points and MOC setup automatically — you won't hit the first gotcha above.
+> Register bridges manually in both `application.cpp` and `test_server.cpp` with `shell.addBridge("name", bridge)`. Bridges extend `web_shell::bridge` — no QObject, no MOC setup needed.
 
 ## Build Gotchas
 

@@ -20,15 +20,24 @@ export default function TodosTab() {
   }, [])
 
   const loadDetail = useCallback(async (listId: string) => {
-    setDetail(await todos.getList(listId))
+    setDetail(await todos.getList({ list_id: listId }))
   }, [])
 
   useEffect(() => {
     loadLists()
-    return todos.dataChanged(() => {
+    const refresh = () => {
       loadLists()
       if (selectedListId) loadDetail(selectedListId)
-    })
+    }
+    const cleanups = [
+      todos.listAdded(refresh),
+      todos.listRenamed(refresh),
+      todos.listDeleted(refresh),
+      todos.itemAdded(refresh),
+      todos.itemToggled(refresh),
+      todos.itemDeleted(refresh),
+    ]
+    return () => cleanups.forEach(c => c())
   }, [loadLists, loadDetail, selectedListId])
 
   const selectList = useCallback((listId: string) => {
@@ -39,34 +48,34 @@ export default function TodosTab() {
   const handleCreateList = useCallback(async () => {
     const name = newListName.trim()
     if (!name) return
-    await todos.addList(name).catch(console.error)
+    await todos.addList({ name }).catch(console.error)
     setNewListName('')
   }, [newListName])
 
   const handleAddItem = useCallback(async () => {
     const text = newItemText.trim()
     if (!text || !selectedListId) return
-    await todos.addItem(selectedListId, text).catch(console.error)
+    await todos.addItem({ list_id: selectedListId, text }).catch(console.error)
     setNewItemText('')
   }, [newItemText, selectedListId])
 
   const handleToggleItem = useCallback(async (itemId: string) => {
     if (!selectedListId) return
-    await todos.toggleItem(itemId).catch(console.error)
+    await todos.toggleItem({ item_id: itemId }).catch(console.error)
   }, [selectedListId])
 
   const handleDeleteList = useCallback(async (listId: string) => {
-    await todos.deleteList(listId).catch(console.error)
+    await todos.deleteList({ list_id: listId }).catch(console.error)
     if (selectedListId === listId) { setSelectedListId(null); setDetail(null) }
   }, [selectedListId])
 
   const handleDeleteItem = useCallback(async (itemId: string) => {
-    await todos.deleteItem(itemId).catch(console.error)
+    await todos.deleteItem({ item_id: itemId }).catch(console.error)
   }, [])
 
   const handleCopy = useCallback(async () => {
     const now = new Date().toLocaleString()
-    await system.copyToClipboard(`[Clipboard Test] The current time is now ${now}`)
+    await system.copyToClipboard({ text: `[Clipboard Test] The current time is now ${now}` })
     setCopyFeedback('Copied!')
     setTimeout(() => setCopyFeedback(''), 2000)
   }, [])

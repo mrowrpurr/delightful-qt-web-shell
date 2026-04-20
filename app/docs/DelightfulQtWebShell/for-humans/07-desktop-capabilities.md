@@ -44,7 +44,7 @@ const { text } = await system.readClipboard()
 
 ### CLI Args & URL Protocol
 
-The app is single-instance. A second launch pipes its args to the running instance. React receives them via `argsReceived` signal → `getReceivedArgs()`.
+The app is single-instance. A second launch pipes its args to the running instance. React receives them via `appLaunchArgsReceived` signal → `getAppLaunchArgs()`.
 
 The app registers as a URL protocol handler (`your-app://...`) on first launch. Toggleable in **Tools > Register/Unregister URL Protocol**.
 
