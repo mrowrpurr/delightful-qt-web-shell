@@ -33,7 +33,7 @@ import { getSystemBridge } from '@shared/api/system-bridge'
 getSystemBridge().then(system => {
   const themeName = localStorage.getItem('theme-name') || 'Default'
   const dark = isDarkMode()
-  system.setQtTheme(themeName, dark)
+  system.setQtTheme({ displayName: themeName, isDark: dark })
 }).catch(() => {}) // WASM/browser mode — no bridge
 
 // Hash-based routing — same React app, different content.

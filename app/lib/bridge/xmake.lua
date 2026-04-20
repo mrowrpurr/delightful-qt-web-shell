@@ -1,5 +1,4 @@
-target("todos")
+target("bridge")
     set_kind("headeronly")
-    add_deps("bridge", {public = true})
     add_includedirs("include", {public = true})
     add_packages("def_type", {public = true})

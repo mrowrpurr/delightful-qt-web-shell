@@ -10,7 +10,6 @@
 #include "system_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "expose_as_ws.hpp"
-#include "type_test_bridge.hpp"
 #include "web_shell.hpp"
 
 int main(int argc, char* argv[]) {
@@ -32,8 +31,6 @@ int main(int argc, char* argv[]) {
     shell.addBridge("todos", todoBridge);
     auto* systemBridge = new SystemBridge;
     shell.addBridge("system", systemBridge);
-    auto* typeTest = new TypeTestBridge;
-    shell.addBridge("typeTest", typeTest);
     auto* server = expose_as_ws(&shell, port);
     if (!server) return 1;
 

@@ -14,7 +14,7 @@ afterEach(() => {
 
 function startServer(
   handler: (ws: any, data: any) => void,
-  bridgeSignals: Record<string, string[]> = { todos: ['dataChanged'] },
+  bridgeSignals: Record<string, string[]> = { todos: ['listAdded', 'listRenamed', 'listDeleted', 'itemAdded', 'itemToggled', 'itemDeleted'] },
 ) {
   const server = Bun.serve({
     port: 0,
@@ -139,12 +139,12 @@ test('increments request IDs for concurrent calls', async () => {
   expect(ids[0]).not.toBe(ids[1])
 })
 
-test('dataChanged fires when server pushes an event', async () => {
+test('listAdded fires when server pushes an event', async () => {
   let sendEvent: (() => void) | null = null
   const server = startServer((ws, data) => {
     ws.send(JSON.stringify({ id: data.id, result: [] }))
     // Save a reference so we can push events later
-    sendEvent = () => ws.send(JSON.stringify({ bridge: 'todos', event: 'dataChanged' }))
+    sendEvent = () => ws.send(JSON.stringify({ bridge: 'todos', event: 'listAdded' }))
   })
 
   const conn = await createWsConnection(`ws://localhost:${server.port}`)
@@ -155,7 +155,7 @@ test('dataChanged fires when server pushes an event', async () => {
 
   // Register listener
   let eventFired = false
-  bridge.dataChanged(() => { eventFired = true })
+  bridge.listAdded(() => { eventFired = true })
 
   // Push the event
   sendEvent!()
@@ -170,7 +170,7 @@ test('signalReady sends appReady and resolves', async () => {
   const server = startServer((ws, data) => {
     received.push(data)
     ws.send(JSON.stringify({ id: data.id, result: {} }))
-  }, { todos: ['dataChanged'] })
+  }, { todos: ['listAdded', 'listRenamed', 'listDeleted', 'itemAdded', 'itemToggled', 'itemDeleted'] })
 
   const conn = await createWsConnection(`ws://localhost:${server.port}`)
   await conn.signalReady()
@@ -180,11 +180,11 @@ test('signalReady sends appReady and resolves', async () => {
   expect(received[0].args).toEqual([])
 })
 
-test('dataChanged cleanup removes the listener', async () => {
+test('listAdded cleanup removes the listener', async () => {
   let sendEvent: (() => void) | null = null
   const server = startServer((ws, data) => {
     ws.send(JSON.stringify({ id: data.id, result: [] }))
-    sendEvent = () => ws.send(JSON.stringify({ bridge: 'todos', event: 'dataChanged' }))
+    sendEvent = () => ws.send(JSON.stringify({ bridge: 'todos', event: 'listAdded' }))
   })
 
   const conn = await createWsConnection(`ws://localhost:${server.port}`)
@@ -192,7 +192,7 @@ test('dataChanged cleanup removes the listener', async () => {
   await bridge.listLists()
 
   let count = 0
-  const cleanup = bridge.dataChanged(() => { count++ })
+  const cleanup = bridge.listAdded(() => { count++ })
 
   sendEvent!()
   await new Promise(r => setTimeout(r, 50))

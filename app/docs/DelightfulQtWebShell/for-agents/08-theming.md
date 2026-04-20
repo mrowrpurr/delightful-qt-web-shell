@@ -76,17 +76,18 @@ Also calls `styleHints()->setColorScheme()` to update platform chrome (title bar
 
 ## Qt ↔ React Sync
 
-The bridge keeps both sides in sync. Three methods on `SystemBridge`:
+The bridge keeps both sides in sync. All methods take request objects (def_type DTOs), not positional arguments:
 
 | Method | Direction | What it does |
 |--------|-----------|-------------|
-| `setQtTheme(displayName, isDark)` | React → Qt | React tells Qt to switch theme |
+| `setQtTheme({displayName, isDark})` | React → Qt | React tells Qt to switch theme |
 | `getQtTheme()` | React → Qt | Returns `{displayName, isDark}` |
-| `qtThemeChanged` (signal) | Qt → React | Emitted when Qt theme changes |
+| `getQtThemeFilePath()` | React → Qt | Returns `{path, embedded}` for current theme file |
+| `qtThemeChanged` (signal) | Qt → React | Emitted with `{displayName, isDark}` when Qt theme changes |
 
-**React → Qt:** `SettingsTab` calls `setQtTheme()` when the user picks a theme or toggles dark/light. The `main.tsx` startup code also syncs on load (React owns persisted state via localStorage).
+**React → Qt:** `SettingsTab` calls `setQtTheme({displayName, isDark})` when the user picks a theme or toggles dark/light. The `main.tsx` startup code also syncs on load (React owns persisted state via localStorage).
 
-**Qt → React:** The toolbar theme dropdown and dark/light toggle emit `themeChanged` on the `StyleManager`, which updates the bridge state and emits `qtThemeChanged`. A global listener in `App.tsx` catches this, applies the matching React theme, and dispatches a `qt-theme-synced` custom event so `SettingsTab` can refresh its UI.
+**Qt → React:** The toolbar theme dropdown and dark/light toggle emit `themeChanged` on the `StyleManager`, which updates the bridge state and emits `qtThemeChanged` with a typed payload. A global listener in `App.tsx` catches this, applies the matching React theme, and dispatches a `qt-theme-synced` custom event so `SettingsTab` can refresh its UI.
 
 **Name mapping:** Qt uses slugified names (`mrowr-purr-synthwave-84`), React uses display names (`Mrowr Purr - Synthwave '84`). The generator outputs `theme-names.json` with the mapping. `StyleManager` loads it on startup and auto-resolves in both directions.
 

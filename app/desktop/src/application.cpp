@@ -128,17 +128,14 @@ Application::Application(int& argc, char** argv)
     connect(styleManager_, &StyleManager::themeChanged, this, [this, systemBridge]() {
         systemBridge->updateQtThemeState(
             styleManager_->currentDisplayName(), styleManager_->isDarkMode());
-        // Update theme file path for the editor
         QString filePath = styleManager_->currentThemeFilePath();
-        if (filePath.startsWith(":/")) {
-            systemBridge->setQtThemeFilePath({{"embedded", true}});
-        } else {
-            systemBridge->setQtThemeFilePath({{"path", filePath}});
-        }
+        systemBridge->setQtThemeFilePath(
+            filePath.toStdString(), filePath.startsWith(":/"));
     });
     // When React requests a theme change via bridge → apply to StyleManager
-    connect(systemBridge, &SystemBridge::qtThemeRequested,
-            this, [this](const QString& displayName, bool isDark) {
+    systemBridge->on_signal("qtThemeRequested", [this](const nlohmann::json& data) {
+        auto displayName = QString::fromStdString(data["displayName"].get<std::string>());
+        bool isDark = data["isDark"].get<bool>();
         styleManager_->applyThemeByDisplayName(displayName, isDark);
     });
 
@@ -217,7 +214,7 @@ void Application::setupSingleInstance() {
                     args.append(line.mid(4));
             }
             if (!args.isEmpty())
-                emit argsReceived(args);
+                emit appLaunchArgsReceived(args);
             emit activationRequested();
             client->deleteLater();
         });
@@ -255,7 +252,7 @@ void Application::registerUrlProtocol() {
     //
     // The protocol name comes from APP_SLUG — change it in xmake.lua to change the scheme.
     // The URL arrives as a normal command line arg, so the existing single-instance
-    // pipe forwards it to React via the argsReceived signal.
+    // pipe forwards it to React via the appLaunchArgsReceived signal.
 
     QString protocol = urlProtocolName();
     QString exePath = QDir::toNativeSeparators(applicationFilePath());
@@ -363,14 +360,14 @@ void Application::promptUrlProtocolRegistration() {
 bool Application::event(QEvent* event) {
     // macOS delivers URL scheme activations and file-open requests via this event.
     // e.g. clicking "delightful-qt://some/path" in Safari sends a FileOpen event
-    // with the full URL as the payload. We emit argsReceived so React can handle it.
+    // with the full URL as the payload. We emit appLaunchArgsReceived so React can handle it.
     if (event->type() == QEvent::FileOpen) {
         auto* openEvent = static_cast<QFileOpenEvent*>(event);
         QString payload = openEvent->url().toString();
         if (payload.isEmpty())
             payload = openEvent->file();
         if (!payload.isEmpty())
-            emit argsReceived({payload});
+            emit appLaunchArgsReceived({payload});
         return true;
     }
     return QApplication::event(event);

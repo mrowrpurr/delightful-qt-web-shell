@@ -70,7 +70,7 @@ signals:
 
     // Emitted when another instance passes command line args.
     // Also emitted on first launch with the primary instance's own args.
-    void argsReceived(const QStringList& args);
+    void appLaunchArgsReceived(const QStringList& args);
 
 protected:
     // macOS delivers URL scheme activations via QEvent::FileOpen.

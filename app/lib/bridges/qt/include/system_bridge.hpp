@@ -1,7 +1,5 @@
 // SystemBridge — desktop capabilities exposed to React.
-//
-// Clipboard, file I/O, file drop detection, and other OS-level features that
-// web content can't access on its own. This bridge is registered as "system".
+// Pure def_type interface. Qt used internally for file I/O, clipboard, dialogs.
 
 #pragma once
 
@@ -12,291 +10,275 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGuiApplication>
-#include <QJsonArray>
-#include <QJsonObject>
 #include <QMap>
-#include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QUuid>
 
-class SystemBridge : public QObject {
-    Q_OBJECT
+#include "system_dtos.hpp"
+#include "bridge.hpp"
+
+class SystemBridge : public web_shell::bridge {
+    QStringList droppedFiles_;
+    QStringList receivedArgs_;
+    QMap<QString, QFile*> openFiles_;
+    std::string qtDisplayName_;
+    bool qtIsDark_ = true;
+    std::string qtThemeFilePath_;
+    bool qtThemeEmbedded_ = false;
 
 public:
-    using QObject::QObject;
+    SystemBridge() {
+        method("copyToClipboard",  &SystemBridge::copyToClipboard);
+        method("readClipboard",    &SystemBridge::readClipboard);
+        method("openFileChooser",  &SystemBridge::openFileChooser);
+        method("openFolderChooser",&SystemBridge::openFolderChooser);
+        method("listFolder",       &SystemBridge::listFolder);
+        method("globFolder",       &SystemBridge::globFolder);
+        method("readTextFile",     &SystemBridge::readTextFile);
+        method("readFileBytes",    &SystemBridge::readFileBytes);
+        method("writeTextFile",    &SystemBridge::writeTextFile);
+        method("openFileHandle",   &SystemBridge::openFileHandle);
+        method("readFileChunk",    &SystemBridge::readFileChunk);
+        method("closeFileHandle",  &SystemBridge::closeFileHandle);
+        method("getDroppedFiles",  &SystemBridge::getDroppedFiles);
+        method("getAppLaunchArgs",  &SystemBridge::getAppLaunchArgs);
+        method("setQtTheme",       &SystemBridge::setQtTheme);
+        method("getQtTheme",       &SystemBridge::getQtTheme);
+        method("getQtThemeFilePath", &SystemBridge::getQtThemeFilePath);
+        method("openDialog",       &SystemBridge::openDialog);
+
+        signal("qtThemeChanged");
+        signal("qtThemeRequested");
+        signal("filesDropped");
+        signal("appLaunchArgsReceived");
+        signal("saveRequested");
+        signal("openDialogRequested");
+    }
 
     // ── Clipboard ────────────────────────────────────────────
 
-    // Copy text to the system clipboard.
-    Q_INVOKABLE QJsonObject copyToClipboard(const QString& text) {
-        QGuiApplication::clipboard()->setText(text);
-        return {{"ok", true}};
+    OkResponse copyToClipboard(CopyToClipboardRequest req) {
+        QGuiApplication::clipboard()->setText(QString::fromStdString(req.text));
+        return {};
     }
 
-    // Read current clipboard text.
-    Q_INVOKABLE QJsonObject readClipboard() {
-        return {{"text", QGuiApplication::clipboard()->text()}};
+    ReadClipboardResponse readClipboard() const {
+        ReadClipboardResponse resp;
+        resp.text = QGuiApplication::clipboard()->text().toStdString();
+        return resp;
     }
 
     // ── File choosers ────────────────────────────────────────
-    // Native OS dialogs for picking files/folders.
-    // Returns { path } on selection, { cancelled: true } if dismissed.
 
-    // Open a native file picker. Pass a Qt filter string like
-    // "Images (*.png *.jpg);;All Files (*)" or omit for all files.
-    Q_INVOKABLE QJsonObject openFileChooser(const QString& filter = "") {
-        // Emits signal so the UI layer can show the dialog on the right window.
-        // But SystemBridge is headless — we use nullptr as parent.
-        // If you need proper parenting, emit a signal like openDialog does.
-        QString path = QFileDialog::getOpenFileName(nullptr, "Open File", "", filter);
-        if (path.isEmpty())
-            return {{"cancelled", true}};
-        return {{"path", path}};
+    FileChooserResponse openFileChooser(OpenFileChooserRequest req) {
+        QString path = QFileDialog::getOpenFileName(
+            nullptr, "Open File", "", QString::fromStdString(req.filter));
+        FileChooserResponse resp;
+        if (path.isEmpty()) {
+            resp.cancelled = true;
+        } else {
+            resp.path = path.toStdString();
+        }
+        return resp;
     }
 
-    // Open a native folder picker.
-    Q_INVOKABLE QJsonObject openFolderChooser() {
+    FileChooserResponse openFolderChooser() {
         QString path = QFileDialog::getExistingDirectory(
             nullptr, "Open Folder", "",
             QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-        if (path.isEmpty())
-            return {{"cancelled", true}};
-        return {{"path", path}};
+        FileChooserResponse resp;
+        if (path.isEmpty()) {
+            resp.cancelled = true;
+        } else {
+            resp.path = path.toStdString();
+        }
+        return resp;
     }
 
     // ── Directory listing ────────────────────────────────────
 
-    // List entries in a folder. Returns name, isDir, and size for each.
-    Q_INVOKABLE QJsonObject listFolder(const QString& path) {
-        QDir dir(path);
+    ListFolderResponse listFolder(ListFolderRequest req) const {
+        QDir dir(QString::fromStdString(req.path));
         if (!dir.exists())
-            return {{"error", "Folder does not exist: " + path}};
+            throw std::runtime_error("Folder does not exist: " + req.path);
 
-        QJsonArray entries;
+        ListFolderResponse resp;
         for (const auto& info : dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-            entries.append(QJsonObject{
-                {"name", info.fileName()},
-                {"isDir", info.isDir()},
-                {"size", info.size()},
+            resp.entries.push_back({
+                .name = info.fileName().toStdString(),
+                .isDir = info.isDir(),
+                .size = info.size(),
             });
         }
-        return {{"entries", entries}};
+        return resp;
     }
 
-    // Glob a folder with a wildcard pattern. Returns matching paths.
-    // Set recursive = true to search subdirectories.
-    Q_INVOKABLE QJsonObject globFolder(const QString& path, const QString& pattern,
-                                       bool recursive = false) {
-        QDir dir(path);
+    GlobFolderResponse globFolder(GlobFolderRequest req) const {
+        QDir dir(QString::fromStdString(req.path));
         if (!dir.exists())
-            return {{"error", "Folder does not exist: " + path}};
+            throw std::runtime_error("Folder does not exist: " + req.path);
 
-        QJsonArray matches;
-        if (recursive) {
-            QDirIterator it(path, {pattern}, QDir::Files, QDirIterator::Subdirectories);
+        GlobFolderResponse resp;
+        auto qPattern = QString::fromStdString(req.pattern);
+        if (req.pattern.empty()) qPattern = "*";
+
+        if (req.recursive) {
+            QDirIterator it(QString::fromStdString(req.path), {qPattern},
+                           QDir::Files, QDirIterator::Subdirectories);
             while (it.hasNext())
-                matches.append(it.next());
+                resp.paths.push_back(it.next().toStdString());
         } else {
-            for (const auto& info : dir.entryInfoList({pattern}, QDir::Files))
-                matches.append(info.absoluteFilePath());
+            for (const auto& info : dir.entryInfoList({qPattern}, QDir::Files))
+                resp.paths.push_back(info.absoluteFilePath().toStdString());
         }
-        return {{"paths", matches}};
+        return resp;
     }
 
-    // ── Simple file reads ────────────────────────────────────
-    // Convenience methods for small files. For large files, use handles below.
+    // ── File I/O ─────────────────────────────────────────────
 
-    // Read an entire file as a UTF-8 string. Great for config, JSON, text.
-    // Don't use this on a 500MB log file — use openFileHandle + readFileChunk.
-    Q_INVOKABLE QJsonObject readTextFile(const QString& path) {
-        QFile file(path);
+    ReadTextFileResponse readTextFile(ReadTextFileRequest req) {
+        QFile file(QString::fromStdString(req.path));
         if (!file.exists())
-            return {{"error", "File does not exist: " + path}};
+            throw std::runtime_error("File does not exist: " + std::string(req.path));
         if (!file.open(QIODevice::ReadOnly))
-            return {{"error", "Cannot open file: " + path}};
-        return {{"text", QString::fromUtf8(file.readAll())}};
+            throw std::runtime_error("Cannot open file: " + std::string(req.path));
+        ReadTextFileResponse resp;
+        resp.text = QString::fromUtf8(file.readAll()).toStdString();
+        return resp;
     }
 
-    // Read an entire file as base64. Works for binary (images, etc.).
-    // Same caveat — don't use on huge files.
-    Q_INVOKABLE QJsonObject readFileBytes(const QString& path) {
-        QFile file(path);
+    ReadFileBytesResponse readFileBytes(ReadFileBytesRequest req) {
+        QFile file(QString::fromStdString(req.path));
         if (!file.exists())
-            return {{"error", "File does not exist: " + path}};
+            throw std::runtime_error("File does not exist: " + std::string(req.path));
         if (!file.open(QIODevice::ReadOnly))
-            return {{"error", "Cannot open file: " + path}};
-        return {{"data", QString::fromLatin1(file.readAll().toBase64())}};
+            throw std::runtime_error("Cannot open file: " + std::string(req.path));
+        ReadFileBytesResponse resp;
+        resp.data = file.readAll().toBase64().toStdString();
+        return resp;
     }
 
-    // Write a UTF-8 string to a file. Creates the file if it doesn't exist.
-    Q_INVOKABLE QJsonObject writeTextFile(const QString& path, const QString& text) {
-        QFile file(path);
-        // WriteOnly without Text flag — write bytes exactly as received.
-        // Text flag converts \n to \r\n on Windows, which doubles line endings
-        // when the input already contains \r\n (e.g. from Monaco editor).
+    OkResponse writeTextFile(WriteTextFileRequest req) {
+        QFile file(QString::fromStdString(req.path));
         if (!file.open(QIODevice::WriteOnly))
-            return {{"error", "Cannot write file: " + path}};
-        file.write(text.toUtf8());
-        return {{"ok", true}};
+            throw std::runtime_error("Cannot write file: " + std::string(req.path));
+        file.write(QByteArray::fromStdString(std::string(req.text)));
+        return {};
     }
 
     // ── File handles (streaming) ─────────────────────────────
-    // For large files: open a handle on the C++ side, read chunks from JS.
-    // The file stays open until you close the handle. No 1GB JSON payloads.
 
-    // Open a file handle. Returns { handle, size }.
-    Q_INVOKABLE QJsonObject openFileHandle(const QString& path) {
-        auto* file = new QFile(path);
-        if (!file->exists()) {
-            delete file;
-            return {{"error", "File does not exist: " + path}};
-        }
-        if (!file->open(QIODevice::ReadOnly)) {
-            delete file;
-            return {{"error", "Cannot open file: " + path}};
-        }
+    OpenFileHandleResponse openFileHandle(OpenFileHandleRequest req) {
+        auto* file = new QFile(QString::fromStdString(req.path));
+        if (!file->exists()) { delete file; throw std::runtime_error("File does not exist: " + std::string(req.path)); }
+        if (!file->open(QIODevice::ReadOnly)) { delete file; throw std::runtime_error("Cannot open file: " + std::string(req.path)); }
         QString handle = QUuid::createUuid().toString(QUuid::WithoutBraces);
         openFiles_.insert(handle, file);
-        return {{"handle", handle}, {"size", file->size()}};
+        OpenFileHandleResponse resp;
+        resp.handle = handle.toStdString();
+        resp.size = file->size();
+        return resp;
     }
 
-    // Read a chunk from an open file handle. Returns base64.
-    // offset and length are in bytes.
-    Q_INVOKABLE QJsonObject readFileChunk(const QString& handle,
-                                          qint64 offset, qint64 length) {
-        auto* file = openFiles_.value(handle);
-        if (!file)
-            return {{"error", "Invalid handle: " + handle}};
-        if (!file->seek(offset))
-            return {{"error", "Seek failed at offset " + QString::number(offset)}};
-        QByteArray chunk = file->read(length);
-        return {{"data", QString::fromLatin1(chunk.toBase64())}, {"bytesRead", chunk.size()}};
+    ReadFileChunkResponse readFileChunk(ReadFileChunkRequest req) {
+        auto* file = openFiles_.value(QString::fromStdString(req.handle));
+        if (!file) throw std::runtime_error("Invalid handle: " + std::string(req.handle));
+        if (!file->seek(req.offset)) throw std::runtime_error("Seek failed");
+        QByteArray chunk = file->read(req.length);
+        ReadFileChunkResponse resp;
+        resp.data = chunk.toBase64().toStdString();
+        resp.bytesRead = chunk.size();
+        return resp;
     }
 
-    // Close a file handle and free resources.
-    Q_INVOKABLE QJsonObject closeFileHandle(const QString& handle) {
-        auto* file = openFiles_.take(handle);
-        if (!file)
-            return {{"error", "Invalid handle: " + handle}};
+    OkResponse closeFileHandle(CloseFileHandleRequest req) {
+        auto* file = openFiles_.take(QString::fromStdString(req.handle));
+        if (!file) throw std::runtime_error("Invalid handle: " + std::string(req.handle));
         file->close();
         delete file;
-        return {{"ok", true}};
+        return {};
     }
 
-    // ── File drop ────────────────────────────────────────────
+    // ── File drop (called by C++ side, emits to React) ───────
 
-    // Called by WebShellWidget when files are dropped onto the view.
-    // Stores the paths and emits the parameterless signal so React can fetch them.
     void handleFilesDropped(const QStringList& paths) {
         droppedFiles_ = paths;
-        emit filesDropped();
+        StringListResponse payload;
+        for (const auto& p : paths)
+            payload.items.push_back(p.toStdString());
+        emit_signal("filesDropped", payload);
     }
 
-    // Get the paths from the most recent drop.
-    Q_INVOKABLE QJsonArray getDroppedFiles() {
-        QJsonArray arr;
-        for (const auto& path : droppedFiles_)
-            arr.append(path);
-        return arr;
+    StringListResponse getDroppedFiles() const {
+        StringListResponse resp;
+        for (const auto& p : droppedFiles_)
+            resp.items.push_back(p.toStdString());
+        return resp;
     }
 
-    // ── Args from CLI / URL protocol / other instance ──────
+    // ── CLI args (called by C++ side, emits to React) ────────
 
-    // Called by main.cpp when args arrive (first launch or via single-instance pipe).
-    void handleArgs(const QStringList& args) {
+    void handleAppLaunchArgs(const QStringList& args) {
         receivedArgs_ = args;
-        emit argsReceived();
+        StringListResponse payload;
+        for (const auto& a : args)
+            payload.items.push_back(a.toStdString());
+        emit_signal("appLaunchArgsReceived", payload);
     }
 
-    // Get the args from the most recent instance launch.
-    Q_INVOKABLE QJsonArray getReceivedArgs() {
-        QJsonArray arr;
-        for (const auto& arg : receivedArgs_)
-            arr.append(arg);
-        return arr;
+    StringListResponse getAppLaunchArgs() const {
+        StringListResponse resp;
+        for (const auto& a : receivedArgs_)
+            resp.items.push_back(a.toStdString());
+        return resp;
     }
 
-    // ── Qt theme control ────────────────────────────────────
-    // React can change the Qt-side QSS theme and dark/light mode.
-    // Changes emit qtThemeChanged so all subscribers stay in sync.
+    // ── Theme control ────────────────────────────────────────
 
-    // Set the Qt theme. displayName is the React-side theme name (e.g. "Mrowr Purr - Synthwave '84").
-    // isDark selects the -dark or -light QSS variant.
-    Q_INVOKABLE QJsonObject setQtTheme(const QString& displayName, bool isDark) {
-        emit qtThemeRequested(displayName, isDark);
-        return {{"ok", true}};
+    OkResponse setQtTheme(SetQtThemeRequest req) {
+        ThemeState payload{.displayName = req.displayName, .isDark = req.isDark};
+        emit_signal("qtThemeRequested", payload);
+        return {};
     }
 
-    // Get the current Qt theme state.
-    // Returns displayName (React-side name) and isDark.
-    Q_INVOKABLE QJsonObject getQtTheme() {
-        return {{"displayName", qtDisplayName_}, {"isDark", qtIsDark_}};
+    GetQtThemeResponse getQtTheme() const {
+        GetQtThemeResponse resp;
+        resp.displayName = qtDisplayName_;
+        resp.isDark = qtIsDark_;
+        return resp;
     }
 
-    // Called by Application/StyleManager when the Qt theme changes.
-    // Updates internal state and emits the parameterless signal.
+    // Called by Application when Qt theme changes.
     void updateQtThemeState(const QString& displayName, bool isDark) {
-        qtDisplayName_ = displayName;
+        qtDisplayName_ = displayName.toStdString();
         qtIsDark_ = isDark;
-        emit qtThemeChanged();
+        ThemeState payload{.displayName = qtDisplayName_, .isDark = qtIsDark_};
+        emit_signal("qtThemeChanged", payload);
     }
 
-    // Get the filesystem path of the current Qt theme file.
-    // Returns { path } if a local file is being used, { embedded: true } if QRC.
-    Q_INVOKABLE QJsonObject getQtThemeFilePath() {
-        return qtThemeFilePath_;
+    GetQtThemeFilePathResponse getQtThemeFilePath() const {
+        GetQtThemeFilePathResponse resp;
+        resp.path = qtThemeFilePath_;
+        resp.embedded = qtThemeEmbedded_;
+        return resp;
     }
 
-    // Called by Application when theme changes to update the file path info.
-    void setQtThemeFilePath(const QJsonObject& info) {
-        qtThemeFilePath_ = info;
+    void setQtThemeFilePath(const std::string& path, bool embedded) {
+        qtThemeFilePath_ = path;
+        qtThemeEmbedded_ = embedded;
     }
 
-    // ── Native dialogs ─────────────────────────────────────
+    // ── Native dialogs ───────────────────────────────────────
 
-    // Request the Qt host to open a dialog. The bridge doesn't know about
-    // UI classes — it just emits a signal. MainWindow connects to it and
-    // opens the actual QDialog. This keeps the bridge decoupled from the UI.
-    Q_INVOKABLE QJsonObject openDialog() {
-        emit openDialogRequested();
-        return {{"ok", true}};
+    OkResponse openDialog() {
+        emit_signal("openDialogRequested");
+        return {};
     }
 
-    // Returns true if anything is connected to saveRequested (i.e. React is listening).
-    bool hasSaveHandler() const { return receivers(SIGNAL(saveRequested())) > 0; }
+    // ── Save ─────────────────────────────────────────────────
 
-signals:
-    // Emitted when the Qt QSS theme changes (from toolbar or bridge call).
-    // Parameterless — React calls getQtTheme() to read the new state.
-    void qtThemeChanged();
-
-    // Internal: bridge requests theme change → Application wires this to StyleManager.
-    // Not forwarded to WebSocket (has parameters).
-    void qtThemeRequested(const QString& displayName, bool isDark);
-    // Emitted when files are dropped onto the web view.
-    // Parameterless so it auto-forwards over WebSocket/QWebChannel.
-    // React subscribes, then calls getDroppedFiles() to get the paths.
-    void filesDropped();
-
-    // Emitted when args arrive from CLI, URL protocol, or another instance.
-    // React subscribes, then calls getReceivedArgs().
-    void argsReceived();
-
-    // Emitted when the user triggers Save from Qt (toolbar/menu).
-    // React can intercept this — if the theme editor is active, save the theme
-    // instead of opening the file dialog.
-    void saveRequested();
-
-    // Emitted when React requests a native dialog (e.g. Quick Add).
-    // Connect to this in MainWindow or wherever you want to handle it.
-    void openDialogRequested();
-
-private:
-    QStringList droppedFiles_;
-    QStringList receivedArgs_;
-    QMap<QString, QFile*> openFiles_;  // handle ID → open QFile
-    QString qtDisplayName_;            // current React display name (e.g. "Mrowr Purr - Synthwave '84")
-    bool qtIsDark_ = true;             // current Qt dark/light state
-    QJsonObject qtThemeFilePath_;      // { "path": "..." } or { "embedded": true }
+    void emitSaveRequested() {
+        emit_signal("saveRequested");
+    }
 };

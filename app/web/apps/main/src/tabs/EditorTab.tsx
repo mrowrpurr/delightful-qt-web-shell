@@ -109,7 +109,7 @@ export default function EditorTab() {
         return
       }
       setThemeFilePath(filePath)
-      const result = await systemBridge.readTextFile(filePath)
+      const result = await systemBridge.readTextFile({ path: filePath })
       if ('text' in result && editorRef.current) {
         editorRef.current.setValue(result.text)
         setEditingTheme(true)
@@ -132,7 +132,7 @@ export default function EditorTab() {
     if (!systemBridge || !themeFilePath || !editorRef.current) return
     const content = editorRef.current.getValue()
     try {
-      await systemBridge.writeTextFile(themeFilePath, content)
+      await systemBridge.writeTextFile({ path: themeFilePath, text: content })
       showToast(`✅ Saved ${fileName}`)
     } catch (e: any) {
       showToast(`❌ Save failed: ${e.message}`)

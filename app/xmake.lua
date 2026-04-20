@@ -28,13 +28,15 @@ add_requires("catch2 3.x")
 add_requires("libsass")
 
 
--- ── For qlementine-icons ─────────────────────────────────────────────────
+-- ── For qlementine-icons and def_type───────────────────────────────────────────
 
-add_repositories("SkyrimScriptingBeta https://github.com/SkyrimScriptingBeta/Packages")
+add_repositories("BuildWithCollab https://github.com/BuildWithCollab/Packages")
 add_requires("qlementine-icons")
+add_requires("def_type")
 
 -- ── Shared libraries ─────────────────────────────────────────────────
 
+includes("lib/bridge/xmake.lua")
 includes("lib/todos/xmake.lua")
 
 -- ── Platform-specific targets ───────────────────────────────────────

@@ -9,7 +9,7 @@ const todos = await getBridge<TodoBridge>('todos')
 //
 // This proves the "same app, different route" pattern: the main window
 // renders App, dialogs render this. Same bridges, same build, different UI.
-// Add a todo in the dialog → the main window updates via dataChanged signal.
+// Add a todo in the dialog → the main window updates via bridge signals.
 
 export default function DialogView() {
   const [lists, setLists] = useState<TodoList[]>([])
@@ -29,13 +29,22 @@ export default function DialogView() {
 
   useEffect(() => {
     loadLists()
-    return todos.dataChanged(() => loadLists())
+    const refresh = () => loadLists()
+    const cleanups = [
+      todos.listAdded(refresh),
+      todos.listRenamed(refresh),
+      todos.listDeleted(refresh),
+      todos.itemAdded(refresh),
+      todos.itemToggled(refresh),
+      todos.itemDeleted(refresh),
+    ]
+    return () => cleanups.forEach(c => c())
   }, [loadLists])
 
   const handleAdd = useCallback(async () => {
     const text = itemText.trim()
     if (!text || !selectedListId) return
-    await todos.addItem(selectedListId, text).catch(console.error)
+    await todos.addItem({ list_id: selectedListId, text }).catch(console.error)
     setItemText('')
     setFeedback('Added!')
     setTimeout(() => setFeedback(''), 1500)

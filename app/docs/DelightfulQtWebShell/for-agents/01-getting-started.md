@@ -1,13 +1,13 @@
 # Getting Started
 
-You're an agent who wants to build an app. This template gives you Qt + React + C++ with a bridge between them, five layers of automated testing, and two deployment targets: **desktop** (Qt) and **browser** (WASM).
+You're an agent who wants to build an app. This template gives you Qt + React + C++ with a bridge between them, four layers of automated testing, and two deployment targets: **desktop** (Qt) and **browser** (WASM).
 
 ## What You Get
 
 - **React UI** — one codebase, two targets: native Qt desktop window or standalone browser app
-- **C++ backend** connected to the UI via bridges — Qt bridge for desktop, Embind bridge for WASM
+- **C++ backend** connected to the UI via bridges — one pure C++ bridge class serves both desktop and WASM
 - **Shared domain logic** — pure C++ with no framework deps, compiled for both targets
-- **Five test layers** that actually work — C++ unit, bridge protocol, browser e2e, desktop e2e, native Qt
+- **Four test layers** that actually work — C++ unit, bridge protocol, browser e2e, native Qt
 - **Dev tools** — playwright-cdp (see/click web content via CLI), pywinauto (drive native Qt widgets)
 
 ## Project Layout
@@ -39,10 +39,15 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 │   │   └── docs/             #   Docs app (architecture guide, runs alongside main)
 │   └── package.json          #   Single deps, per-app scripts (build:main, dev:main, etc.)
 ├── lib/
-│   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)
+│   ├── todos/                #   Domain logic + bridge (pure C++, no Qt, no Emscripten)
+│   │   └── include/
+│   │       ├── bridge.hpp        # Bridge base class (web_shell::bridge)
+│   │       ├── todo_bridge.hpp   # TodoBridge — extends web_shell::bridge
+│   │       ├── todo_dtos.hpp     # Request DTOs for TodoBridge methods
+│   │       └── todo_store.hpp    # Domain logic — pure C++ structs + operations
 │   ├── bridges/
-│   │   ├── qt/               #   Qt bridge — QObjects wrapping domain logic
-│   │   └── wasm/             #   WASM bridge — Embind wrapping domain logic
+│   │   ├── qt/               #   Qt-specific bridges (SystemBridge — needs Qt APIs)
+│   │   └── wasm/             #   WasmBridgeWrapper — generic Embind wrapper for any bridge
 │   └── web-shell/            #   Framework internals (don't touch)
 ├── wasm/                     # WASM entry point + Emscripten linker config
 ├── tests/
@@ -181,7 +186,7 @@ xmake run storybook   # opens on http://localhost:6006
 
 Browse and test shared UI components (Button, Card, Select, Tabs) in isolation. No backend needed — no Qt, no WASM, no WebSocket.
 
-**Custom panels** — the **🎨 Theme** panel (bottom, next to Controls/Actions) has:
+**Custom panels** — the **Theme** panel (bottom, next to Controls/Actions) has:
 - **Theme picker** — searchable list of 1000+ shadcn themes with color preview dots
 - **Dark/Light toggle** — switches all components instantly
 - **Font picker** — searchable list of 1900+ Google Fonts with category labels

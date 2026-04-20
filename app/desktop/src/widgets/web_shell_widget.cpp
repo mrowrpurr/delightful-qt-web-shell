@@ -20,6 +20,7 @@
 #include <QWebEngineScriptCollection>
 #include <QWebEngineView>
 
+#include "bridge_channel_adapter.hpp"
 #include "system_bridge.hpp"
 #include "web_shell.hpp"
 
@@ -60,8 +61,10 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
     // ── Register shell + bridges on this view's channel ──────
     auto* channel = new QWebChannel(page);
     channel->registerObject("_shell", shell);
-    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
-        channel->registerObject(it.key(), it.value());
+    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it) {
+        auto* adapter = new BridgeChannelAdapter(it.value(), channel);
+        channel->registerObject(it.key(), adapter);
+    }
     page->setWebChannel(channel);
 
     // ── Developer tools ──────────────────────────────────────
@@ -138,7 +141,7 @@ bool WebShellWidget::eventFilter(QObject* obj, QEvent* event) {
                 paths.append(url.toLocalFile());
         }
         if (!paths.isEmpty()) {
-            auto* bridge = qobject_cast<SystemBridge*>(
+            auto* bridge = static_cast<SystemBridge*>(
                 shell_->bridges().value("system"));
             if (bridge)
                 bridge->handleFilesDropped(paths);

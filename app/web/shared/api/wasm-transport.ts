@@ -1,10 +1,17 @@
-// WASM transport — direct Embind calls, no serialization, no network.
-// The C++ domain logic runs in the browser as WebAssembly.
+// WASM transport — routes through bridge dispatch via WasmBridgeWrapper.
+// Same architecture as WebSocket, just in-process instead of over the network.
 
 import type { BridgeConnection } from './bridge-transport'
 
+interface WasmBridgeWrapper {
+  call(method: string, args: any): any
+  subscribe(signal: string, callback: (...args: any[]) => void): void
+  methods(): string[]
+  signals(): string[]
+}
+
 interface WasmModule {
-  TodoBridge: new () => Record<string, (...args: any[]) => any>
+  getBridge(name: string): WasmBridgeWrapper | null
 }
 
 // Load the Emscripten module via <script> to bypass Vite's import analysis
@@ -13,7 +20,6 @@ function loadEmscriptenModule(): Promise<WasmModule> {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script')
     script.type = 'module'
-    // Inline module imports the Emscripten factory and stashes it on globalThis
     const wasmUrl = new URL('/wasm-app.js', window.location.origin).href
     const blob = new Blob(
       [`import factory from '${wasmUrl}'; globalThis.__wasmFactory = factory`],
@@ -39,47 +45,42 @@ function loadEmscriptenModule(): Promise<WasmModule> {
 export async function createWasmConnection(): Promise<BridgeConnection> {
   const wasm = await loadEmscriptenModule()
 
-  // Bridge instances live in WASM memory
-  const bridges: Record<string, Record<string, (...args: any[]) => any>> = {
-    todos: new wasm.TodoBridge(),
-  }
-
   function makeBridgeProxy<T extends object>(bridgeName: string): T {
-    const raw = bridges[bridgeName]
+    const wrapper = wasm.getBridge(bridgeName)
 
     // Stub proxy for bridges not implemented in WASM (e.g. SystemBridge).
-    // Every method returns a resolved Promise so the app doesn't crash.
-    if (!raw) {
+    if (!wrapper) {
       console.warn(`WASM: bridge "${bridgeName}" not available — using no-op stub`)
       return new Proxy({} as T, {
         get(_, prop) {
           if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON') return undefined
-          // Signal subscriptions return a no-op cleanup
-          return (..._args: any[]) => {
-            return Promise.resolve({})
-          }
+          return (..._args: any[]) => Promise.resolve({})
         },
       })
     }
+
+    // Build signal set from the wrapper
+    const signalNames = new Set<string>(wrapper.signals())
 
     return new Proxy({} as T, {
       get(_, prop) {
         if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON') return undefined
         const name = prop as string
 
-        // Signal subscription — Embind exposes onDataChanged(callback)
-        if (name === 'dataChanged') {
-          return (callback: () => void) => {
-            raw.onDataChanged(callback)
-            // TODO: Embind doesn't support un-registration yet — return a no-op cleanup
-            return () => {}
+        // Signal subscription
+        if (signalNames.has(name)) {
+          return (callback: (...args: any[]) => void) => {
+            wrapper.subscribe(name, callback)
+            return () => {} // Embind doesn't support un-registration yet
           }
         }
 
-        // Method call — Embind returns JS values directly, wrap in Promise for API consistency
+        // Method call — dispatch through the wrapper, wrap in Promise
         return (...args: any[]) => {
           try {
-            const result = raw[name](...args)
+            // Pass first arg as the request object (matches bridge contract)
+            const requestArg = args.length === 1 && typeof args[0] === 'object' ? args[0] : (args.length === 0 ? {} : args[0])
+            const result = wrapper.call(name, requestArg)
             if (result?.error) return Promise.reject(new Error(result.error))
             return Promise.resolve(result)
           } catch (e) {
@@ -95,7 +96,6 @@ export async function createWasmConnection(): Promise<BridgeConnection> {
       return makeBridgeProxy<T>(name)
     },
     signalReady(): Promise<void> {
-      // No shell lifecycle in WASM mode — app is ready immediately
       return Promise.resolve()
     },
   }

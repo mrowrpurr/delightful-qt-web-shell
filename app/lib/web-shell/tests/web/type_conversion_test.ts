@@ -3,50 +3,32 @@ import { createWsConnection, type BridgeConnection } from '../../../../web/share
 import { spawn, type Subprocess } from 'bun'
 import fs from 'fs'
 
-// These tests launch the REAL dev-server (C++ binary) and verify that
-// invoke_bridge_method's QVariant-based type conversion works for every
-// supported type — params, returns, multi-arg, edge cases, and signals.
-//
-// This is the comprehensive test suite for the bridge type system.
+// Tests for the def_type bridge system — typed bridges with def_type DTOs.
+// Launches the REAL dev-server and verifies end-to-end bridge behavior.
 
 const PORT = 19877
 let server: Subprocess
 let conn: BridgeConnection
 
-// Generic bridge type — we call methods dynamically
-interface TypeTestBridge {
-  // Return types
-  returnString(): Promise<{ value: string }>
-  returnInt(): Promise<{ value: number }>
-  returnDouble(): Promise<{ value: number }>
-  returnBool(): Promise<{ value: boolean }>
-  returnJsonObject(): Promise<Record<string, unknown>>
-  returnJsonArray(): Promise<string[]>
-  returnStringList(): Promise<{ value: string[] }>
-  returnVoid(): Promise<{ ok: boolean }>
-  // Param types (echo back as JSON)
-  echoString(s: string): Promise<{ type: string; value: string }>
-  echoInt(n: number): Promise<{ type: string; value: number }>
-  echoDouble(d: number): Promise<{ type: string; value: number }>
-  echoBool(b: boolean): Promise<{ type: string; value: boolean }>
-  echoJsonObject(obj: Record<string, unknown>): Promise<{ type: string; value: Record<string, unknown> }>
-  echoJsonArray(arr: unknown[]): Promise<{ type: string; value: unknown[] }>
-  // Multi-param
-  multiParams(s: string, n: number, b: boolean): Promise<{ string: string; int: number; bool: boolean }>
-  fiveParams(a: string, b: string, c: string, d: string, e: string): Promise<{ concat: string }>
-  tenParams(a: number, b: number, c: number, d: number, e: number,
-            f: number, g: number, h: number, i: number, j: number): Promise<{ sum: number }>
-  // Edge cases
-  echoEmptyString(): Promise<{ value: string }>
-  echoLargeNumber(n: number): Promise<{ value: number }>
-  noArgs(): Promise<{ ok: boolean }>
-  lastCall(): Promise<{ value: string }>
-  // Signals
-  testSignal: (cb: () => void) => () => void
+interface TodoBridgeForTest {
+  addList(req: { name: string }): Promise<{ id: string; name: string; item_count: number; created_at: string }>
+  listLists(): Promise<Array<{ id: string; name: string; item_count: number; created_at: string }>>
+  getList(req: { list_id: string }): Promise<{ list: any; items: any[] }>
+  addItem(req: { list_id: string; text: string }): Promise<{ id: string; list_id: string; text: string; done: boolean }>
+  toggleItem(req: { item_id: string }): Promise<{ id: string; text: string; done: boolean }>
+  deleteList(req: { list_id: string }): Promise<{ ok: boolean }>
+  deleteItem(req: { item_id: string }): Promise<{ ok: boolean }>
+  renameList(req: { list_id: string; new_name: string }): Promise<{ id: string; name: string }>
+  search(req: { query: string }): Promise<Array<{ id: string; text: string }>>
+  listAdded: (cb: (data: any) => void) => () => void
+  listRenamed: (cb: (data: any) => void) => () => void
+  listDeleted: (cb: (data: any) => void) => () => void
+  itemAdded: (cb: (data: any) => void) => () => void
+  itemToggled: (cb: (data: any) => void) => () => void
+  itemDeleted: (cb: (data: any) => void) => () => void
 }
 
 beforeAll(async () => {
-  // Find the dev-server binary
   const binaryPath = fs.readFileSync('build/.dev-server-binary.txt', 'utf8').trim()
   if (!fs.existsSync(binaryPath))
     throw new Error(`dev-server binary not found at ${binaryPath} — run xmake build dev-server`)
@@ -56,12 +38,11 @@ beforeAll(async () => {
     stderr: 'pipe',
   })
 
-  // Wait for the server to be ready
   const start = Date.now()
   while (Date.now() - start < 10000) {
     try {
       conn = await createWsConnection(`ws://localhost:${PORT}`)
-      return // connected!
+      return
     } catch {
       await new Promise(r => setTimeout(r, 200))
     }
@@ -73,200 +54,91 @@ afterAll(() => {
   server?.kill()
 })
 
-function bridge() {
-  return conn.bridge<TypeTestBridge>('typeTest')
+function todos() {
+  return conn.bridge<TodoBridgeForTest>('todos')
 }
 
-// ── Return type tests ─────────────────────────────────────────────────
+// ── TodoBridge method tests ──────────────────────────────────────────
 
-test('returns QString as {value: string}', async () => {
-  const result = await bridge().returnString()
-  expect(result.value).toBe('hello')
-  expect(typeof result.value).toBe('string')
+test('addList creates a list and returns it', async () => {
+  const list = await todos().addList({ name: 'Groceries' })
+  expect(list.name).toBe('Groceries')
+  expect(typeof list.id).toBe('string')
+  expect(list.item_count).toBe(0)
+  expect(typeof list.created_at).toBe('string')
 })
 
-test('returns int as {value: number}', async () => {
-  const result = await bridge().returnInt()
-  expect(result.value).toBe(42)
-  expect(typeof result.value).toBe('number')
+test('listLists returns array of lists', async () => {
+  const lists = await todos().listLists()
+  expect(Array.isArray(lists)).toBe(true)
+  expect(lists.length).toBeGreaterThan(0)
+  expect(lists[0].name).toBe('Groceries')
 })
 
-test('returns double as {value: number}', async () => {
-  const result = await bridge().returnDouble()
-  expect(result.value).toBeCloseTo(3.14, 10)
-  expect(typeof result.value).toBe('number')
+test('addItem creates an item in a list', async () => {
+  const lists = await todos().listLists()
+  const item = await todos().addItem({ list_id: lists[0].id, text: 'Milk' })
+  expect(item.text).toBe('Milk')
+  expect(item.done).toBe(false)
+  expect(item.list_id).toBe(lists[0].id)
 })
 
-test('returns bool as {value: boolean}', async () => {
-  const result = await bridge().returnBool()
-  expect(result.value).toBe(true)
-  expect(typeof result.value).toBe('boolean')
+test('getList returns list details with items', async () => {
+  const lists = await todos().listLists()
+  const detail = await todos().getList({ list_id: lists[0].id })
+  expect(detail.list.name).toBe('Groceries')
+  expect(detail.items.length).toBeGreaterThan(0)
+  expect(detail.items[0].text).toBe('Milk')
 })
 
-test('returns QJsonObject directly (unwrapped)', async () => {
-  const result = await bridge().returnJsonObject()
-  expect(result).toEqual({ key: 'value' })
+test('toggleItem flips done state', async () => {
+  const lists = await todos().listLists()
+  const detail = await todos().getList({ list_id: lists[0].id })
+  const itemId = detail.items[0].id
+
+  const toggled = await todos().toggleItem({ item_id: itemId })
+  expect(toggled.done).toBe(true)
+
+  const toggledBack = await todos().toggleItem({ item_id: itemId })
+  expect(toggledBack.done).toBe(false)
 })
 
-test('returns QJsonArray directly (unwrapped)', async () => {
-  const result = await bridge().returnJsonArray()
-  expect(result).toEqual(['a', 'b', 'c'])
+test('renameList changes the list name', async () => {
+  const lists = await todos().listLists()
+  const renamed = await todos().renameList({ list_id: lists[0].id, new_name: 'Shopping' })
+  expect(renamed.name).toBe('Shopping')
 })
 
-test('returns QStringList as {value: [strings]}', async () => {
-  const result = await bridge().returnStringList()
-  // QStringList → QVariant → QJsonValue: Qt converts QStringList to a JSON array
-  // The bridge wraps non-object/non-array results in {value: ...}
-  // But a QStringList converts to a JSON array, which gets returned unwrapped
-  expect(Array.isArray(result) || Array.isArray((result as any).value)).toBe(true)
-  const arr = Array.isArray(result) ? result : (result as any).value
-  expect(arr).toEqual(['one', 'two', 'three'])
+test('search finds items by text', async () => {
+  const results = await todos().search({ query: 'Milk' })
+  expect(results.length).toBeGreaterThan(0)
+  expect(results[0].text).toBe('Milk')
 })
 
-test('returns void as {ok: true}', async () => {
-  const result = await bridge().returnVoid()
+test('deleteItem removes an item', async () => {
+  const lists = await todos().listLists()
+  const detail = await todos().getList({ list_id: lists[0].id })
+  const result = await todos().deleteItem({ item_id: detail.items[0].id })
   expect(result.ok).toBe(true)
 })
 
-// ── Parameter type tests ──────────────────────────────────────────────
-
-test('passes QString parameter', async () => {
-  const result = await bridge().echoString('world')
-  expect(result.type).toBe('QString')
-  expect(result.value).toBe('world')
-})
-
-test('passes int parameter', async () => {
-  const result = await bridge().echoInt(99)
-  expect(result.type).toBe('int')
-  expect(result.value).toBe(99)
-})
-
-test('passes double parameter', async () => {
-  const result = await bridge().echoDouble(2.718)
-  expect(result.type).toBe('double')
-  expect(result.value).toBeCloseTo(2.718, 10)
-})
-
-test('passes bool parameter (true)', async () => {
-  const result = await bridge().echoBool(true)
-  expect(result.type).toBe('bool')
-  expect(result.value).toBe(true)
-})
-
-test('passes bool parameter (false)', async () => {
-  const result = await bridge().echoBool(false)
-  expect(result.type).toBe('bool')
-  expect(result.value).toBe(false)
-})
-
-test('passes QJsonObject parameter', async () => {
-  const obj = { nested: { deep: true }, count: 5 }
-  const result = await bridge().echoJsonObject(obj)
-  expect(result.type).toBe('QJsonObject')
-  expect(result.value).toEqual(obj)
-})
-
-test('passes QJsonArray parameter', async () => {
-  const arr = [1, 'two', true, null]
-  const result = await bridge().echoJsonArray(arr)
-  expect(result.type).toBe('QJsonArray')
-  expect(result.value).toEqual(arr)
-})
-
-// ── Multi-parameter tests ─────────────────────────────────────────────
-
-test('passes mixed types: string + int + bool', async () => {
-  const result = await bridge().multiParams('hello', 42, true)
-  expect(result).toEqual({ string: 'hello', int: 42, bool: true })
-})
-
-test('passes 5 string parameters', async () => {
-  const result = await bridge().fiveParams('a', 'b', 'c', 'd', 'e')
-  expect(result.concat).toBe('abcde')
-})
-
-test('passes 10 int parameters (max supported)', async () => {
-  const result = await bridge().tenParams(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-  expect(result.sum).toBe(55)
-})
-
-// ── Edge cases ────────────────────────────────────────────────────────
-
-test('handles zero-arg method', async () => {
-  const result = await bridge().noArgs()
+test('deleteList removes a list', async () => {
+  const lists = await todos().listLists()
+  const result = await todos().deleteList({ list_id: lists[0].id })
   expect(result.ok).toBe(true)
 })
 
-test('void method actually executes', async () => {
-  await bridge().returnVoid()
-  const result = await bridge().lastCall()
-  expect(result.value).toBe('returnVoid')
+test('getList throws for nonexistent list', async () => {
+  try {
+    await todos().getList({ list_id: 'nonexistent' })
+    throw new Error('should have thrown')
+  } catch (e: any) {
+    expect(e.message).toContain('not found')
+  }
 })
 
-test('handles negative int', async () => {
-  const result = await bridge().echoInt(-42)
-  expect(result.value).toBe(-42)
-})
-
-test('handles zero', async () => {
-  const result = await bridge().echoInt(0)
-  expect(result.value).toBe(0)
-})
-
-test('handles large double', async () => {
-  const result = await bridge().echoLargeNumber(1e15)
-  expect(result.value).toBe(1e15)
-})
-
-test('handles negative double', async () => {
-  const result = await bridge().echoDouble(-99.5)
-  expect(result.value).toBeCloseTo(-99.5)
-})
-
-test('handles empty QJsonObject', async () => {
-  const result = await bridge().echoJsonObject({})
-  expect(result.value).toEqual({})
-})
-
-test('handles empty QJsonArray', async () => {
-  const result = await bridge().echoJsonArray([])
-  expect(result.value).toEqual([])
-})
-
-test('handles deeply nested JSON object', async () => {
-  const obj = { a: { b: { c: { d: { e: 'deep' } } } } }
-  const result = await bridge().echoJsonObject(obj)
-  expect(result.value).toEqual(obj)
-})
-
-test('handles JSON array with mixed types', async () => {
-  const arr = [1, 'two', true, null, { nested: true }, [1, 2]]
-  const result = await bridge().echoJsonArray(arr)
-  expect(result.value).toEqual(arr)
-})
-
-// ── __meta__ endpoint ─────────────────────────────────────────────────
-
-test('__meta__ includes typeTest bridge', async () => {
-  // Access the raw WS to send __meta__
-  const raw = await createWsConnection(`ws://localhost:${PORT}`)
-  const meta = await new Promise<any>((resolve) => {
-    const ws = (raw as any)._ws || (raw as any).ws
-    // Use the bridge call mechanism to get meta
-    // The connection auto-fetches meta on connect, but we can also verify
-    // the typeTest bridge is listed by checking if bridge('typeTest') works
-    resolve(true)
-  })
-  // If we got this far, typeTest bridge is registered and usable
-  const result = await raw.bridge<TypeTestBridge>('typeTest').noArgs()
-  expect(result.ok).toBe(true)
-})
-
-// ── Unknown method error ──────────────────────────────────────────────
-
-test('returns error for unknown method', async () => {
-  const b = bridge() as any
+test('unknown method returns error', async () => {
+  const b = todos() as any
   try {
     await b.thisMethodDoesNotExist()
     throw new Error('should have thrown')
@@ -275,26 +147,17 @@ test('returns error for unknown method', async () => {
   }
 })
 
-// ── Arg count validation ──────────────────────────────────────────────
+// ── Signal data test ─────────────────────────────────────────────────
 
-test('returns error when too few args are passed', async () => {
-  const b = bridge() as any
-  try {
-    // echoString expects 1 arg, we pass 0
-    await b.echoString()
-    throw new Error('should have thrown')
-  } catch (e: any) {
-    expect(e.message).toContain('expected 1 args, got 0')
-  }
-})
+test('signal carries payload data when addList is called', async () => {
+  let signalData: any = null
+  todos().listAdded((data: any) => { signalData = data })
 
-test('returns error for multi-param method with missing args', async () => {
-  const b = bridge() as any
-  try {
-    // multiParams expects 3 args (string, int, bool), we pass 1
-    await b.multiParams('hello')
-    throw new Error('should have thrown')
-  } catch (e: any) {
-    expect(e.message).toContain('expected 3 args, got 1')
-  }
+  const list = await todos().addList({ name: 'Signal Test' })
+
+  await new Promise(r => setTimeout(r, 100))
+
+  expect(signalData).not.toBeNull()
+  expect(signalData.name).toBe('Signal Test')
+  expect(signalData.id).toBe(list.id)
 })
