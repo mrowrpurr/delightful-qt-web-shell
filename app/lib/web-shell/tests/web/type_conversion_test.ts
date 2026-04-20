@@ -298,3 +298,26 @@ test('returns error for multi-param method with missing args', async () => {
     expect(e.message).toContain('expected 3 args, got 1')
   }
 })
+
+// ── Signal data tests (typed bridge signals carry payloads) ──────────
+
+interface TodoBridgeForSignalTest {
+  addList(req: { name: string }): Promise<{ id: string; name: string; item_count: number; created_at: string }>
+  dataChanged: (cb: (data: any) => void) => () => void
+}
+
+test('signal carries payload data when addList is called', async () => {
+  const todos = conn.bridge<TodoBridgeForSignalTest>('todos')
+
+  let signalData: any = null
+  todos.dataChanged((data: any) => { signalData = data })
+
+  const list = await todos.addList({ name: 'Signal Test' })
+
+  // Give the signal a moment to propagate
+  await new Promise(r => setTimeout(r, 100))
+
+  expect(signalData).not.toBeNull()
+  expect(signalData.name).toBe('Signal Test')
+  expect(signalData.id).toBe(list.id)
+})
