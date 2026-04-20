@@ -1,8 +1,8 @@
-// bridge_channel_adapter.hpp — QObject wrapper for typed_bridge over QWebChannel.
+// bridge_channel_adapter.hpp — QObject wrapper for bridge over QWebChannel.
 //
 // Handles two things:
-// 1. Method dispatch: Q_INVOKABLE dispatch(method, args) → typed_bridge → JSON string result
-// 2. Signal forwarding: typed_bridge emit_signal → Qt signal → QWebChannel → JS
+// 1. Method dispatch: Q_INVOKABLE dispatch(method, args) → bridge → JSON string result
+// 2. Signal forwarding: bridge emit_signal → Qt signal → QWebChannel → JS
 
 #pragma once
 
@@ -12,17 +12,17 @@
 #include <QString>
 
 #include "json_adapter.hpp"
-#include "typed_bridge.hpp"
+#include "bridge.hpp"
 
 class BridgeChannelAdapter : public QObject {
     Q_OBJECT
-    web_shell::typed_bridge* bridge_;
+    web_shell::bridge* bridge_;
 
 public:
-    BridgeChannelAdapter(web_shell::typed_bridge* bridge, QObject* parent = nullptr)
+    BridgeChannelAdapter(web_shell::bridge* bridge, QObject* parent = nullptr)
         : QObject(parent), bridge_(bridge)
     {
-        // Subscribe to all typed_bridge signals and re-emit as Qt signals.
+        // Subscribe to all bridge signals and re-emit as Qt signals.
         // QWebChannel forwards Qt signals to the JS side automatically.
         for (const auto& name : bridge_->signal_names()) {
             bridge_->on_signal(name, [this, sig = QString::fromStdString(name)](const nlohmann::json& data) {

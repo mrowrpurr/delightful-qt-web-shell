@@ -1,4 +1,4 @@
-// WASM transport — routes through typed_bridge dispatch via WasmBridgeWrapper.
+// WASM transport — routes through bridge dispatch via WasmBridgeWrapper.
 // Same architecture as WebSocket, just in-process instead of over the network.
 
 import type { BridgeConnection } from './bridge-transport'
@@ -78,7 +78,7 @@ export async function createWasmConnection(): Promise<BridgeConnection> {
         // Method call — dispatch through the wrapper, wrap in Promise
         return (...args: any[]) => {
           try {
-            // Pass first arg as the request object (matches typed_bridge contract)
+            // Pass first arg as the request object (matches bridge contract)
             const requestArg = args.length === 1 && typeof args[0] === 'object' ? args[0] : (args.length === 0 ? {} : args[0])
             const result = wrapper.call(name, requestArg)
             if (result?.error) return Promise.reject(new Error(result.error))

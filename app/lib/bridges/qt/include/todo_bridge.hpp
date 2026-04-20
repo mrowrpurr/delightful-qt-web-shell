@@ -7,9 +7,9 @@
 
 #include "todo_dtos.hpp"
 #include "todo_store.hpp"
-#include "typed_bridge.hpp"
+#include "bridge.hpp"
 
-class TodoBridge : public web_shell::typed_bridge {
+class TodoBridge : public web_shell::bridge {
     TodoStore store_;
 
 public:

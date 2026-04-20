@@ -23,7 +23,7 @@ README: `C:\Code\mrowr\BuildWithCollab\type_def\README.md`
 
 1. **WASM compilation** — code is written but needs `xmake f -p wasm` to compile and test. The `WasmBridgeWrapper` and rewritten `wasm-transport.ts` haven't been tested under Emscripten. Potential issues: def_type C++23/PFR under Emscripten's clang, nlohmann::json round-trip via `JSON.parse`/`JSON.stringify`.
 
-2. **`scaffold-bridge` tool** — still generates old-style QObject bridges. Needs rewriting to generate typed_bridge classes with def_type DTOs.
+2. **`scaffold-bridge` tool** — still generates old-style QObject bridges. Needs rewriting to generate bridge classes with def_type DTOs.
 
 3. **`for-agents/` documentation** — all 8 docs describe the OLD architecture. Full rewrite needed (see Phase 8 below).
 
@@ -50,10 +50,10 @@ xmake run dev-web               # Vite dev server (terminal 2, open localhost:51
 
 ### QWebChannel architecture notes (for next agent)
 
-The production desktop path uses `BridgeChannelAdapter` (a QObject) that wraps each typed_bridge for QWebChannel:
+The production desktop path uses `BridgeChannelAdapter` (a QObject) that wraps each bridge for QWebChannel:
 
-- **Method calls:** TS calls `adapter.dispatch("addList", {name: "..."})` → C++ routes through typed_bridge dispatch → returns JSON string → TS parses it
-- **Signals:** typed_bridge `emit_signal("dataChanged", payload)` → adapter re-emits as Qt signal `bridgeSignal(name, jsonString)` → QWebChannel forwards to JS → TS routes to per-signal listeners
+- **Method calls:** TS calls `adapter.dispatch("addList", {name: "..."})` → C++ routes through bridge dispatch → returns JSON string → TS parses it
+- **Signals:** bridge `emit_signal("dataChanged", payload)` → adapter re-emits as Qt signal `bridgeSignal(name, jsonString)` → QWebChannel forwards to JS → TS routes to per-signal listeners
 - **Signal detection:** TS uses a heuristic — if the first argument to a bridge property call is a function, it's treated as a signal subscription. This works because method calls always pass objects, never functions.
 - **Return type:** `dispatch()` returns `QString` (JSON string). `QJsonObject` and `QJsonValue` returns silently break QWebChannel callbacks. Always use strings.
 
@@ -83,17 +83,17 @@ The production desktop path uses `BridgeChannelAdapter` (a QObject) that wraps e
 
 | File | Role |
 |------|------|
-| `lib/web-shell/include/typed_bridge.hpp` | Bridge base class. Method registration via `method("name", &fn)`. Signal registration, emission, subscription. Dispatch engine. Contains `OkResponse` shared DTO. |
+| `lib/web-shell/include/bridge.hpp` | Bridge base class. Method registration via `method("name", &fn)`. Signal registration, emission, subscription. Dispatch engine. Contains `OkResponse` shared DTO. |
 | `lib/web-shell/include/json_adapter.hpp` | `to_qt_json()` / `from_qt_json()` — nlohmann ↔ Qt JSON. Used at transport boundaries only. |
 | `lib/web-shell/include/expose_as_ws.hpp` | WebSocket JSON-RPC server. Typed bridge dispatch only. Signal forwarding with payloads. |
-| `lib/web-shell/include/bridge_channel_adapter.hpp` | QObject wrapper for QWebChannel. Single `Q_INVOKABLE dispatch(method, args)` method routes to typed_bridge. |
-| `lib/web-shell/include/web_shell.hpp` | Bridge registry. Single `QMap<QString, typed_bridge*>`. Still a QObject for `appReady()` lifecycle. |
+| `lib/web-shell/include/bridge_channel_adapter.hpp` | QObject wrapper for QWebChannel. Single `Q_INVOKABLE dispatch(method, args)` method routes to bridge. |
+| `lib/web-shell/include/web_shell.hpp` | Bridge registry. Single `QMap<QString, bridge*>`. Still a QObject for `appReady()` lifecycle. |
 | `lib/todos/include/todo_store.hpp` | Domain structs use `field<T>` with PFR auto-reflection. |
 | `lib/todos/include/todo_dtos.hpp` | Request DTOs for TodoBridge methods. |
 | `lib/bridges/qt/include/todo_bridge.hpp` | Pure C++ typed bridge. Zero Qt types. |
 | `lib/bridges/qt/include/system_bridge.hpp` | Pure def_type interface. Qt used internally for file I/O, clipboard, dialogs. |
 | `lib/bridges/qt/include/system_dtos.hpp` | Request/response DTOs for SystemBridge methods. |
-| `lib/bridges/wasm/include/wasm_bridge_wrapper.hpp` | Generic Embind wrapper for any typed_bridge. `call()`, `subscribe()`, `methods()`, `signals()`. |
+| `lib/bridges/wasm/include/wasm_bridge_wrapper.hpp` | Generic Embind wrapper for any bridge. `call()`, `subscribe()`, `methods()`, `signals()`. |
 | `lib/bridges/wasm/src/wasm_bindings.cpp` | Embind registration. `getBridge("todos")` factory. |
 | `web/shared/api/bridge-transport.ts` | Signal callbacks receive `msg.args` (typed data). |
 | `web/shared/api/wasm-transport.ts` | Generic dispatch through `wrapper.call()`. |
@@ -103,7 +103,7 @@ The production desktop path uses `BridgeChannelAdapter` (a QObject) that wraps e
 ```
 TypeScript → WebSocket JSON-RPC → expose_as_ws.hpp
                                        │
-                                       └─ typed_bridge::dispatch()
+                                       └─ bridge::dispatch()
                                             ├─ from_json<Request>(args)
                                             ├─ call bridge method
                                             ├─ serialize_response(result)
@@ -117,7 +117,7 @@ No QObject dispatch. No QMetaObject. No coerce_arg. No QGenericArgument.
 ```
 C++ bridge method
   → emit_signal("dataChanged", item)     // def_type struct
-  → typed_bridge serializes via to_json
+  → bridge serializes via to_json
   → listeners called with nlohmann::json
   → forward_typed_signals sends over WebSocket:
     {"bridge": "todos", "event": "dataChanged", "args": {"id": "1", "name": "Groceries", ...}}
@@ -153,7 +153,7 @@ That's it. `from_json` and `to_json` are automatic via PFR. No `to_json()` helpe
 
 ### How to Add a New Bridge
 
-1. Create a class extending `web_shell::typed_bridge`
+1. Create a class extending `web_shell::bridge`
 2. Register methods and signals in the constructor
 3. Add to `test_server.cpp` and `application.cpp`:
 ```cpp
@@ -185,7 +185,7 @@ The WASM path (`wasm_bridge_wrapper.hpp`, rewritten `wasm_bindings.cpp`, rewritt
 
 ### TypeTestBridge removed
 
-The old `TypeTestBridge` (QObject, QVariant-based type tests) was removed. It tested the now-deleted QVariant dispatch system. The replacement tests in `type_conversion_test.ts` exercise TodoBridge through the typed_bridge dispatch, covering:
+The old `TypeTestBridge` (QObject, QVariant-based type tests) was removed. It tested the now-deleted QVariant dispatch system. The replacement tests in `type_conversion_test.ts` exercise TodoBridge through the bridge dispatch, covering:
 - CRUD operations (addList, getList, addItem, toggleItem, deleteList, deleteItem, renameList, search)
 - Error handling (nonexistent list/item)
 - Signal data flow (emit with payload → TS receives data)
@@ -201,7 +201,7 @@ The example TodoBridge uses `dataChanged` which is a terrible signal name that s
 
 The entire `docs/DelightfulQtWebShell/for-agents/` and `for-humans/` doc sets describe the OLD architecture. Every doc that mentions bridges is wrong now. The key changes a rewrite must cover:
 
-**02-architecture.md** — The proxy pattern section describes `Q_INVOKABLE` + `QMetaObject` dispatch + `QVariant` coercion. All dead. Replace with `typed_bridge` + `method()` registration + def_type dispatch. The "Four Layers You Touch" section still says "Qt bridge" and "WASM bridge" as separate layers — now it's one bridge. Return value wrapping (`{value: ...}` for scalars) is gone — everything goes through `serialize_response`. The type system section about QVariant is irrelevant.
+**02-architecture.md** — The proxy pattern section describes `Q_INVOKABLE` + `QMetaObject` dispatch + `QVariant` coercion. All dead. Replace with `bridge` + `method()` registration + def_type dispatch. The "Four Layers You Touch" section still says "Qt bridge" and "WASM bridge" as separate layers — now it's one bridge. Return value wrapping (`{value: ...}` for scalars) is gone — everything goes through `serialize_response`. The type system section about QVariant is irrelevant.
 
 **03-adding-features.md** — The entire "Adding a Method" recipe (4 files: domain logic, Qt bridge with `Q_INVOKABLE` + `to_json()`, WASM bridge with `to_val()`, TS interface) is replaced by: define a request DTO, write the method, register it. One bridge, not two. The `scaffold-bridge` tool still generates old-style bridges.
 
@@ -228,7 +228,7 @@ Currently: `app->shell()->bridges().value("system")`. Could be nicer with `opera
 1. `🔥 def_type migration — Phase 1-3 complete` — Foundation, dispatch engine, TodoBridge rewrite
 2. `✨ Phase 4 — signal data test passes` — Signal payloads flow end-to-end
 3. `💀 Phase 5 — Kill WASM bridge duplication` — Delete `todo_wasm_bridge.hpp`, generic Embind wrapper
-4. `🔥 Phase 6 — SystemBridge migrated to typed_bridge` — All 6 desktop callsites updated
+4. `🔥 Phase 6 — SystemBridge migrated to bridge` — All 6 desktop callsites updated
 5. `🧹 Phase 7 — Cleanup: delete all legacy dispatch code` — Remove QObject map, coerce_arg, SignalForwarder, TypeTestBridge
 6. `📝 Update migration doc with final status`
 7. `📝 Add critical context for next agent`
@@ -236,7 +236,7 @@ Currently: `app->shell()->bridges().value("system")`. Could be nicer with `opera
 9. `🔧 Fix React UI — update all bridge calls to use request objects`
 10. `🔧 Fix QWebChannel — route through BridgeChannelAdapter.dispatch()`
 11. `🐛 Fix QWebChannel dispatch — return QString not QJsonValue` (QJsonValue hangs callbacks)
-12. `🐛 Fix QWebChannel signals — BridgeChannelAdapter re-emits typed_bridge signals as Qt signals`
+12. `🐛 Fix QWebChannel signals — BridgeChannelAdapter re-emits bridge signals as Qt signals`
 
 ---
 

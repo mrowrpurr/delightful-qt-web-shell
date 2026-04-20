@@ -1,4 +1,4 @@
-// expose_as_ws.hpp — WebSocket JSON-RPC server for typed bridges.
+// expose_as_ws.hpp — WebSocket JSON-RPC server for bridges.
 //
 // Protocol:
 //   → {"bridge": "todos", "method": "addList", "args": {"name": "Groceries"}, "id": 1}
@@ -36,9 +36,9 @@ inline QJsonValue invoke_shell_method(QObject* shell, const QString& method_name
     return QJsonObject{{"error", "Unknown shell method: " + method_name}};
 }
 
-// ── Typed bridge meta ────────────────────────────────────────────────
+// ── Bridge meta ────────────────────────────────────────────────
 
-inline QJsonObject collect_typed_bridge_meta(const web_shell::typed_bridge* bridge) {
+inline QJsonObject collect_bridge_meta(const web_shell::bridge* bridge) {
     QJsonArray method_list;
     for (const auto& name : bridge->method_names()) {
         QJsonObject m;
@@ -55,9 +55,9 @@ inline QJsonObject collect_typed_bridge_meta(const web_shell::typed_bridge* brid
     return {{"methods", method_list}, {"signals", signal_list}};
 }
 
-// ── Forward typed bridge signals over WebSocket ──────────────────────
+// ── Forward bridge signals over WebSocket ──────────────────────
 
-inline void forward_typed_signals(web_shell::typed_bridge* bridge, const QString& bridgeName, QWebSocket* socket) {
+inline void forward_signals(web_shell::bridge* bridge, const QString& bridgeName, QWebSocket* socket) {
     for (const auto& signal_name : bridge->signal_names()) {
         bridge->on_signal(signal_name, [socket, bridgeName, sig = QString::fromStdString(signal_name)](const nlohmann::json& data) {
             if (!socket || !socket->isValid()) return;
@@ -118,7 +118,7 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
                 if (method == "__meta__") {
                     QJsonObject bridges;
                     for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
-                        bridges[it.key()] = collect_typed_bridge_meta(it.value());
+                        bridges[it.key()] = collect_bridge_meta(it.value());
                     result_value = QJsonObject{{"bridges", bridges}};
                 } else if (bridgeName.isEmpty()) {
                     // Shell method (appReady)
@@ -155,7 +155,7 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
 
         // ── Forward signals ──────────────────────────────────────
         for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
-            forward_typed_signals(it.value(), it.key(), socket);
+            forward_signals(it.value(), it.key(), socket);
 
         // ── Cleanup ──────────────────────────────────────────────
         QObject::connect(socket, &QWebSocket::disconnected, socket, &QWebSocket::deleteLater);

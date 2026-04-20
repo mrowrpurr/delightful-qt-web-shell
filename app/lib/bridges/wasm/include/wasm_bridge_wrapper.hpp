@@ -1,6 +1,6 @@
-// wasm_bridge_wrapper.hpp — Generic Embind wrapper for typed_bridge.
+// wasm_bridge_wrapper.hpp — Generic Embind wrapper for bridge.
 //
-// Wraps any typed_bridge for WASM exposure via Embind.
+// Wraps any bridge for WASM exposure via Embind.
 // One wrapper class, works for every bridge. No per-bridge to_val() code.
 //
 // C++ side:
@@ -16,7 +16,7 @@
 #include <emscripten/val.h>
 #include <nlohmann/json.hpp>
 
-#include "typed_bridge.hpp"
+#include "bridge.hpp"
 
 namespace web_shell {
 
@@ -39,10 +39,10 @@ inline nlohmann::json from_em_val(const emscripten::val& v) {
 // ── WasmBridgeWrapper ────────────────────────────────────────────────
 
 class WasmBridgeWrapper {
-    typed_bridge* bridge_;
+    bridge* bridge_;
 
 public:
-    explicit WasmBridgeWrapper(typed_bridge* b) : bridge_(b) {}
+    explicit WasmBridgeWrapper(bridge* b) : bridge_(b) {}
 
     // Call a bridge method. Args come in as a JS object, result goes out as a JS object.
     emscripten::val call(const std::string& method, emscripten::val args) {

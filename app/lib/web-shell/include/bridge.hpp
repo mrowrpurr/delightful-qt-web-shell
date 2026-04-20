@@ -1,4 +1,4 @@
-// typed_bridge.hpp — Bridge base class with def_type dispatch.
+// bridge.hpp — Bridge base class with def_type dispatch.
 //
 // The developer writes pure C++ methods that take def_type request structs
 // and return def_type response structs. The framework handles serialization.
@@ -46,12 +46,12 @@ nlohmann::json serialize_response(const T& value) {
 
 } // namespace detail
 
-class typed_bridge {
+class bridge {
 public:
     using dispatch_fn = std::function<nlohmann::json(const nlohmann::json&)>;
     using signal_callback = std::function<void(const nlohmann::json&)>;
 
-    virtual ~typed_bridge() = default;
+    virtual ~bridge() = default;
 
     // ── Method dispatch ──────────────────────────────────────────────
 
