@@ -36,17 +36,11 @@ public:
         return store_.list_lists();
     }
 
-    nlohmann::json getList(GetListRequest req) const {
+    ListDetail getList(GetListRequest req) const {
         auto detail = store_.get_list(req.list_id);
         if (detail.list.id.empty())
             throw std::runtime_error("List not found: " + req.list_id);
-        auto items_json = nlohmann::json::array();
-        for (const auto& item : detail.items)
-            items_json.push_back(def_type::to_json(item));
-        return {
-            {"list", def_type::to_json(detail.list)},
-            {"items", items_json}
-        };
+        return detail;
     }
 
     TodoList addList(AddListRequest req) {

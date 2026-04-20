@@ -42,7 +42,7 @@ public:
         method("readFileChunk",    &SystemBridge::readFileChunk);
         method("closeFileHandle",  &SystemBridge::closeFileHandle);
         method("getDroppedFiles",  &SystemBridge::getDroppedFiles);
-        method("getReceivedArgs",  &SystemBridge::getReceivedArgs);
+        method("getAppLaunchArgs",  &SystemBridge::getAppLaunchArgs);
         method("setQtTheme",       &SystemBridge::setQtTheme);
         method("getQtTheme",       &SystemBridge::getQtTheme);
         method("getQtThemeFilePath", &SystemBridge::getQtThemeFilePath);
@@ -51,7 +51,7 @@ public:
         signal("qtThemeChanged");
         signal("qtThemeRequested");
         signal("filesDropped");
-        signal("argsReceived");
+        signal("appLaunchArgsReceived");
         signal("saveRequested");
         signal("openDialogRequested");
     }
@@ -98,28 +98,28 @@ public:
 
     // ── Directory listing ────────────────────────────────────
 
-    nlohmann::json listFolder(ListFolderRequest req) const {
+    ListFolderResponse listFolder(ListFolderRequest req) const {
         QDir dir(QString::fromStdString(req.path));
         if (!dir.exists())
-            throw std::runtime_error("Folder does not exist: " + std::string(req.path));
+            throw std::runtime_error("Folder does not exist: " + req.path);
 
-        auto entries = nlohmann::json::array();
+        ListFolderResponse resp;
         for (const auto& info : dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot)) {
-            entries.push_back({
-                {"name", info.fileName().toStdString()},
-                {"isDir", info.isDir()},
-                {"size", info.size()},
+            resp.entries.push_back({
+                .name = info.fileName().toStdString(),
+                .isDir = info.isDir(),
+                .size = info.size(),
             });
         }
-        return {{"entries", entries}};
+        return resp;
     }
 
-    nlohmann::json globFolder(GlobFolderRequest req) const {
+    GlobFolderResponse globFolder(GlobFolderRequest req) const {
         QDir dir(QString::fromStdString(req.path));
         if (!dir.exists())
-            throw std::runtime_error("Folder does not exist: " + std::string(req.path));
+            throw std::runtime_error("Folder does not exist: " + req.path);
 
-        auto matches = nlohmann::json::array();
+        GlobFolderResponse resp;
         auto qPattern = QString::fromStdString(req.pattern);
         if (req.pattern.empty()) qPattern = "*";
 
@@ -127,12 +127,12 @@ public:
             QDirIterator it(QString::fromStdString(req.path), {qPattern},
                            QDir::Files, QDirIterator::Subdirectories);
             while (it.hasNext())
-                matches.push_back(it.next().toStdString());
+                resp.paths.push_back(it.next().toStdString());
         } else {
             for (const auto& info : dir.entryInfoList({qPattern}, QDir::Files))
-                matches.push_back(info.absoluteFilePath().toStdString());
+                resp.paths.push_back(info.absoluteFilePath().toStdString());
         }
-        return {{"paths", matches}};
+        return resp;
     }
 
     // ── File I/O ─────────────────────────────────────────────
@@ -204,40 +204,40 @@ public:
 
     void handleFilesDropped(const QStringList& paths) {
         droppedFiles_ = paths;
-        nlohmann::json pathsJson = nlohmann::json::array();
+        StringListResponse payload;
         for (const auto& p : paths)
-            pathsJson.push_back(p.toStdString());
-        emit_signal("filesDropped", pathsJson);
+            payload.items.push_back(p.toStdString());
+        emit_signal("filesDropped", payload);
     }
 
-    nlohmann::json getDroppedFiles() const {
-        auto arr = nlohmann::json::array();
+    StringListResponse getDroppedFiles() const {
+        StringListResponse resp;
         for (const auto& p : droppedFiles_)
-            arr.push_back(p.toStdString());
-        return arr;
+            resp.items.push_back(p.toStdString());
+        return resp;
     }
 
     // ── CLI args (called by C++ side, emits to React) ────────
 
-    void handleArgs(const QStringList& args) {
+    void handleAppLaunchArgs(const QStringList& args) {
         receivedArgs_ = args;
-        nlohmann::json argsJson = nlohmann::json::array();
+        StringListResponse payload;
         for (const auto& a : args)
-            argsJson.push_back(a.toStdString());
-        emit_signal("argsReceived", argsJson);
+            payload.items.push_back(a.toStdString());
+        emit_signal("appLaunchArgsReceived", payload);
     }
 
-    nlohmann::json getReceivedArgs() const {
-        auto arr = nlohmann::json::array();
+    StringListResponse getAppLaunchArgs() const {
+        StringListResponse resp;
         for (const auto& a : receivedArgs_)
-            arr.push_back(a.toStdString());
-        return arr;
+            resp.items.push_back(a.toStdString());
+        return resp;
     }
 
     // ── Theme control ────────────────────────────────────────
 
     OkResponse setQtTheme(SetQtThemeRequest req) {
-        nlohmann::json payload = {{"displayName", req.displayName}, {"isDark", req.isDark}};
+        ThemeState payload{.displayName = req.displayName, .isDark = req.isDark};
         emit_signal("qtThemeRequested", payload);
         return {};
     }
@@ -253,7 +253,7 @@ public:
     void updateQtThemeState(const QString& displayName, bool isDark) {
         qtDisplayName_ = displayName.toStdString();
         qtIsDark_ = isDark;
-        nlohmann::json payload = {{"displayName", qtDisplayName_}, {"isDark", qtIsDark_}};
+        ThemeState payload{.displayName = qtDisplayName_, .isDark = qtIsDark_};
         emit_signal("qtThemeChanged", payload);
     }
 

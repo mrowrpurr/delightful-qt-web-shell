@@ -29,7 +29,7 @@ Files dragged from the OS land in React via `system.filesDropped` signal → `sy
 
 ### CLI Args & URL Protocol
 
-The app is single-instance. When a second instance launches, it pipes all its args to the running instance. React receives them via `system.argsReceived` signal → `system.getReceivedArgs()`. Works for command-line args, file paths, and URL protocol activations (`your-app://...`).
+The app is single-instance. When a second instance launches, it pipes all its args to the running instance. React receives them via `system.appLaunchArgsReceived` signal → `system.getAppLaunchArgs()`. Works for command-line args, file paths, and URL protocol activations (`your-app://...`).
 
 The app registers itself as a URL protocol handler on first launch (Windows registry, Linux `.desktop` + `xdg-mime`, macOS `Info.plist`). Toggleable via **Tools > Register/Unregister URL Protocol**.
 

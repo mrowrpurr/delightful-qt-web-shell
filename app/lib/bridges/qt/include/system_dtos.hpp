@@ -15,7 +15,10 @@ struct FileChooserResponse      { std::string path; bool cancelled = false; };
 
 // ── Directory listing ────────────────────────────────────
 struct ListFolderRequest        { std::string path; };
+struct FolderEntry              { std::string name; bool isDir = false; int64_t size = 0; };
+struct ListFolderResponse       { std::vector<FolderEntry> entries; };
 struct GlobFolderRequest        { std::string path; std::string pattern; bool recursive = false; };
+struct GlobFolderResponse       { std::vector<std::string> paths; };
 
 // ── File I/O ─────────────────────────────────────────────
 struct ReadTextFileRequest      { std::string path; };
@@ -31,7 +34,11 @@ struct ReadFileChunkRequest     { std::string handle; int64_t offset; int64_t le
 struct ReadFileChunkResponse    { std::string data; int64_t bytesRead; };
 struct CloseFileHandleRequest   { std::string handle; };
 
+// ── Dropped files / CLI args ─────────────────────────────
+struct StringListResponse       { std::vector<std::string> items; };
+
 // ── Theme control ────────────────────────────────────────
+struct ThemeState                { std::string displayName; bool isDark = false; };
 struct SetQtThemeRequest        { std::string displayName; bool isDark; };
 struct GetQtThemeResponse       { std::string displayName; bool isDark; };
 struct GetQtThemeFilePathResponse { std::string path; bool embedded = false; };

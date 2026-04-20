@@ -19,11 +19,12 @@ export default function SystemTab() {
   }, [])
 
   useEffect(() => {
-    system.getReceivedArgs().then(args => {
-      if (args.length > 0) setReceivedArgs(args)
+    system.getAppLaunchArgs().then(resp => {
+      if (resp.items.length > 0) setReceivedArgs(resp.items)
     })
-    return system.argsReceived(async () => {
-      setReceivedArgs(await system.getReceivedArgs())
+    return system.appLaunchArgsReceived(async () => {
+      const resp = await system.getAppLaunchArgs()
+      setReceivedArgs(resp.items)
     })
   }, [])
 

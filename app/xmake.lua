@@ -36,6 +36,7 @@ add_requires("def_type")
 
 -- ── Shared libraries ─────────────────────────────────────────────────
 
+includes("lib/bridge/xmake.lua")
 includes("lib/todos/xmake.lua")
 
 -- ── Platform-specific targets ───────────────────────────────────────

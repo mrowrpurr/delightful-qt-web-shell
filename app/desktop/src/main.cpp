@@ -48,15 +48,15 @@ int main(int argc, char* argv[]) {
     auto* systemBridge = static_cast<SystemBridge*>(
         app.shell()->bridges().value("system"));
     if (systemBridge) {
-        QObject::connect(&app, &Application::argsReceived,
+        QObject::connect(&app, &Application::appLaunchArgsReceived,
                          &app, [systemBridge](const QStringList& args) {
-            systemBridge->handleArgs(args);
+            systemBridge->handleAppLaunchArgs(args);
         });
 
         // Pass the primary instance's own args on first launch
         QStringList args = app.arguments().mid(1);
         if (!args.isEmpty())
-            systemBridge->handleArgs(args);
+            systemBridge->handleAppLaunchArgs(args);
     }
 
     // Show all windows. First one gets the anti-flash treatment.

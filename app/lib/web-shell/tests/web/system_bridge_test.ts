@@ -30,7 +30,7 @@ interface SystemBridge {
   readFileChunk(req: { handle: string; offset: number; length: number }): Promise<{ data: string; bytesRead: number }>
   closeFileHandle(req: { handle: string }): Promise<{ ok: boolean }>
   getDroppedFiles(): Promise<string[]>
-  getReceivedArgs(): Promise<string[]>
+  getAppLaunchArgs(): Promise<string[]>
 }
 
 beforeAll(async () => {
@@ -293,13 +293,13 @@ test('streaming reads entire file in chunks', async () => {
 
 // ── Getter methods (no-op state, but must not crash) ──────────────────
 
-test('getDroppedFiles returns empty array when nothing dropped', async () => {
+test('getDroppedFiles returns response with empty items', async () => {
   const result = await bridge().getDroppedFiles()
-  expect(Array.isArray(result)).toBe(true)
-  expect(result.length).toBe(0)
+  expect(result.items).toBeDefined()
+  expect(result.items.length).toBe(0)
 })
 
-test('getReceivedArgs returns array', async () => {
-  const result = await bridge().getReceivedArgs()
-  expect(Array.isArray(result)).toBe(true)
+test('getAppLaunchArgs returns response with items', async () => {
+  const result = await bridge().getAppLaunchArgs()
+  expect(result.items).toBeDefined()
 })

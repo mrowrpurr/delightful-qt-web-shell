@@ -112,7 +112,7 @@ No xmake.lua edits needed — the bridge targets use glob discovery.
 1. Define request DTOs as plain C++ structs
 2. Add methods to the bridge class — each takes a request DTO and returns a response struct
 3. Register each method: `method("name", &MyBridge::fn)`
-4. Register signals: `signal("somethingChanged")`
+4. Register signals: `signal("itemCreated")`, `signal("itemArchived")`
 5. Mirror methods in the TypeScript interface
 6. Use it: `const notes = await getBridge<NotesBridge>('notes')`
 

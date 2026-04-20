@@ -28,8 +28,8 @@ export interface SystemBridge {
   closeFileHandle(req: { handle: string }): Promise<{ ok: boolean }>
 
   // ── Args from CLI / URL protocol / other instance ───────
-  getReceivedArgs(): Promise<string[]>
-  argsReceived(callback: (data?: any) => void): () => void
+  getAppLaunchArgs(): Promise<{ items: string[] }>
+  appLaunchArgsReceived(callback: (data: { items: string[] }) => void): () => void
 
   // ── File drop ──────────────────────────────────────────
   getDroppedFiles(): Promise<string[]>

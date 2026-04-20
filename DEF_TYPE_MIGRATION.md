@@ -192,11 +192,15 @@ All 8 `for-agents/` docs rewritten. `for-humans/` docs still reference the old a
 
 1. **`for-humans/` docs** — `02-architecture.md` and `03-tutorial.md` still reference `dataChanged` and the old bridge patterns. Need the same rewrite as `for-agents/`.
 
-2. **`getList` hand-builds JSON** — `todo_bridge.hpp` line 34-44: `getList` manually calls `def_type::to_json()` and constructs a `nlohmann::json` instead of returning a proper DTO like every other method. Should return a `ListDetail` response struct.
+2. ~~**`getList` hand-builds JSON**~~ — ✅ DONE. Returns `ListDetail` struct directly. All bridge methods now return proper DTOs — zero `nlohmann::json` in either bridge.
 
-3. **`bridge.hpp` location** — lives in `lib/todos/include/` which works but is semantically wrong. It's the framework base class, not a todos thing. A second domain lib would have to depend on `todos` to get it.
+3. ~~**`bridge.hpp` location**~~ — ✅ Moved to `lib/bridge/include/bridge.hpp` with its own headeronly target.
 
 4. **Comprehensive type test bridge** — current tests cover Todo CRUD. No test exercises every def_type field type (vectors, maps, optionals, nested structs, enums) through the bridge dispatch.
+
+5. **`bridges["system"]` syntax** — Currently: `app->shell()->bridges().value("system")`. Could be nicer with `operator[]` on the bridge map. Minor API polish.
+
+6. **SystemBridge getter methods are dead weight** — `getAppLaunchArgs`, `getDroppedFiles` exist because old signals couldn't carry data. Now signals carry typed payloads (`appLaunchArgsReceived` sends `StringListResponse`, `filesDropped` sends `StringListResponse`). The getters should be removed — listeners should use the signal payload directly instead of calling back to C++ to re-fetch what was just sent.
 
 ---
 
