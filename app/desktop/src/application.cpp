@@ -119,7 +119,7 @@ Application::Application(int& argc, char** argv)
     shell_ = new WebShell(this);
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;
-    shell_->addBridge("todos", todoBridge);
+    shell_->addBridge("todos", static_cast<web_shell::typed_bridge*>(todoBridge));
     auto* systemBridge = new SystemBridge;
     shell_->addBridge("system", systemBridge);
 

@@ -8,20 +8,39 @@
 #include <string_view>
 #include <vector>
 
+#include <def_type.hpp>
+
+using def_type::field;
+
+// MSVC std::ranges concept checking can't resolve == via implicit conversion on field<T>.
+// This should move into def_type itself — temporary workaround.
+template <typename T, typename W, typename U>
+constexpr bool operator==(const def_type::field<T, W>& f, const U& other) { return f.value == other; }
+template <typename T, typename W, typename U>
+constexpr bool operator==(const U& other, const def_type::field<T, W>& f) { return other == f.value; }
+
 struct TodoList {
-    std::string id;
-    std::string name;
-    int         item_count = 0;
-    std::string created_at;
+    field<std::string> id;
+    field<std::string> name;
+    field<int>         item_count{.value = 0};
+    field<std::string> created_at;
 };
 
+template <> constexpr auto def_type::struct_info<TodoList>() {
+    return def_type::field_info<TodoList>("id", "name", "item_count", "created_at");
+}
+
 struct TodoItem {
-    std::string id;
-    std::string list_id;
-    std::string text;
-    bool        done = false;
-    std::string created_at;
+    field<std::string> id;
+    field<std::string> list_id;
+    field<std::string> text;
+    field<bool>        done{.value = false};
+    field<std::string> created_at;
 };
+
+template <> constexpr auto def_type::struct_info<TodoItem>() {
+    return def_type::field_info<TodoItem>("id", "list_id", "text", "done", "created_at");
+}
 
 struct ListDetail {
     TodoList              list;
@@ -49,7 +68,7 @@ class TodoStore {
         return out;
     }
 
-    int count_items(std::string_view list_id) const {
+    int count_items(const std::string& list_id) const {
         return static_cast<int>(std::ranges::count_if(
             items_, [&](const TodoItem& i) { return i.list_id == list_id; }
         ));
@@ -63,7 +82,7 @@ public:
         return result;
     }
 
-    ListDetail get_list(std::string_view list_id) const {
+    ListDetail get_list(const std::string& list_id) const {
         auto it = std::ranges::find_if(lists_,
             [&](const TodoList& l) { return l.id == list_id; });
         if (it == lists_.end()) return {};
@@ -78,18 +97,27 @@ public:
     }
 
     TodoList add_list(const std::string& name) {
-        TodoList list{gen_id(), name, 0, now_iso()};
+        TodoList list;
+        list.id = gen_id();
+        list.name = name;
+        list.item_count = 0;
+        list.created_at = now_iso();
         lists_.push_back(list);
         return list;
     }
 
     TodoItem add_item(const std::string& list_id, const std::string& text) {
-        TodoItem item{gen_id(), list_id, text, false, now_iso()};
+        TodoItem item;
+        item.id = gen_id();
+        item.list_id = list_id;
+        item.text = text;
+        item.done = false;
+        item.created_at = now_iso();
         items_.push_back(item);
         return item;
     }
 
-    TodoItem toggle_item(std::string_view item_id) {
+    TodoItem toggle_item(const std::string& item_id) {
         auto it = std::ranges::find_if(items_,
             [&](const TodoItem& i) { return i.id == item_id; });
         if (it == items_.end()) return {};
@@ -97,7 +125,7 @@ public:
         return *it;
     }
 
-    bool delete_list(std::string_view list_id) {
+    bool delete_list(const std::string& list_id) {
         auto it = std::ranges::find_if(lists_,
             [&](const TodoList& l) { return l.id == list_id; });
         if (it == lists_.end()) return false;
@@ -106,7 +134,7 @@ public:
         return true;
     }
 
-    bool delete_item(std::string_view item_id) {
+    bool delete_item(const std::string& item_id) {
         auto it = std::ranges::find_if(items_,
             [&](const TodoItem& i) { return i.id == item_id; });
         if (it == items_.end()) return false;
@@ -114,7 +142,7 @@ public:
         return true;
     }
 
-    TodoList rename_list(std::string_view list_id, const std::string& new_name) {
+    TodoList rename_list(const std::string& list_id, const std::string& new_name) {
         auto it = std::ranges::find_if(lists_,
             [&](const TodoList& l) { return l.id == list_id; });
         if (it == lists_.end()) return {};
@@ -123,7 +151,7 @@ public:
         return *it;
     }
 
-    std::vector<TodoItem> search(std::string_view query) const {
+    std::vector<TodoItem> search(const std::string& query) const {
         auto to_lower = [](unsigned char c) -> char { return static_cast<char>(std::tolower(c)); };
 
         std::vector<TodoItem> results;

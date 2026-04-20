@@ -9,12 +9,11 @@
 #include <QWebSocket>
 #include <QWebSocketServer>
 
+#include "json_adapter.hpp"
 #include "web_shell.hpp"
 
 // ── SignalForwarder ───────────────────────────────────────────────────
 // Bridges a Qt signal to a WebSocket JSON event.
-// Includes the bridge name so clients know which bridge emitted it.
-// Destroyed when the socket disconnects (parent = socket).
 class SignalForwarder : public QObject {
     Q_OBJECT
     QWebSocket* socket_;
@@ -35,23 +34,8 @@ public slots:
     }
 };
 
-// ── coerce_arg ───────────────────────────────────────────────────────
-// Converts a QJsonValue into a QGenericArgument matching the method's
-// expected parameter type. Uses Qt's own QVariant conversion system so
-// ANY type with a registered converter works — no hardcoded type list.
-//
-// QJsonValue::toVariant() loses JSON type info (object→QVariantMap,
-// array→QVariantList) and QVariant::convert() can't always recover it —
-// the QVariantList→QJsonArray converter isn't registered in all Qt 6.x.
-// So we extract JSON-native types directly from the QJsonValue first.
-//
-// The QVariant is used as stable storage — its lifetime must outlast the
-// invoke call. We fill one QVariant per parameter and point the
-// QGenericArgument at the QVariant's internal data.
-// Uses QGenericArgument directly (not Q_ARG) for compatibility across Qt 6.x.
-// Q_ARG returns QMetaMethodArgument in Qt 6.5+ which is a different type.
+// ── coerce_arg (legacy — for QObject bridges) ────────────────────────
 inline QGenericArgument coerce_arg(const QJsonValue& json_val, const QByteArray& param_type, QVariant& storage) {
-    // Extract JSON-native types directly — avoids lossy QVariant round-trip.
     if (param_type == "QJsonObject" && json_val.isObject()) {
         storage = QVariant::fromValue(json_val.toObject());
     } else if (param_type == "QJsonArray" && json_val.isArray()) {
@@ -67,15 +51,10 @@ inline QGenericArgument coerce_arg(const QJsonValue& json_val, const QByteArray&
     return QGenericArgument(param_type.constData(), storage.constData());
 }
 
-// ── invoke_bridge_method ──────────────────────────────────────────────
-// Calls a Q_INVOKABLE method by name with typed args from a JSON array.
-//
-// Parameter and return types are converted automatically via QVariant — any type
-// Qt can convert to/from JSON works. Up to 10 parameters.
+// ── invoke_bridge_method (legacy — for QObject bridges) ──────────────
 inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_name, const QJsonArray& args) {
     const QMetaObject* meta = bridge->metaObject();
 
-    // Find the method
     int method_index = -1;
     for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
         QMetaMethod m = meta->method(i);
@@ -93,24 +72,18 @@ inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_na
 
     if (param_count > 10)
         return QJsonObject{{"error", method_name + ": too many parameters (max 10)"}};
-
     if (args.size() < param_count)
         return QJsonObject{{"error", method_name + ": expected " +
             QString::number(param_count) + " args, got " + QString::number(args.size())}};
 
-    // Build typed QGenericArguments from the JSON array
     QVariant storage[10];
     QGenericArgument ga[10];
-    for (int i = 0; i < param_count; ++i) {
+    for (int i = 0; i < param_count; ++i)
         ga[i] = coerce_arg(args[i], method.parameterTypeName(i), storage[i]);
-    }
 
-    // Invoke and convert the return value to JSON via QVariant.
-    // No hardcoded return type list — Qt's own conversion handles everything.
     QByteArray returnType = method.typeName();
     bool ok = false;
 
-    // void return — invoke without return arg
     if (method.returnType() == QMetaType::Void) {
         ok = method.invoke(bridge, Qt::DirectConnection,
             ga[0], ga[1], ga[2], ga[3], ga[4], ga[5], ga[6], ga[7], ga[8], ga[9]);
@@ -118,7 +91,6 @@ inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_na
         return QJsonObject{{"ok", true}};
     }
 
-    // Non-void: allocate storage for the return type, invoke, convert to JSON
     QMetaType retMeta = QMetaType::fromName(returnType);
     if (!retMeta.isValid())
         return QJsonObject{{"error", method_name + ": unknown return type '" + returnType + "'"}};
@@ -129,16 +101,14 @@ inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_na
         ga[0], ga[1], ga[2], ga[3], ga[4], ga[5], ga[6], ga[7], ga[8], ga[9]);
     if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
 
-    // QJsonObject and QJsonArray are returned directly (unwrapped) for ergonomics.
-    // All other types are wrapped in {"value": ...} so the caller always knows the shape.
     QJsonValue json_result = QJsonValue::fromVariant(retStorage);
     if (json_result.isObject()) return json_result;
     if (json_result.isArray()) return json_result;
     return QJsonObject{{"value", json_result}};
 }
 
-// ── collect_signal_names ─────────────────────────────────────────────
-// Collects ALL signals — including those with parameters.
+// ── Legacy QObject meta/signals ──────────────────────────────────────
+
 inline QJsonArray collect_signal_names(const QObject* obj) {
     const QMetaObject* meta = obj->metaObject();
     QJsonArray names;
@@ -150,17 +120,13 @@ inline QJsonArray collect_signal_names(const QObject* obj) {
     return names;
 }
 
-// ── collect_bridge_meta ─────────────────────────────────────────────
-// Returns full metadata for a bridge: methods (with param types and
-// return type) and signals. Used by __meta__ for manifest validation.
 inline QJsonObject collect_bridge_meta(const QObject* obj) {
     const QMetaObject* meta = obj->metaObject();
     QJsonArray method_list;
-    QJsonArray signal_list;  // "signals" is a Qt keyword — can't use it as a var name
+    QJsonArray signal_list;
 
     for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
         QMetaMethod m = meta->method(i);
-
         if (m.methodType() == QMetaMethod::Signal) {
             QJsonObject sig;
             sig["name"] = QString::fromLatin1(m.name());
@@ -168,16 +134,12 @@ inline QJsonObject collect_bridge_meta(const QObject* obj) {
             signal_list.append(sig);
             continue;
         }
-
-        // Only expose Q_INVOKABLE methods (Slot or Method access)
         if (m.methodType() != QMetaMethod::Slot && m.methodType() != QMetaMethod::Method)
             continue;
-
         QJsonObject method;
         method["name"] = QString::fromLatin1(m.name());
         method["returnType"] = QString::fromLatin1(m.typeName());
         method["paramCount"] = m.parameterCount();
-
         QJsonArray params;
         for (int p = 0; p < m.parameterCount(); ++p) {
             QJsonObject param;
@@ -188,17 +150,9 @@ inline QJsonObject collect_bridge_meta(const QObject* obj) {
         method["params"] = params;
         method_list.append(method);
     }
-
     return {{"methods", method_list}, {"signals", signal_list}};
 }
 
-// ── forward_signals ──────────────────────────────────────────────────
-// Forwards parameterless signals from a bridge to a WebSocket client.
-// Signals with parameters are still listed in __meta__ so clients know
-// they exist, but only parameterless signals are auto-forwarded.
-// (Qt's QMetaObject::connect requires matching slot signatures, so
-// forwarding arbitrary parameter types would need dynamic slot generation.
-// For now, emit parameterless notification signals alongside data-carrying ones.)
 inline void forward_signals(QObject* source, const QString& bridgeName, QWebSocket* socket) {
     const QMetaObject* meta = source->metaObject();
     const int forwardSlot = SignalForwarder::staticMetaObject.indexOfSlot("forward()");
@@ -211,27 +165,44 @@ inline void forward_signals(QObject* source, const QString& bridgeName, QWebSock
     }
 }
 
-// ── expose_as_ws ──────────────────────────────────────────────────────
-// Exposes a WebShell and all its registered bridges as a WebSocket
-// JSON-RPC server. Each message can target a specific bridge by name.
-//
-// Protocol:
-//   → {"bridge": "todos", "method": "listLists", "args": [], "id": 1}
-//   ← {"id": 1, "result": [...]}
-//
-//   → {"method": "appReady", "args": [], "id": 2}         (no bridge = shell)
-//   ← {"id": 2, "result": {}}
-//
-//   ← {"bridge": "todos", "event": "dataChanged"}         (pushed on signal)
-//
-//   → {"method": "__meta__", "args": [], "id": 0}
-//   ← {"id": 0, "result": {"bridges": {"todos": {
-//        "methods": [{"name":"listLists","returnType":"QJsonArray","paramCount":0,"params":[]},...],
-//        "signals": ["dataChanged"]
-//      }}}}
-//
-// Parameter and return types are converted automatically via QVariant.
-// Parameterless signals are forwarded as events.
+// ── Typed bridge meta ────────────────────────────────────────────────
+
+inline QJsonObject collect_typed_bridge_meta(const web_shell::typed_bridge* bridge) {
+    QJsonArray method_list;
+    for (const auto& name : bridge->method_names()) {
+        QJsonObject m;
+        m["name"] = QString::fromStdString(name);
+        m["returnType"] = "json";
+        m["paramCount"] = 1;
+        m["params"] = QJsonArray{QJsonObject{{"name", "args"}, {"type", "json"}}};
+        method_list.append(m);
+    }
+    QJsonArray signal_list;
+    for (const auto& name : bridge->signal_names())
+        signal_list.append(QString::fromStdString(name));
+
+    return {{"methods", method_list}, {"signals", signal_list}};
+}
+
+// ── Forward typed bridge signals over WebSocket ──────────────────────
+
+inline void forward_typed_signals(web_shell::typed_bridge* bridge, const QString& bridgeName, QWebSocket* socket) {
+    for (const auto& signal_name : bridge->signal_names()) {
+        bridge->on_signal(signal_name, [socket, bridgeName, sig = QString::fromStdString(signal_name)](const nlohmann::json& data) {
+            if (!socket || !socket->isValid()) return;
+            QJsonObject msg;
+            msg["bridge"] = bridgeName;
+            msg["event"] = sig;
+            if (!data.is_null())
+                msg["args"] = web_shell::to_qt_json_value(data);
+            socket->sendTextMessage(
+                QString::fromUtf8(QJsonDocument(msg).toJson(QJsonDocument::Compact)));
+        });
+    }
+}
+
+// ── expose_as_ws ─────────────────────────────────────────────────────
+
 inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent = nullptr) {
     auto* server = new QWebSocketServer(
         QStringLiteral("BridgeServer"), QWebSocketServer::NonSecureMode, parent);
@@ -274,29 +245,48 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
                 QJsonValue result_value;
 
                 if (method == "__meta__") {
-                    // Return full bridge metadata: methods (with types) + signals
                     QJsonObject bridges;
+                    // Legacy QObject bridges
                     for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it) {
                         auto meta = collect_bridge_meta(it.value());
-                        // Clients expect signals as a flat array of names for event subscription
                         meta["signals"] = collect_signal_names(it.value());
                         bridges[it.key()] = meta;
                     }
+                    // Typed bridges
+                    for (auto it = shell->typedBridges().begin(); it != shell->typedBridges().end(); ++it)
+                        bridges[it.key()] = collect_typed_bridge_meta(it.value());
                     result_value = QJsonObject{{"bridges", bridges}};
                 } else {
-                    // Route: no bridge name → shell, otherwise → named bridge
-                    QObject* target = bridgeName.isEmpty()
-                        ? static_cast<QObject*>(shell)
-                        : shell->bridges().value(bridgeName);
+                    // Check typed bridges first
+                    auto* typed = shell->typedBridges().value(bridgeName);
+                    if (typed) {
+                        // Convert args: the old protocol sends args as a JSON array.
+                        // Typed bridges expect a single JSON object (the request DTO).
+                        // If args has one element that's an object, use it directly.
+                        // If args is a flat array, pass the whole thing.
+                        nlohmann::json nlArgs;
+                        if (args.size() == 1 && args[0].isObject())
+                            nlArgs = web_shell::from_qt_json(args[0].toObject());
+                        else if (args.isEmpty())
+                            nlArgs = nlohmann::json::object();
+                        else
+                            nlArgs = web_shell::from_qt_json(args);
 
-                    if (!target)
-                        result_value = QJsonObject{{"error", "Unknown bridge: " + bridgeName}};
-                    else
-                        result_value = invoke_bridge_method(target, method, args);
+                        auto result = typed->dispatch(method.toStdString(), nlArgs);
+                        result_value = web_shell::to_qt_json_value(result);
+                    } else {
+                        // Legacy QObject dispatch
+                        QObject* target = bridgeName.isEmpty()
+                            ? static_cast<QObject*>(shell)
+                            : shell->bridges().value(bridgeName);
+
+                        if (!target)
+                            result_value = QJsonObject{{"error", "Unknown bridge: " + bridgeName}};
+                        else
+                            result_value = invoke_bridge_method(target, method, args);
+                    }
                 }
 
-                // Promote error responses to the top level so clients
-                // can distinguish errors from successful results.
                 QJsonObject response;
                 if (id >= 0) response["id"] = id;
                 if (auto obj = result_value.toObject(); obj.contains("error"))
@@ -308,11 +298,13 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
                     QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Compact)));
             });
 
-        // ── Forward signals from all registered bridges ──────────
+        // ── Forward signals ──────────────────────────────────────
         for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
             forward_signals(it.value(), it.key(), socket);
+        for (auto it = shell->typedBridges().begin(); it != shell->typedBridges().end(); ++it)
+            forward_typed_signals(it.value(), it.key(), socket);
 
-        // ── Cleanup on disconnect ────────────────────────────────
+        // ── Cleanup ──────────────────────────────────────────────
         QObject::connect(socket, &QWebSocket::disconnected, socket, &QWebSocket::deleteLater);
     });
 

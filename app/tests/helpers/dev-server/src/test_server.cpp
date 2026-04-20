@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     WebShell shell;
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;
-    shell.addBridge("todos", todoBridge);
+    shell.addBridge("todos", static_cast<web_shell::typed_bridge*>(todoBridge));
     auto* systemBridge = new SystemBridge;
     shell.addBridge("system", systemBridge);
     auto* typeTest = new TypeTestBridge;

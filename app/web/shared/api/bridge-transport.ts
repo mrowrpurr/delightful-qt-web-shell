@@ -51,7 +51,7 @@ export async function createWsConnection(url: string): Promise<BridgeConnection>
     if (msg.event) {
       // Events are keyed as "bridgeName:eventName" (or just "eventName" for shell)
       const key = msg.bridge ? `${msg.bridge}:${msg.event}` : msg.event
-      eventListeners[key]?.forEach(cb => cb())
+      eventListeners[key]?.forEach(cb => cb(msg.args))
     }
   }
 
@@ -85,7 +85,7 @@ export async function createWsConnection(url: string): Promise<BridgeConnection>
         const name = prop as string
 
         if (signals.has(name)) {
-          return (callback: () => void) => {
+          return (callback: (...args: any[]) => void) => {
             const key = `${bridgeName}:${name}`
             const listeners = eventListeners[key] ??= []
             listeners.push(callback)
@@ -150,7 +150,7 @@ export async function createQtConnection(): Promise<BridgeConnection> {
         const name = prop as string
 
         if (signals.has(name)) {
-          return (callback: () => void) => {
+          return (callback: (...args: any[]) => void) => {
             raw[name].connect(callback)
             return () => { raw[name].disconnect(callback) }
           }

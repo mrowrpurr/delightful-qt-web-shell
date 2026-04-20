@@ -1,109 +1,92 @@
+// TodoBridge — typed bridge over TodoStore.
+// Pure C++. No Qt types. def_type handles serialization.
+
 #pragma once
 
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QObject>
-#include <QString>
+#include <stdexcept>
 
+#include "todo_dtos.hpp"
 #include "todo_store.hpp"
+#include "typed_bridge.hpp"
 
-// Thin QObject wrapper over TodoStore.
-// Every Q_INVOKABLE method takes QStrings and returns QJsonObject or QJsonArray.
-// The infrastructure (expose_as_ws / QWebChannel) handles serialization automatically.
-class TodoBridge : public QObject {
-    Q_OBJECT
+class TodoBridge : public web_shell::typed_bridge {
     TodoStore store_;
 
-    // ── JSON helpers ──────────────────────────────────────────────
-    static QJsonObject to_json(const TodoList& l) {
-        return {
-            {"id",         QString::fromStdString(l.id)},
-            {"name",       QString::fromStdString(l.name)},
-            {"item_count", l.item_count},
-            {"created_at", QString::fromStdString(l.created_at)},
-        };
-    }
-
-    static QJsonObject to_json(const TodoItem& i) {
-        return {
-            {"id",         QString::fromStdString(i.id)},
-            {"list_id",    QString::fromStdString(i.list_id)},
-            {"text",       QString::fromStdString(i.text)},
-            {"done",       i.done},
-            {"created_at", QString::fromStdString(i.created_at)},
-        };
-    }
-
 public:
-    using QObject::QObject;
+    TodoBridge() {
+        method("listLists",  &TodoBridge::listLists);
+        method("getList",    &TodoBridge::getList);
+        method("addList",    &TodoBridge::addList);
+        method("addItem",    &TodoBridge::addItem);
+        method("toggleItem", &TodoBridge::toggleItem);
+        method("deleteList", &TodoBridge::deleteList);
+        method("deleteItem", &TodoBridge::deleteItem);
+        method("renameList", &TodoBridge::renameList);
+        method("search",     &TodoBridge::search);
 
-    Q_INVOKABLE QJsonArray listLists() const {
-        QJsonArray arr;
-        for (const auto& l : store_.list_lists())
-            arr.append(to_json(l));
-        return arr;
+        signal("dataChanged");
     }
 
-    Q_INVOKABLE QJsonObject getList(const QString& listId) const {
-        auto detail = store_.get_list(listId.toStdString());
-        if (detail.list.id.empty())
-            return {{"error", "List not found: " + listId}};
-        QJsonArray items;
-        for (const auto& i : detail.items)
-            items.append(to_json(i));
-        return {{"list", to_json(detail.list)}, {"items", items}};
+    std::vector<TodoList> listLists() const {
+        return store_.list_lists();
     }
 
-    Q_INVOKABLE QJsonObject addList(const QString& name) {
-        auto list = store_.add_list(name.toStdString());
-        emit dataChanged();
-        return to_json(list);
+    nlohmann::json getList(GetListRequest req) const {
+        auto detail = store_.get_list(req.list_id);
+        if (detail.list.id->empty())
+            throw std::runtime_error("List not found: " + std::string(req.list_id));
+        auto items_json = nlohmann::json::array();
+        for (const auto& item : detail.items)
+            items_json.push_back(def_type::to_json(item));
+        return {
+            {"list", def_type::to_json(detail.list)},
+            {"items", items_json}
+        };
     }
 
-    Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
-        auto item = store_.add_item(listId.toStdString(), text.toStdString());
-        emit dataChanged();
-        return to_json(item);
+    TodoList addList(AddListRequest req) {
+        auto list = store_.add_list(req.name);
+        emit_signal("dataChanged", list);
+        return list;
     }
 
-    Q_INVOKABLE QJsonObject toggleItem(const QString& itemId) {
-        auto item = store_.toggle_item(itemId.toStdString());
-        if (item.id.empty())
-            return {{"error", "Item not found: " + itemId}};
-        emit dataChanged();
-        return to_json(item);
+    TodoItem addItem(AddItemRequest req) {
+        auto item = store_.add_item(req.list_id, req.text);
+        emit_signal("dataChanged", item);
+        return item;
     }
 
-    Q_INVOKABLE QJsonObject deleteList(const QString& listId) {
-        bool ok = store_.delete_list(listId.toStdString());
-        if (!ok) return {{"error", "List not found: " + listId}};
-        emit dataChanged();
-        return {{"ok", true}};
+    TodoItem toggleItem(ToggleItemRequest req) {
+        auto item = store_.toggle_item(req.item_id);
+        if (item.id->empty())
+            throw std::runtime_error("Item not found: " + std::string(req.item_id));
+        emit_signal("dataChanged", item);
+        return item;
     }
 
-    Q_INVOKABLE QJsonObject deleteItem(const QString& itemId) {
-        bool ok = store_.delete_item(itemId.toStdString());
-        if (!ok) return {{"error", "Item not found: " + itemId}};
-        emit dataChanged();
-        return {{"ok", true}};
+    OkResponse deleteList(DeleteListRequest req) {
+        bool ok = store_.delete_list(req.list_id);
+        if (!ok) throw std::runtime_error("List not found: " + std::string(req.list_id));
+        emit_signal("dataChanged");
+        return {};
     }
 
-    Q_INVOKABLE QJsonObject renameList(const QString& listId, const QString& newName) {
-        auto list = store_.rename_list(listId.toStdString(), newName.toStdString());
-        if (list.id.empty()) return {{"error", "List not found: " + listId}};
-        emit dataChanged();
-        return to_json(list);
+    OkResponse deleteItem(DeleteItemRequest req) {
+        bool ok = store_.delete_item(req.item_id);
+        if (!ok) throw std::runtime_error("Item not found: " + std::string(req.item_id));
+        emit_signal("dataChanged");
+        return {};
     }
 
-    Q_INVOKABLE QJsonArray search(const QString& query) const {
-        QJsonArray arr;
-        for (const auto& i : store_.search(query.toStdString()))
-            arr.append(to_json(i));
-        return arr;
+    TodoList renameList(RenameListRequest req) {
+        auto list = store_.rename_list(req.list_id, req.new_name);
+        if (list.id->empty())
+            throw std::runtime_error("List not found: " + std::string(req.list_id));
+        emit_signal("dataChanged", list);
+        return list;
     }
 
-signals:
-    // Emitted after any mutation (add, delete, toggle, rename).
-    // Clients should refresh their data when this fires.
-    void dataChanged();
+    std::vector<TodoItem> search(SearchRequest req) const {
+        return store_.search(req.query);
+    }
 };
