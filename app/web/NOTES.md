@@ -7,10 +7,10 @@ Pairs with `COMPONENT_AUDIT.md` and `THEME_AUDIT.md` in this folder.
 
 ## Decisions locked in
 
-- **shadcn-first is the rule.** Every primitive we consume should come from `@shared/components/ui/`, which in turn wraps shadcn/Radix. Hand-rolling a primitive when shadcn ships one is a drift that other agents will replicate. Code-as-docs: the signal is *what's in `shared/components/ui/`* and *what feature code imports from it*.
+- **shadcn-first is the rule.** Every primitive we consume comes from `@shared/components/ui/` — the files there are shadcn-CLI-generated, rendering Radix (or cmdk) primitives with Tailwind classes baked in. They *are* the components, not wrappers around them. Hand-rolling a primitive when shadcn ships one is a drift that other agents will replicate. Code-as-docs: the signal is *what's in `shared/components/ui/`* and *what feature code imports from it*.
 - **Left-side `Sidebar` replaces the top `TabsList`** as the main app chrome. Full replacement, not contained. This is also the move that activates all 8 `--sidebar-*` theme vars — killing two problems with one install.
 - **Every one of the 31 theme vars in `themes.json` should be consumed somewhere real.** If a var is dead, either a component is missing or the var gets trimmed. No more "~18k lines of unread JSON."
-- **The root `shared/components/ui/` IS the reusability signal.** Grow it to cover every shadcn primitive we use; feature code imports from there; agents learn the rule by seeing the imports.
+- **The root `shared/components/ui/` IS the reusability signal.** Per decision 5, it holds the full shadcn catalog. Feature code imports from there; agents learn the rule by seeing the imports and the populated folder.
 - **Typed bridge helpers (`getSystemBridge()`), never `getBridge<T>('name')` in feature code.** The magic string is gross — it leaks the C++ registration name into every call site and turns a rename into a runtime error. `getBridge<T>(name)` stays as a framework internal; every registered bridge ships a `getFooBridge()` wrapper alongside its TypeScript interface. Feature code only ever imports the typed helper.
 - **Install the full shadcn catalog (~50 components), not just what the demo uses right now.** This is a *template* — its job is to be a launching pad, not a minimal example. Reasons: (1) tree-shaking means unused components add zero runtime cost; (2) Storybook becomes a living inventory — browse every primitive against all 1030 themes and 1900 fonts; (3) cloning the template and wanting a Dialog/DataTable/etc. is `import`, not remembering to run the CLI. Components we own, we can theme-tweak if Qt rendering needs it.
 - **One in-app "Components" page showing every installed primitive on a single scroll.** A new sidebar item — e.g. `🧩 Components` — that renders every shadcn primitive in realistic usage against the live theme. Complements Storybook (isolated, controls-driven) by showing everything together *inside the themed shell*, so theme authors can spot "this theme makes Badge unreadable" across 1030 themes in one glance. Also the single best way for template users to see "what do I have available?" without running Storybook.
@@ -42,8 +42,8 @@ The swaps below are the ones that actually replace hand-rolled code *today* — 
 ## TODO — Bucket 2: light up the theme vocabulary
 
 - [ ] Extend `applyTheme()` in `shared/lib/themes.ts` to emit **all 31 variables** (currently emits 19). The chart/sidebar vars are in the JSON but never reach `:root`.
-- [ ] Install `sidebar` and wire it as the main shell (overlaps with Bucket 1).
-- [ ] Install `chart` and build the demo (overlaps with Bucket 1).
+- [ ] Wire `sidebar` as the main app shell — replaces the top `TabsList` in `App.tsx`. (Install is covered by Bucket 1 Step 0.) Activates all 8 `--sidebar-*` vars.
+- [ ] Build the chart demo — placement TBD (see open question). (Install is covered by Bucket 1 Step 0.) Activates `--chart-*` vars.
 - [ ] Move `--radius` into `themes.json` per-theme (currently hard-coded in `theme.css` + `App.css`). Remove from the `@theme` blocks.
 - [ ] **QSS template stays at 19 vars.** Qt has no sidebar/chart concept — that boundary is correct.
 
