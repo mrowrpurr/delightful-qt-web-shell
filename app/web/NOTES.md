@@ -12,6 +12,8 @@ Pairs with `COMPONENT_AUDIT.md` and `THEME_AUDIT.md` in this folder.
 - **Every one of the 31 theme vars in `themes.json` should be consumed somewhere real.** If a var is dead, either a component is missing or the var gets trimmed. No more "~18k lines of unread JSON."
 - **The root `shared/components/ui/` IS the reusability signal.** Grow it to cover every shadcn primitive we use; feature code imports from there; agents learn the rule by seeing the imports.
 - **Typed bridge helpers (`getSystemBridge()`), never `getBridge<T>('name')` in feature code.** The magic string is gross — it leaks the C++ registration name into every call site and turns a rename into a runtime error. `getBridge<T>(name)` stays as a framework internal; every registered bridge ships a `getFooBridge()` wrapper alongside its TypeScript interface. Feature code only ever imports the typed helper.
+- **Install the full shadcn catalog (~50 components), not just what the demo uses right now.** This is a *template* — its job is to be a launching pad, not a minimal example. Reasons: (1) tree-shaking means unused components add zero runtime cost; (2) Storybook becomes a living inventory — browse every primitive against all 1030 themes and 1900 fonts; (3) cloning the template and wanting a Dialog/DataTable/etc. is `import`, not remembering to run the CLI. Components we own, we can theme-tweak if Qt rendering needs it.
+- **One in-app "Components" page showing every installed primitive on a single scroll.** A new sidebar item — e.g. `🧩 Components` — that renders every shadcn primitive in realistic usage against the live theme. Complements Storybook (isolated, controls-driven) by showing everything together *inside the themed shell*, so theme authors can spot "this theme makes Badge unreadable" across 1030 themes in one glance. Also the single best way for template users to see "what do I have available?" without running Storybook.
 
 ## Open questions
 
@@ -21,9 +23,11 @@ Pairs with `COMPONENT_AUDIT.md` and `THEME_AUDIT.md` in this folder.
 
 ---
 
-## TODO — Bucket 1: shadcn component swaps
+## TODO — Bucket 1: shadcn install + swaps
 
-Each line = `npx shadcn@latest add <x>` + a specific hand-rolled deletion.
+**Step 0 — install the full catalog**, not just what the demo uses today. `npx shadcn@latest add <every component>` — or batch-install via CLI arg list. See the "install them all" decision above.
+
+The swaps below are the ones that actually replace hand-rolled code *today* — everything else gets installed so it's available for the next feature without friction.
 
 - [ ] `sidebar` — replaces the top tab bar in `App.tsx`. Activates `--sidebar-*` (8 vars).
 - [ ] `combobox` (pulls `popover` + `command`) — replaces `ThemePicker` (~130 lines) and `FontPicker` (~130 lines) in `SettingsTab.tsx`.
