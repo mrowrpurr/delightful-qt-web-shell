@@ -34,9 +34,11 @@ Execution order. Each phase ends in a testable outcome. Kickoff docs (e.g. `PHAS
 
 ### Phase 2 — Shell restructure *(visible shape change)*
 - Replace top `TabsList` with `Sidebar` in `App.tsx`. Preserve URL hash routing + `document.title` behavior.
-- Delete custom `shared/components/ui/tabs.tsx`; any in-page tab usage → Radix `tabs`.
+- Stop using the app-level Tabs primitive (Radix `tabs.tsx` stays in ui/ for in-page use).
 - Add the `🧩 Components` sidebar item with a skeleton page (Phase 3 fills it).
+- Turn `test-browser` green (was red at Phase 1 exit — tab button selectors need rewriting for sidebar items).
 - **Exit:** left sidebar renders; all existing tabs still work; `--sidebar-*` vars visibly drive chrome.
+- **Kickoff:** `PHASE_2.md`
 
 ### Phase 3 — Primitive swaps + bridge helpers *(biggest phase)*
 - Swap every hand-rolled primitive to shadcn: `Combobox` (ThemePicker + FontPicker), `Switch` (3 toggles), `Input`, `Checkbox`, `ScrollArea`, `Sonner`.
