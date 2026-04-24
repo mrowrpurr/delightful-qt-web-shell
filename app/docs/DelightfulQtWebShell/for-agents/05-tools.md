@@ -183,6 +183,30 @@ PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts reload
 
 The playwright-cdp tools **must** run under Node.js (`npx tsx`), not Bun. Bun's WebSocket polyfill breaks the CDP connection — it can't handle the HTTP 101 Switching Protocols upgrade. Don't change `npx tsx` to `bun run`.
 
+### Troubleshooting: When playwright-cdp Fails
+
+Two real, repeatable failure modes. **Read the error first — it tells you which one.**
+
+**`Error [ERR_MODULE_NOT_FOUND]: Cannot find package '...'` (or similar import/resolution error)**
+
+Dependencies inside `tools/playwright-cdp/` aren't installed. This is a separate `npm install` from everything else because the tool runs on Node (not Bun) and lives outside the Bun workspace.
+
+```bash
+cd tools/playwright-cdp && npm install
+```
+
+Then retry. `xmake run setup` does this too if you want the full one-shot.
+
+**`browserType.connectOverCDP: Timeout 30000ms exceeded`**
+
+The desktop app's CDP endpoint on `:9222` is stuck or unreachable — most often after the app has been running a while or hit some weird state. You can't fix this from the agent side.
+
+**Ask your human to restart the desktop app:**
+
+> "playwright-cdp is timing out on `connectOverCDP`. That usually means the CDP endpoint is stuck — can you restart the desktop app? `xmake run stop-desktop && xmake run start-desktop` should do it."
+
+After restart, retry. If it still times out, then start looking deeper (port conflict on `:9222`, app never actually launched, firewall, etc.) — but the restart fixes it the vast majority of the time.
+
 ## pywinauto — Your Hands on Native Qt
 
 Python library that drives Windows UI Automation (UIA) to interact with native Qt widgets — the things React can't see.

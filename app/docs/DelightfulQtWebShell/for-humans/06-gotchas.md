@@ -10,6 +10,8 @@ Things that will bite you if you don't know about them.
 | Return `QJsonObject` but got `{value: ...}` | You returned a scalar (`QString`, `int`) — scalars get wrapped |
 | Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s |
 | Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout |
+| playwright-cdp fails with `ERR_MODULE_NOT_FOUND` | Deps not installed in `tools/playwright-cdp/` — it's a separate install from the Bun workspace. Run `cd tools/playwright-cdp && npm install` (or `xmake run setup`). |
+| playwright-cdp fails with `connectOverCDP: Timeout 30000ms exceeded` | The desktop app's CDP endpoint is stuck. Restart the app: `xmake run stop-desktop && xmake run start-desktop`. |
 | Bridge method opens modal dialog synchronously | Dialog's QWebChannel can't init — loading overlay forever |
 | Drag & drop handler on WebShellWidget | QWebEngineView's focusProxy swallows all drag events |
 | Native `<select>` in QWebEngine | White rectangle appears — use custom dropdown component |

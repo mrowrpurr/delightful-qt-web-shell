@@ -9,6 +9,8 @@ This is a concise index of traps. Details live in the doc where you're doing the
 | Register bridge in `application.cpp` and `test_server.cpp` | Bridge silently doesn't exist | [03-adding-features.md](03-adding-features.md) |
 | Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s | [02-architecture.md, signalReady](02-architecture.md) |
 | Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
+| `ERR_MODULE_NOT_FOUND` running playwright-cdp | Deps not installed in `tools/playwright-cdp/`. Run `cd tools/playwright-cdp && npm install` | [05-tools.md, Troubleshooting](05-tools.md) |
+| `browserType.connectOverCDP: Timeout 30000ms exceeded` | CDP endpoint stuck. **Ask the human to restart the desktop app** (`xmake run stop-desktop && xmake run start-desktop`) | [05-tools.md, Troubleshooting](05-tools.md) |
 | Bridge method opens modal dialog synchronously | Dialog's QWebChannel can't init — loading overlay forever | [03-adding-features.md, Hash Routes](03-adding-features.md) |
 | Drag & drop handler on WebShellWidget | QWebEngineView's focusProxy swallows all drag events | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
 | Native `<select>` element in QWebEngine | Expanding white rectangle appears while dropdown is open | Use a custom dropdown component instead — see `shared/components/ui/select.tsx` |
