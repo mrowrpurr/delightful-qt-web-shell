@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include <functional>
+#include <vector>
+
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QObject>
@@ -17,6 +20,7 @@
 class BridgeChannelAdapter : public QObject {
     Q_OBJECT
     web_shell::bridge* bridge_;
+    std::vector<std::function<void()>> unsubscribers_;
 
 public:
     BridgeChannelAdapter(web_shell::bridge* bridge, QObject* parent = nullptr)
@@ -27,13 +31,21 @@ public:
         // Callbacks post to the event loop via QueuedConnection so emit_signal
         // is safe to call from any thread.
         for (const auto& name : bridge_->signal_names()) {
-            bridge_->on_signal(name, [this, sig = QString::fromStdString(name)](const nlohmann::json& data) {
-                auto payload = QString::fromStdString(data.is_null() ? "{}" : data.dump());
-                QMetaObject::invokeMethod(this, [this, sig, payload]() {
-                    emit bridgeSignal(sig, payload);
-                }, Qt::QueuedConnection);
-            });
+            unsubscribers_.push_back(
+                bridge_->on_signal(name, [this, sig = QString::fromStdString(name)](const nlohmann::json& data) {
+                    auto payload = QString::fromStdString(data.is_null() ? "{}" : data.dump());
+                    QMetaObject::invokeMethod(this, [this, sig, payload]() {
+                        emit bridgeSignal(sig, payload);
+                    }, Qt::QueuedConnection);
+                })
+            );
         }
+    }
+
+    ~BridgeChannelAdapter() override {
+        // Drop our bridge subscriptions before `this` becomes invalid —
+        // otherwise emit_signal will dereference a freed QObject.
+        for (auto& unsub : unsubscribers_) unsub();
     }
 
     Q_INVOKABLE QString dispatch(const QString& method, const QJsonObject& args) {

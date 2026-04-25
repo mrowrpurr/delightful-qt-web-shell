@@ -11,6 +11,16 @@ target("test-todo-store")
     add_files(path.join(TEMPLATE_ROOT, "lib", "todos", "tests", "unit", "todo_store_test.cpp"))
     add_packages("catch2")
 
+target("test-bridge-channel-adapter")
+    set_kind("binary")
+    set_default(false)
+    add_rules("qt.console")
+    add_deps("web-shell")
+    add_files(path.join(TEMPLATE_ROOT, "lib", "web-shell", "tests", "unit", "bridge_channel_adapter_test.cpp"))
+    add_frameworks("QtCore", "QtTest")
+    add_packages("catch2")
+    set_rundir("$(projectdir)")
+
 -- ── pywinauto tests (native Qt window) ─────────────────────────────
 
 target("test-pywinauto")
