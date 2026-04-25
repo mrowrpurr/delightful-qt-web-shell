@@ -16,15 +16,17 @@ APP_VERSION = "0.1.0"
 set_project(APP_SLUG)
 set_version(APP_VERSION)
 
-add_rules("mode.release")
-set_defaultmode("release")
+add_rules("mode.releasedbg")
+set_defaultmode("releasedbg")
 set_languages("c++23")
 
 if is_plat("windows") then
-    set_runtimes("MD")
+  local runtime = is_mode("debug", "check") and "MDd" or "MD"
+  set_runtimes(runtime)
+  add_requireconfs("*", { configs = { runtimes = runtime } })
 end
 
-add_requires("catch2 3.x")
+add_requires("catch2")
 add_requires("libsass")
 
 
