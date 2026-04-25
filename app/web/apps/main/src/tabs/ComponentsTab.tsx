@@ -96,6 +96,49 @@ import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@share
 
 // Data
 import { Calendar } from '@shared/components/ui/calendar'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from '@shared/components/ui/chart'
+import {
+  Bar, BarChart,
+  Line, LineChart,
+  Area, AreaChart,
+  Pie, PieChart,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis,
+  RadialBar, RadialBarChart,
+  CartesianGrid, XAxis, YAxis,
+} from 'recharts'
+
+// ── Chart demo data ────────────────────────────────────────
+// Every chart below uses all five --chart-* vars so the theme vocabulary is fully alive.
+const chartConfig = {
+  desktop: { label: 'Desktop', color: 'var(--chart-1)' },
+  mobile:  { label: 'Mobile',  color: 'var(--chart-2)' },
+  tablet:  { label: 'Tablet',  color: 'var(--chart-3)' },
+  watch:   { label: 'Watch',   color: 'var(--chart-4)' },
+  tv:      { label: 'TV',      color: 'var(--chart-5)' },
+} satisfies ChartConfig
+
+const chartSeriesData = [
+  { quarter: 'Q1', desktop: 186, mobile: 305, tablet: 142, watch: 73,  tv: 45 },
+  { quarter: 'Q2', desktop: 214, mobile: 358, tablet: 168, watch: 91,  tv: 52 },
+  { quarter: 'Q3', desktop: 197, mobile: 412, tablet: 155, watch: 108, tv: 61 },
+  { quarter: 'Q4', desktop: 243, mobile: 467, tablet: 189, watch: 124, tv: 78 },
+]
+
+const chartPieData = [
+  { name: 'desktop', label: 'Desktop', value: 840,  fill: 'var(--color-desktop)' },
+  { name: 'mobile',  label: 'Mobile',  value: 1542, fill: 'var(--color-mobile)'  },
+  { name: 'tablet',  label: 'Tablet',  value: 654,  fill: 'var(--color-tablet)'  },
+  { name: 'watch',   label: 'Watch',   value: 396,  fill: 'var(--color-watch)'   },
+  { name: 'tv',      label: 'TV',      value: 236,  fill: 'var(--color-tv)'      },
+]
+
+const chartRadarData = [
+  { metric: 'Speed',     desktop: 86, mobile: 72, tablet: 64, watch: 48, tv: 55 },
+  { metric: 'Reach',     desktop: 65, mobile: 95, tablet: 72, watch: 38, tv: 80 },
+  { metric: 'Engagement',desktop: 78, mobile: 88, tablet: 70, watch: 60, tv: 50 },
+  { metric: 'Battery',   desktop: 50, mobile: 60, tablet: 75, watch: 90, tv: 95 },
+  { metric: 'Display',   desktop: 92, mobile: 70, tablet: 84, watch: 45, tv: 96 },
+]
 
 // ── Section helper ─────────────────────────────────────────
 
@@ -1311,10 +1354,121 @@ export default function ComponentsTab() {
           </div>
         </Section>
 
-        <Section id="chart" title="Chart" blurb="Recharts wrapper — full demo lands in Phase 4 alongside --chart-* wiring.">
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
-            <CalendarIcon className="size-4" /> Phase 4 wires <code>--chart-*</code> tokens to a real Recharts demo.
-          </p>
+        <Section id="chart" title="Chart" blurb="Recharts wrapper. Six chart types, every one wired to --chart-1..5 — switch themes in 🎨 Settings to see every series recolor.">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">Bar (grouped)</div>
+              <ChartContainer config={chartConfig} className="h-64 w-full">
+                <BarChart data={chartSeriesData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="quarter" tickLine={false} tickMargin={8} axisLine={false} />
+                  <YAxis tickLine={false} tickMargin={8} axisLine={false} width={32} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar dataKey="desktop" fill="var(--color-desktop)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="mobile"  fill="var(--color-mobile)"  radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="tablet"  fill="var(--color-tablet)"  radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="watch"   fill="var(--color-watch)"   radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="tv"      fill="var(--color-tv)"      radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">Bar (stacked)</div>
+              <ChartContainer config={chartConfig} className="h-64 w-full">
+                <BarChart data={chartSeriesData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="quarter" tickLine={false} tickMargin={8} axisLine={false} />
+                  <YAxis tickLine={false} tickMargin={8} axisLine={false} width={32} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar dataKey="desktop" stackId="s" fill="var(--color-desktop)" />
+                  <Bar dataKey="mobile"  stackId="s" fill="var(--color-mobile)"  />
+                  <Bar dataKey="tablet"  stackId="s" fill="var(--color-tablet)"  />
+                  <Bar dataKey="watch"   stackId="s" fill="var(--color-watch)"   />
+                  <Bar dataKey="tv"      stackId="s" fill="var(--color-tv)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">Line</div>
+              <ChartContainer config={chartConfig} className="h-64 w-full">
+                <LineChart data={chartSeriesData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="quarter" tickLine={false} tickMargin={8} axisLine={false} />
+                  <YAxis tickLine={false} tickMargin={8} axisLine={false} width={32} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Line dataKey="desktop" type="monotone" stroke="var(--color-desktop)" strokeWidth={2} dot={false} />
+                  <Line dataKey="mobile"  type="monotone" stroke="var(--color-mobile)"  strokeWidth={2} dot={false} />
+                  <Line dataKey="tablet"  type="monotone" stroke="var(--color-tablet)"  strokeWidth={2} dot={false} />
+                  <Line dataKey="watch"   type="monotone" stroke="var(--color-watch)"   strokeWidth={2} dot={false} />
+                  <Line dataKey="tv"      type="monotone" stroke="var(--color-tv)"      strokeWidth={2} dot={false} />
+                </LineChart>
+              </ChartContainer>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">Area (stacked)</div>
+              <ChartContainer config={chartConfig} className="h-64 w-full">
+                <AreaChart data={chartSeriesData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="quarter" tickLine={false} tickMargin={8} axisLine={false} />
+                  <YAxis tickLine={false} tickMargin={8} axisLine={false} width={32} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Area dataKey="desktop" type="monotone" stackId="a" stroke="var(--color-desktop)" fill="var(--color-desktop)" fillOpacity={0.4} />
+                  <Area dataKey="mobile"  type="monotone" stackId="a" stroke="var(--color-mobile)"  fill="var(--color-mobile)"  fillOpacity={0.4} />
+                  <Area dataKey="tablet"  type="monotone" stackId="a" stroke="var(--color-tablet)"  fill="var(--color-tablet)"  fillOpacity={0.4} />
+                  <Area dataKey="watch"   type="monotone" stackId="a" stroke="var(--color-watch)"   fill="var(--color-watch)"   fillOpacity={0.4} />
+                  <Area dataKey="tv"      type="monotone" stackId="a" stroke="var(--color-tv)"      fill="var(--color-tv)"      fillOpacity={0.4} />
+                </AreaChart>
+              </ChartContainer>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">Pie</div>
+              <ChartContainer config={chartConfig} className="h-64 w-full">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+                  <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                  <Pie data={chartPieData} dataKey="value" nameKey="name" innerRadius={48} outerRadius={88} paddingAngle={2} />
+                </PieChart>
+              </ChartContainer>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground">Radar</div>
+              <ChartContainer config={chartConfig} className="h-64 w-full">
+                <RadarChart data={chartRadarData} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="metric" />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Radar dataKey="desktop" stroke="var(--color-desktop)" fill="var(--color-desktop)" fillOpacity={0.25} />
+                  <Radar dataKey="mobile"  stroke="var(--color-mobile)"  fill="var(--color-mobile)"  fillOpacity={0.25} />
+                  <Radar dataKey="tablet"  stroke="var(--color-tablet)"  fill="var(--color-tablet)"  fillOpacity={0.25} />
+                  <Radar dataKey="watch"   stroke="var(--color-watch)"   fill="var(--color-watch)"   fillOpacity={0.25} />
+                  <Radar dataKey="tv"      stroke="var(--color-tv)"      fill="var(--color-tv)"      fillOpacity={0.25} />
+                </RadarChart>
+              </ChartContainer>
+            </div>
+
+            <div className="space-y-2 lg:col-span-2">
+              <div className="text-sm font-medium text-foreground">Radial bar</div>
+              <ChartContainer config={chartConfig} className="h-64 w-full">
+                <RadialBarChart data={chartPieData} innerRadius={32} outerRadius={120} startAngle={90} endAngle={-270}>
+                  <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+                  <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                  <RadialBar dataKey="value" background cornerRadius={6} />
+                </RadialBarChart>
+              </ChartContainer>
+            </div>
+
+          </div>
         </Section>
 
         <Separator />
