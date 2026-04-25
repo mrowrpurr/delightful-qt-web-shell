@@ -9,7 +9,9 @@
 
 #include <QApplication>
 #include <QDateTime>
+#include <QDebug>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QEvent>
 #include <QFile>
 #include <QSettings>
@@ -282,8 +284,10 @@ void DockManager::shutdownAll() {
 // ── Per-dock persistence ─────────────────────────────────────
 
 void DockManager::saveDock(QDockWidget* dock) {
+    QElapsedTimer t; t.start();
     auto* widget = qobject_cast<WebShellWidget*>(dock->widget());
     QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
+    qint64 settingsOpenMs = t.elapsed();
 
     QString key = "dock/" + dock->objectName();
     QString url = widget ? widget->view()->url().toString() : QString();
@@ -310,6 +314,12 @@ void DockManager::saveDock(QDockWidget* dock) {
     s.setValue(key + "/window", windowId);
     if (floating)
         s.setValue(key + "/geometry", dock->saveGeometry());
+    s.sync();   // force flush so we measure the actual disk write
+    qDebug() << "[DockManager] saveDock"
+             << "id=" << dock->objectName()
+             << "totalDocks=" << docks_.size()
+             << "openMs=" << settingsOpenMs
+             << "totalMs=" << t.elapsed();
 }
 
 void DockManager::removeDockState(const QString& id) {
@@ -328,6 +338,9 @@ void DockManager::wirePersistence(QDockWidget* dock) {
         connect(widget->view(), &QWebEngineView::urlChanged,
                 this, [this, dock](const QUrl& url) {
             if (restoring_ || quitting_) return;
+            qDebug() << "[DockManager] urlChanged"
+                     << "id=" << dock->objectName()
+                     << "url=" << url.toString();
             log(QString("urlChanged: %1 → %2").arg(dock->objectName(), url.toString()));
             saveDock(dock);
         });

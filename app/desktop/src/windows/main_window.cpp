@@ -177,6 +177,9 @@ void MainWindow::addDock(QDockWidget* dock) {
     if (widget) {
         connect(widget->view()->page(), &QWebEnginePage::titleChanged,
                 this, [dock](const QString& title) {
+            qDebug() << "[MainWindow] titleChanged"
+                     << "id=" << dock->objectName()
+                     << "title=" << title;
             dock->setWindowTitle(title.isEmpty() ? APP_NAME : title);
         });
     }

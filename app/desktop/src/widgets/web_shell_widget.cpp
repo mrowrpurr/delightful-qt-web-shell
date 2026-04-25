@@ -28,6 +28,25 @@
 // Must match --bg in App.css and LoadingOverlay
 static constexpr QColor kBackground{0x24, 0x24, 0x24};
 
+// QWebEnginePage subclass that pipes JS console.log into qDebug, so
+// anything logged from React lands in the same file as the Qt logs.
+class LoggingWebPage : public QWebEnginePage {
+public:
+    using QWebEnginePage::QWebEnginePage;
+
+protected:
+    void javaScriptConsoleMessage(JavaScriptConsoleMessageLevel level,
+                                  const QString& msg, int line,
+                                  const QString& src) override {
+        const QString tail = QString("[JS] %1 (%2:%3)").arg(msg, src, QString::number(line));
+        switch (level) {
+            case InfoMessageLevel:    qInfo().noquote() << tail; break;
+            case WarningMessageLevel: qWarning().noquote() << tail; break;
+            case ErrorMessageLevel:   qCritical().noquote() << tail; break;
+        }
+    }
+};
+
 WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
                                const QUrl& contentUrl,
                                OverlayStyle overlayStyle,
@@ -41,10 +60,18 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
 
     // ── Web view + page ──────────────────────────────────────
     view_ = new QWebEngineView(this);
-    auto* page = new QWebEnginePage(profile, view_);
+    auto* page = new LoggingWebPage(profile, view_);
     page->setBackgroundColor(kBackground);
     view_->setPage(page);
     layout->addWidget(view_);
+
+    // Log when the underlying page actually finishes loading (full nav, not hash).
+    connect(view_, &QWebEngineView::loadStarted, this, [this]() {
+        qDebug() << "[WebShellWidget] loadStarted" << this;
+    });
+    connect(view_, &QWebEngineView::loadFinished, this, [this](bool ok) {
+        qDebug() << "[WebShellWidget] loadFinished" << this << "ok=" << ok;
+    });
 
     // ── Inject qwebchannel.js ────────────────────────────────
     // This script runs at document creation so the bridge is available
