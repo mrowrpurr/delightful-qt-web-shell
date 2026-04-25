@@ -30,7 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@shared/components/ui/p
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@shared/components/ui/command'
 
 // Multi-select chips combobox (base-ui)
-import { Combobox, ComboboxChips, ComboboxChip, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList } from '@shared/components/ui/combobox'
+import { Combobox, ComboboxChips, ComboboxChip, ComboboxChipsInput, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList } from '@shared/components/ui/combobox'
 
 // Field + Form (react-hook-form integration)
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from '@shared/components/ui/field'
@@ -254,22 +254,70 @@ function ComboboxSingle() {
   )
 }
 
+function MultiSelectDropdown() {
+  const [open, setOpen] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set(['typescript', 'tailwind']))
+  const toggle = (tag: string) => {
+    const next = new Set(selected)
+    if (next.has(tag)) next.delete(tag); else next.add(tag)
+    setSelected(next)
+  }
+  const summary =
+    selected.size === 0 ? 'Select tags…'
+    : selected.size <= 2 ? Array.from(selected).join(', ')
+    : `${Array.from(selected).slice(0, 2).join(', ')} +${selected.size - 2}`
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-[260px] justify-between">
+          <span className="truncate">{summary}</span>
+          <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[260px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Filter tags…" />
+          <CommandList>
+            <CommandEmpty>No tag found.</CommandEmpty>
+            <CommandGroup heading={`${selected.size} of ${TAGS.length} selected`}>
+              {TAGS.map(tag => (
+                <CommandItem key={tag} value={tag} onSelect={() => toggle(tag)} className="gap-2">
+                  <Checkbox checked={selected.has(tag)} className="pointer-events-none" tabIndex={-1} aria-hidden />
+                  <span className="flex-1">{tag}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 function ComboboxMultiChips() {
   const [value, setValue] = useState<string[]>(['typescript', 'tailwind'])
   return (
-    <Combobox items={TAGS} value={value} onValueChange={(v) => setValue(v as string[])} multiple>
+    <Combobox
+      items={TAGS}
+      value={value}
+      onValueChange={(v) => setValue(v as string[])}
+      multiple
+    >
       <ComboboxChips className="w-full max-w-md">
         {value.map(tag => (
           <ComboboxChip key={tag}>{tag}</ComboboxChip>
         ))}
-        <ComboboxChipsInput placeholder={value.length ? '' : 'Add tags…'} />
+        <ComboboxChipsInput placeholder={value.length ? 'Filter…' : 'Type to filter, click to add…'} />
       </ComboboxChips>
       <ComboboxContent>
-        <ComboboxEmpty>No tag found</ComboboxEmpty>
+        <ComboboxEmpty>No tag matches</ComboboxEmpty>
         <ComboboxList>
-          {TAGS.map(tag => (
-            <ComboboxItem key={tag} value={tag}>{tag}</ComboboxItem>
-          ))}
+          <ComboboxCollection>
+            {(tag: string) => (
+              <ComboboxItem key={tag} value={tag}>{tag}</ComboboxItem>
+            )}
+          </ComboboxCollection>
         </ComboboxList>
       </ComboboxContent>
     </Combobox>
@@ -556,14 +604,18 @@ export default function ComponentsTab() {
           </div>
         </Section>
 
-        <Section id="combobox" title="Combobox" blurb="Single-select (Popover + cmdk) and multi-select chips (base-ui).">
-          <div className="space-y-4">
+        <Section id="combobox" title="Combobox" blurb="Single-select dropdown, multi-select dropdown (button + filter + checkbox list), and multi-select chips.">
+          <div className="space-y-5">
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Single-select — searchable</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Single-select dropdown</p>
               <ComboboxSingle />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Multi-select — chips</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Multi-select dropdown — button trigger + search + checkbox list</p>
+              <MultiSelectDropdown />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Multi-select chips — selections inline in trigger</p>
               <ComboboxMultiChips />
             </div>
           </div>
