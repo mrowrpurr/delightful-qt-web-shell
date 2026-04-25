@@ -3,7 +3,7 @@ import Editor, { type OnMount } from '@monaco-editor/react'
 import type * as monaco from 'monaco-editor'
 import { initVimMode, VimMode } from 'monaco-vim'
 import { buildMonacoTheme, buildMonacoThemeFromVars } from '@shared/lib/monaco-theme'
-import { isDarkMode, getThemesSync, loadThemes } from '@shared/lib/themes'
+import { isDarkMode, loadTheme } from '@shared/lib/themes'
 import { getEditorFont, injectGoogleFont } from '@shared/lib/fonts'
 import { toast } from 'sonner'
 import { Button } from '@shared/components/ui/button'
@@ -55,24 +55,22 @@ export default function EditorTab() {
     toast(msg)
   }, [])
 
-  const applyEditorTheme = useCallback(() => {
+  const applyEditorTheme = useCallback(async () => {
     if (!monacoRef.current) return
     const editorThemeName = localStorage.getItem('editor-theme-name')
-    const themes = getThemesSync()
     const dark = isDarkMode()
+    const transparency = parseInt(localStorage.getItem('editor-transparency') ?? '0', 10)
 
     let themeData: monaco.editor.IStandaloneThemeData
-    if (editorThemeName && themes) {
-      const theme = themes.find(t => t.name === editorThemeName)
+    if (editorThemeName) {
+      const theme = await loadTheme(editorThemeName)
       if (theme) {
         const vars = dark ? theme.dark : theme.light
-        const transparency = parseInt(localStorage.getItem('editor-transparency') ?? '0', 10)
         themeData = buildMonacoThemeFromVars(vars, dark, transparency)
       } else {
         themeData = buildMonacoTheme(dark)
       }
     } else {
-      const transparency = parseInt(localStorage.getItem('editor-transparency') ?? '0', 10)
       themeData = buildMonacoTheme(dark)
       if (transparency > 0) {
         const style = getComputedStyle(document.documentElement)
@@ -87,6 +85,7 @@ export default function EditorTab() {
       }
     }
 
+    if (!monacoRef.current) return
     monacoRef.current.editor.defineTheme(CUSTOM_THEME, themeData)
     monacoRef.current.editor.setTheme(CUSTOM_THEME)
   }, [])
@@ -243,8 +242,6 @@ export default function EditorTab() {
     return () => window.removeEventListener('qt-theme-synced', handler)
   }, [loadThemeFile])
 
-  // Preload themes so they're available for the editor
-  useEffect(() => { loadThemes() }, [])
 
   const toggleVim = useCallback(() => {
     if (vimEnabled && vimRef.current) {

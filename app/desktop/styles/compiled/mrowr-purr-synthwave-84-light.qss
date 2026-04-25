@@ -1,9 +1,10 @@
 /* Auto-generated — Mrowr Purr - Synthwave '84 (light) */
+
 
 QWidget {
   background-color: hsl(268, 30%, 98%);
   color: hsl(268, 80%, 8%);
-}
+}
 
 QMainWindow {
   background-color: hsl(268, 30%, 98%);
@@ -13,7 +14,7 @@ QMainWindow::separator {
   background-color: hsl(300, 30%, 85%);
   width: 1px;
   height: 1px;
-}
+}
 
 QMenuBar {
   background-color: hsl(268, 30%, 98%);
@@ -30,7 +31,7 @@ QMenuBar::item:selected {
   background-color: hsl(185, 80%, 35%);
   color: hsl(0, 0%, 100%);
   border-radius: 4px;
-}
+}
 
 QMenu {
   background-color: hsl(268, 20%, 100%);
@@ -58,7 +59,7 @@ QMenu::separator {
   height: 1px;
   background: hsl(300, 30%, 85%);
   margin: 4px 8px;
-}
+}
 
 QTabWidget::pane {
   background-color: hsl(268, 30%, 98%);
@@ -90,7 +91,7 @@ QTabBar::tab:hover:!selected {
 
 QTabBar::close-button {
   image: none;
-}
+}
 
 QToolBar {
   background-color: hsl(268, 30%, 98%);
@@ -115,7 +116,7 @@ QToolButton:hover {
 QToolButton:pressed {
   background-color: hsl(310, 85%, 45%);
   color: hsl(0, 0%, 100%);
-}
+}
 
 QStatusBar {
   background-color: hsl(268, 30%, 98%);
@@ -125,7 +126,7 @@ QStatusBar {
 
 QStatusBar::item {
   border: none;
-}
+}
 
 QPushButton {
   background-color: hsl(310, 85%, 45%);
@@ -148,13 +149,11 @@ QPushButton:pressed {
 QPushButton:disabled {
   background-color: hsl(268, 15%, 95%);
   color: hsl(260, 20%, 45%);
-}
-
+}
 QPushButton[class~="destructive"] {
   background-color: hsl(350, 85%, 55%);
   color: hsl(0, 0%, 100%);
-}
-
+}
 QPushButton[class~="secondary"] {
   background-color: hsl(270, 20%, 94%);
   color: hsl(268, 60%, 12%);
@@ -168,7 +167,7 @@ QPushButton[class~="ghost"] {
 QPushButton[class~="ghost"]:hover {
   background-color: hsl(185, 80%, 35%);
   color: hsl(0, 0%, 100%);
-}
+}
 
 QScrollBar:vertical {
   background: transparent;
@@ -208,7 +207,7 @@ QScrollBar::handle:horizontal:hover {
 
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
   width: 0;
-}
+}
 
 QLineEdit, QTextEdit, QPlainTextEdit {
   background-color: hsl(268, 30%, 98%);
@@ -222,7 +221,7 @@ QLineEdit, QTextEdit, QPlainTextEdit {
 
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
   border-color: hsl(310, 85%, 45%);
-}
+}
 
 QComboBox {
   background-color: hsl(268, 30%, 98%);
@@ -251,7 +250,7 @@ QComboBox QAbstractItemView {
   border: 1px solid hsl(300, 30%, 85%);
   selection-background-color: hsl(185, 80%, 35%);
   selection-color: hsl(0, 0%, 100%);
-}
+}
 
 QCheckBox, QRadioButton {
   color: hsl(268, 80%, 8%);
@@ -278,7 +277,7 @@ QRadioButton::indicator {
 QRadioButton::indicator:checked {
   background-color: hsl(310, 85%, 45%);
   border-color: hsl(310, 85%, 45%);
-}
+}
 
 QDialog {
   background-color: hsl(270, 25%, 99%);
@@ -288,7 +287,7 @@ QDialog {
 QMessageBox {
   background-color: hsl(270, 25%, 99%);
   color: hsl(268, 80%, 8%);
-}
+}
 
 QGroupBox {
   border: 1px solid hsl(300, 30%, 85%);
@@ -303,7 +302,7 @@ QGroupBox::title {
   left: 12px;
   padding: 0 4px;
   color: hsl(268, 80%, 8%);
-}
+}
 
 QToolTip {
   background-color: hsl(268, 20%, 100%);
@@ -311,7 +310,7 @@ QToolTip {
   border: 1px solid hsl(300, 30%, 85%);
   border-radius: 4px;
   padding: 4px 8px;
-}
+}
 
 QProgressBar {
   background-color: hsl(270, 20%, 94%);
@@ -324,7 +323,7 @@ QProgressBar {
 QProgressBar::chunk {
   background-color: hsl(310, 85%, 45%);
   border-radius: 4px;
-}
+}
 
 QSplitter::handle {
   background-color: hsl(300, 30%, 85%);

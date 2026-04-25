@@ -13,6 +13,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSet>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QStyleHints>
 #include <QTextStream>

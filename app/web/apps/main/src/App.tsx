@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@shared/components/ui/sidebar'
-import { applyTheme, getThemesSync, setDarkMode as persistDarkMode } from '@shared/lib/themes'
+import { applyTheme, loadTheme, setDarkMode as persistDarkMode } from '@shared/lib/themes'
 import { getSystemBridge } from '@shared/api/system-bridge'
 import { Toaster } from '@shared/components/ui/sonner'
 import { applyThemeEffects } from './theme-effects'
@@ -38,8 +38,7 @@ async function setupQtThemeListener() {
       qtSyncGuard = true
       try {
         const state = await system.getQtTheme()
-        const themes = getThemesSync()
-        const theme = themes.find(t => t.name === state.displayName)
+        const theme = await loadTheme(state.displayName)
 
         persistDarkMode(state.isDark)
 
