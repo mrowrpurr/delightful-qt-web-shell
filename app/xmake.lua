@@ -16,7 +16,7 @@ APP_VERSION = "0.1.0"
 set_project(APP_SLUG)
 set_version(APP_VERSION)
 
-add_rules("mode.releasedbg")
+add_rules("mode.release", "mode.releasedbg", "mode.debug")
 set_defaultmode("releasedbg")
 set_languages("c++23")
 
