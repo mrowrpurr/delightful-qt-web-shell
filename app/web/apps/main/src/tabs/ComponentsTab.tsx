@@ -72,12 +72,120 @@ import { Calendar } from '@shared/components/ui/calendar'
 function Section({ id, title, blurb, children }: { id: string; title: string; blurb?: string; children: React.ReactNode }) {
   return (
     <section id={id} className="space-y-3 scroll-mt-6">
-      <div>
+      <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-base font-semibold text-primary">{title}</h3>
-        {blurb && <p className="text-sm text-muted-foreground">{blurb}</p>}
+        <a href="#toc" className="text-xs text-muted-foreground hover:text-foreground">↑ top</a>
       </div>
+      {blurb && <p className="text-sm text-muted-foreground">{blurb}</p>}
       <div className="rounded-lg border border-border bg-card p-4">{children}</div>
     </section>
+  )
+}
+
+// ── Table of contents ──────────────────────────────────────
+
+const TOC: Array<{ group: string; items: Array<{ id: string; label: string }> }> = [
+  {
+    group: 'Forms',
+    items: [
+      { id: 'button', label: 'Button' },
+      { id: 'button-group', label: 'ButtonGroup' },
+      { id: 'input', label: 'Input' },
+      { id: 'input-group', label: 'InputGroup' },
+      { id: 'input-otp', label: 'InputOTP' },
+      { id: 'textarea', label: 'Textarea' },
+      { id: 'label', label: 'Label' },
+      { id: 'checkbox', label: 'Checkbox' },
+      { id: 'switch', label: 'Switch' },
+      { id: 'radio-group', label: 'RadioGroup' },
+      { id: 'slider', label: 'Slider' },
+      { id: 'select', label: 'Select' },
+      { id: 'combobox', label: 'Combobox' },
+      { id: 'toggle', label: 'Toggle' },
+      { id: 'toggle-group', label: 'ToggleGroup' },
+    ],
+  },
+  {
+    group: 'Display',
+    items: [
+      { id: 'badge', label: 'Badge' },
+      { id: 'avatar', label: 'Avatar' },
+      { id: 'card', label: 'Card' },
+      { id: 'alert', label: 'Alert' },
+      { id: 'skeleton', label: 'Skeleton' },
+      { id: 'spinner', label: 'Spinner' },
+      { id: 'progress', label: 'Progress' },
+      { id: 'separator', label: 'Separator' },
+      { id: 'kbd', label: 'Kbd' },
+      { id: 'aspect-ratio', label: 'AspectRatio' },
+      { id: 'empty', label: 'Empty' },
+    ],
+  },
+  {
+    group: 'Navigation',
+    items: [
+      { id: 'tabs', label: 'Tabs' },
+      { id: 'breadcrumb', label: 'Breadcrumb' },
+      { id: 'pagination', label: 'Pagination' },
+      { id: 'dropdown-menu', label: 'DropdownMenu' },
+      { id: 'context-menu', label: 'ContextMenu' },
+      { id: 'menubar', label: 'Menubar' },
+      { id: 'navigation-menu', label: 'NavigationMenu' },
+    ],
+  },
+  {
+    group: 'Overlays',
+    items: [
+      { id: 'dialog', label: 'Dialog' },
+      { id: 'alert-dialog', label: 'AlertDialog' },
+      { id: 'sheet', label: 'Sheet' },
+      { id: 'drawer', label: 'Drawer' },
+      { id: 'popover', label: 'Popover' },
+      { id: 'tooltip', label: 'Tooltip' },
+      { id: 'hover-card', label: 'HoverCard' },
+      { id: 'sonner', label: 'Sonner (toast)' },
+    ],
+  },
+  {
+    group: 'Containers',
+    items: [
+      { id: 'accordion', label: 'Accordion' },
+      { id: 'collapsible', label: 'Collapsible' },
+      { id: 'scroll-area', label: 'ScrollArea' },
+      { id: 'resizable', label: 'Resizable' },
+      { id: 'carousel', label: 'Carousel' },
+      { id: 'table', label: 'Table' },
+      { id: 'item', label: 'Item' },
+    ],
+  },
+  {
+    group: 'Data',
+    items: [
+      { id: 'calendar', label: 'Calendar' },
+      { id: 'chart', label: 'Chart' },
+    ],
+  },
+]
+
+function TableOfContents() {
+  return (
+    <nav id="toc" aria-label="Components table of contents" className="rounded-lg border border-border bg-card p-4 scroll-mt-6">
+      <div className="mb-3 text-sm font-semibold text-primary">Jump to component</div>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+        {TOC.map(group => (
+          <div key={group.group}>
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">{group.group}</div>
+            <ul className="space-y-0.5">
+              {group.items.map(item => (
+                <li key={item.id}>
+                  <a href={`#${item.id}`} className="text-sm text-foreground hover:text-primary">{item.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </nav>
   )
 }
 
@@ -135,6 +243,8 @@ export default function ComponentsTab() {
             this page is your regression check across all 1030+ palettes.
           </p>
         </header>
+
+        <TableOfContents />
 
         {/* ── Forms ─────────────────────────────────────── */}
 
