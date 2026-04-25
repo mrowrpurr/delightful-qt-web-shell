@@ -1,10 +1,13 @@
 import { useState, useCallback } from 'react'
-import { getBridge } from '@shared/api/bridge'
-import type { SystemBridge } from '@shared/api/system-bridge'
+import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
 import { Button } from '@shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card'
+import { Input } from '@shared/components/ui/input'
+import { ScrollArea } from '@shared/components/ui/scroll-area'
 
-const system = await getBridge<SystemBridge>('system')
+// Lazy-init bridge — keep module-import resilient when the bridge isn't reachable
+let system: SystemBridge | null = null
+getSystemBridge().then(b => { system = b }).catch(() => {})
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -28,6 +31,7 @@ export default function FileBrowserTab() {
   }, [])
 
   const handleBrowseFolder = useCallback(async () => {
+    if (!system) return
     const result = await system.openFolderChooser()
     if (result.cancelled) return
     setBrowseFolder(result.path)
@@ -39,6 +43,7 @@ export default function FileBrowserTab() {
   }, [clearPreviews])
 
   const handleOpenFile = useCallback(async () => {
+    if (!system) return
     const result = await system.openFileChooser({ filter: '' })
     if (result.cancelled) return
     const read = await system.readTextFile({ path: result.path })
@@ -51,7 +56,7 @@ export default function FileBrowserTab() {
   }, [clearPreviews])
 
   const handleBrowseEntry = useCallback(async (name: string, isDir: boolean, size: number) => {
-    if (!browseFolder) return
+    if (!system || !browseFolder) return
     const fullPath = browseFolder + '/' + name
     if (isDir) {
       setBrowseFolder(fullPath)
@@ -94,7 +99,7 @@ export default function FileBrowserTab() {
   }, [browseFolder, clearPreviews])
 
   const handleBrowseUp = useCallback(async () => {
-    if (!browseFolder) return
+    if (!system || !browseFolder) return
     const parent = browseFolder.replace(/[/\\][^/\\]+$/, '')
     if (parent === browseFolder) return
     setBrowseFolder(parent)
@@ -106,7 +111,7 @@ export default function FileBrowserTab() {
   }, [browseFolder, clearPreviews])
 
   const handleGlob = useCallback(async () => {
-    if (!browseFolder || !globPattern.trim()) return
+    if (!system || !browseFolder || !globPattern.trim()) return
     const result = await system.globFolder({ path: browseFolder, pattern: globPattern.trim(), recursive: true })
     setGlobResults(result.paths)
   }, [browseFolder, globPattern])
@@ -135,8 +140,8 @@ export default function FileBrowserTab() {
           </div>
 
           <div className="flex gap-2">
-            <input
-              className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            <Input
+              className="flex-1"
               placeholder="Glob pattern (e.g. *.tsx)"
               value={globPattern}
               onChange={e => setGlobPattern(e.target.value)}
@@ -161,7 +166,7 @@ export default function FileBrowserTab() {
             </Card>
           )}
 
-          <div className="border border-border rounded-lg max-h-60 overflow-y-auto">
+          <ScrollArea className="border border-border rounded-lg h-60">
             {browseEntries.map(entry => (
               <div
                 key={entry.name}
@@ -173,7 +178,7 @@ export default function FileBrowserTab() {
                 {!entry.isDir && <span className="text-xs text-muted-foreground">{formatSize(entry.size)}</span>}
               </div>
             ))}
-          </div>
+          </ScrollArea>
         </>
       )}
 

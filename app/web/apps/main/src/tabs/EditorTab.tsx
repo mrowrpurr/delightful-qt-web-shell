@@ -5,6 +5,7 @@ import { initVimMode, VimMode } from 'monaco-vim'
 import { buildMonacoTheme, buildMonacoThemeFromVars } from '@shared/lib/monaco-theme'
 import { isDarkMode, getThemesSync, loadThemes } from '@shared/lib/themes'
 import { getEditorFont, injectGoogleFont } from '@shared/lib/fonts'
+import { toast } from 'sonner'
 import { Button } from '@shared/components/ui/button'
 import { getSystemBridge } from '@shared/api/system-bridge'
 
@@ -48,12 +49,10 @@ export default function EditorTab() {
   const [vimEnabled, setVimEnabled] = useState(true)
   const [editingTheme, setEditingTheme] = useState(false)
   const [themeFilePath, setThemeFilePath] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
   const [fileName, setFileName] = useState('sample.ts')
 
   const showToast = useCallback((msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 2000)
+    toast(msg)
   }, [])
 
   const applyEditorTheme = useCallback(() => {
@@ -265,10 +264,6 @@ export default function EditorTab() {
         </h2>
         <span className="text-xs text-muted-foreground">{fileName}</span>
         <div className="flex-1" />
-
-        {toast && (
-          <span className="text-xs font-medium text-primary animate-pulse">{toast}</span>
-        )}
 
         {editingTheme ? (
           <>

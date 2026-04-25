@@ -2,6 +2,8 @@ import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@shared/components/ui/select'
+import { Switch } from '@shared/components/ui/switch'
+import { Label } from '@shared/components/ui/label'
 
 // ── Human docs ────────────────────────────────────────────
 import readme from '../../../../../README.md?raw'
@@ -56,8 +58,7 @@ export default function DocsTab() {
   const doc = docs.find(d => d.value === selectedDoc) ?? docs[0]
 
   // Reset to readme if current selection doesn't exist in the new doc set
-  const handleToggle = () => {
-    const newMode = !agentMode
+  const handleToggle = (newMode: boolean) => {
     const newDocs = newMode ? agentDocs : humanDocs
     if (!newDocs.find(d => d.value === selectedDoc)) {
       setSelectedDoc('readme')
@@ -71,21 +72,10 @@ export default function DocsTab() {
         <h2 className="text-lg font-semibold text-primary">Documentation</h2>
         <div className="flex items-center gap-4">
           {/* Agent/Human toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+          <Label htmlFor="docs-mode-switch" className="font-normal">
             <span className="text-xs text-muted-foreground">{agentMode ? '🤖 Agent' : '👤 Human'}</span>
-            <button
-              role="switch"
-              aria-checked={agentMode}
-              onClick={handleToggle}
-              className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors"
-              style={{ backgroundColor: agentMode ? 'var(--color-primary)' : 'var(--color-input)' }}
-            >
-              <span
-                className={`pointer-events-none block h-4 w-4 rounded-full shadow-lg transition-transform ${agentMode ? 'translate-x-4' : 'translate-x-0'}`}
-                style={{ backgroundColor: 'var(--color-background)' }}
-              />
-            </button>
-          </label>
+            <Switch id="docs-mode-switch" checked={agentMode} onCheckedChange={handleToggle} size="sm" />
+          </Label>
 
           <Select value={selectedDoc} onValueChange={setSelectedDoc}>
             <SelectTrigger className="w-[240px]">

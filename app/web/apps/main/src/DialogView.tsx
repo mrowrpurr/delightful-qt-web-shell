@@ -1,9 +1,15 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getBridge, signalReady, type TodoBridge, type TodoList } from '@shared/api/bridge'
+import { toast } from 'sonner'
+import { signalReady } from '@shared/api/bridge'
+import { getTodoBridge, type TodoBridge, type TodoList } from '@shared/api/todo-bridge'
 import { Button } from '@shared/components/ui/button'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@shared/components/ui/select'
+import { Input } from '@shared/components/ui/input'
+import { Toaster } from '@shared/components/ui/sonner'
 
-const todos = await getBridge<TodoBridge>('todos')
+// Lazy-init bridge — keeps module-import resilient when the bridge isn't reachable
+let todos: TodoBridge | null = null
+const todosReady = getTodoBridge().then(b => { todos = b; return b }).catch(() => null)
 
 // DialogView — a lightweight UI rendered when the hash is #/dialog.
 //
@@ -15,9 +21,9 @@ export default function DialogView() {
   const [lists, setLists] = useState<TodoList[]>([])
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [itemText, setItemText] = useState('')
-  const [feedback, setFeedback] = useState('')
 
   const loadLists = useCallback(async () => {
+    if (!todos) return
     const result = await todos.listLists()
     setLists(result)
     if (result.length > 0 && !selectedListId) {
@@ -28,26 +34,32 @@ export default function DialogView() {
   useEffect(() => { signalReady() }, [])
 
   useEffect(() => {
-    loadLists()
-    const refresh = () => loadLists()
-    const cleanups = [
-      todos.listAdded(refresh),
-      todos.listRenamed(refresh),
-      todos.listDeleted(refresh),
-      todos.itemAdded(refresh),
-      todos.itemToggled(refresh),
-      todos.itemDeleted(refresh),
-    ]
-    return () => cleanups.forEach(c => c())
+    let cancelled = false
+    let cleanup = () => {}
+    todosReady.then(b => {
+      if (cancelled || !b) return
+      loadLists()
+      const refresh = () => loadLists()
+      const cleanups = [
+        b.listAdded(refresh),
+        b.listRenamed(refresh),
+        b.listDeleted(refresh),
+        b.itemAdded(refresh),
+        b.itemToggled(refresh),
+        b.itemDeleted(refresh),
+      ]
+      cleanup = () => cleanups.forEach(c => c())
+    })
+    return () => { cancelled = true; cleanup() }
   }, [loadLists])
 
   const handleAdd = useCallback(async () => {
+    if (!todos) return
     const text = itemText.trim()
     if (!text || !selectedListId) return
     await todos.addItem({ list_id: selectedListId, text }).catch(console.error)
     setItemText('')
-    setFeedback('Added!')
-    setTimeout(() => setFeedback(''), 1500)
+    toast.success('Added!')
   }, [itemText, selectedListId])
 
   return (
@@ -73,9 +85,9 @@ export default function DialogView() {
           </Select>
 
           <div className="flex gap-2 w-full">
-            <input
+            <Input
               data-testid="dialog-item-input"
-              className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              className="flex-1"
               placeholder="New todo item"
               value={itemText}
               onChange={e => setItemText(e.target.value)}
@@ -85,9 +97,9 @@ export default function DialogView() {
             <Button data-testid="dialog-add-button" onClick={handleAdd}>Add</Button>
           </div>
 
-          {feedback && <span className="text-sm text-primary">{feedback}</span>}
         </>
       )}
+      <Toaster />
     </div>
   )
 }

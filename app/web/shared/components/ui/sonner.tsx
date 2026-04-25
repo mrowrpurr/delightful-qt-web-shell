@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -7,15 +8,33 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
+import { isDarkMode } from "@shared/lib/themes"
+
+// Sonner mode-tracker — listens for theme changes the same way the rest of
+// the app does (page-transparency-changed / qt-theme-synced both fire on
+// dark/light flips), so the toaster reflects the active palette.
+function useDarkMode(): boolean {
+  const [dark, setDark] = useState(isDarkMode)
+  useEffect(() => {
+    const refresh = () => setDark(isDarkMode())
+    window.addEventListener("qt-theme-synced", refresh)
+    window.addEventListener("editor-theme-changed", refresh)
+    return () => {
+      window.removeEventListener("qt-theme-synced", refresh)
+      window.removeEventListener("editor-theme-changed", refresh)
+    }
+  }, [])
+  return dark
+}
+
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const dark = useDarkMode()
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={dark ? "dark" : "light"}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

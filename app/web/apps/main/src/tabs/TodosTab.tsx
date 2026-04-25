@@ -1,11 +1,18 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getBridge, type TodoBridge, type TodoList, type ListDetail } from '@shared/api/bridge'
-import type { SystemBridge } from '@shared/api/system-bridge'
+import { Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { getTodoBridge, type TodoBridge, type TodoList, type ListDetail } from '@shared/api/todo-bridge'
+import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
 import { Button } from '@shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card'
+import { Input } from '@shared/components/ui/input'
+import { Checkbox } from '@shared/components/ui/checkbox'
 
-const todos = await getBridge<TodoBridge>('todos')
-const system = await getBridge<SystemBridge>('system')
+// Lazy-init bridges — keep module-import resilient when a bridge isn't reachable
+let todos: TodoBridge | null = null
+const todosReady = getTodoBridge().then(b => { todos = b; return b }).catch(() => null)
+let system: SystemBridge | null = null
+getSystemBridge().then(b => { system = b }).catch(() => {})
 
 export default function TodosTab() {
   const [lists, setLists] = useState<TodoList[]>([])
@@ -13,31 +20,38 @@ export default function TodosTab() {
   const [detail, setDetail] = useState<ListDetail | null>(null)
   const [newListName, setNewListName] = useState('')
   const [newItemText, setNewItemText] = useState('')
-  const [copyFeedback, setCopyFeedback] = useState('')
 
   const loadLists = useCallback(async () => {
+    if (!todos) return
     setLists(await todos.listLists())
   }, [])
 
   const loadDetail = useCallback(async (listId: string) => {
+    if (!todos) return
     setDetail(await todos.getList({ list_id: listId }))
   }, [])
 
   useEffect(() => {
-    loadLists()
-    const refresh = () => {
+    let cancelled = false
+    let cleanup = () => {}
+    todosReady.then(b => {
+      if (cancelled || !b) return
       loadLists()
-      if (selectedListId) loadDetail(selectedListId)
-    }
-    const cleanups = [
-      todos.listAdded(refresh),
-      todos.listRenamed(refresh),
-      todos.listDeleted(refresh),
-      todos.itemAdded(refresh),
-      todos.itemToggled(refresh),
-      todos.itemDeleted(refresh),
-    ]
-    return () => cleanups.forEach(c => c())
+      const refresh = () => {
+        loadLists()
+        if (selectedListId) loadDetail(selectedListId)
+      }
+      const cleanups = [
+        b.listAdded(refresh),
+        b.listRenamed(refresh),
+        b.listDeleted(refresh),
+        b.itemAdded(refresh),
+        b.itemToggled(refresh),
+        b.itemDeleted(refresh),
+      ]
+      cleanup = () => cleanups.forEach(c => c())
+    })
+    return () => { cancelled = true; cleanup() }
   }, [loadLists, loadDetail, selectedListId])
 
   const selectList = useCallback((listId: string) => {
@@ -46,6 +60,7 @@ export default function TodosTab() {
   }, [loadDetail])
 
   const handleCreateList = useCallback(async () => {
+    if (!todos) return
     const name = newListName.trim()
     if (!name) return
     await todos.addList({ name }).catch(console.error)
@@ -53,6 +68,7 @@ export default function TodosTab() {
   }, [newListName])
 
   const handleAddItem = useCallback(async () => {
+    if (!todos) return
     const text = newItemText.trim()
     if (!text || !selectedListId) return
     await todos.addItem({ list_id: selectedListId, text }).catch(console.error)
@@ -60,24 +76,26 @@ export default function TodosTab() {
   }, [newItemText, selectedListId])
 
   const handleToggleItem = useCallback(async (itemId: string) => {
-    if (!selectedListId) return
+    if (!todos || !selectedListId) return
     await todos.toggleItem({ item_id: itemId }).catch(console.error)
   }, [selectedListId])
 
   const handleDeleteList = useCallback(async (listId: string) => {
+    if (!todos) return
     await todos.deleteList({ list_id: listId }).catch(console.error)
     if (selectedListId === listId) { setSelectedListId(null); setDetail(null) }
   }, [selectedListId])
 
   const handleDeleteItem = useCallback(async (itemId: string) => {
+    if (!todos) return
     await todos.deleteItem({ item_id: itemId }).catch(console.error)
   }, [])
 
   const handleCopy = useCallback(async () => {
+    if (!system) return
     const now = new Date().toLocaleString()
     await system.copyToClipboard({ text: `[Clipboard Test] The current time is now ${now}` })
-    setCopyFeedback('Copied!')
-    setTimeout(() => setCopyFeedback(''), 2000)
+    toast.success('Copied!')
   }, [])
 
   return (
@@ -91,16 +109,15 @@ export default function TodosTab() {
         <Button variant="outline" size="sm" data-testid="copy-clipboard-button" onClick={handleCopy}>
           📋 Clipboard
         </Button>
-        <Button variant="outline" size="sm" data-testid="open-dialog-button" onClick={() => system.openDialog()}>
+        <Button variant="outline" size="sm" data-testid="open-dialog-button" onClick={() => system?.openDialog()}>
           🗂️ Quick Add
         </Button>
-        {copyFeedback && <span className="text-sm text-primary self-center">{copyFeedback}</span>}
       </div>
 
       <div className="flex gap-2">
-        <input
+        <Input
           data-testid="new-list-input"
-          className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          className="flex-1"
           placeholder="New list name"
           value={newListName}
           onChange={e => setNewListName(e.target.value)}
@@ -128,11 +145,16 @@ export default function TodosTab() {
             <span className="font-medium text-sm">{list.name}</span>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">{list.item_count}</span>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Delete list ${list.name}`}
                 data-testid="delete-list-button"
-                className="text-muted-foreground hover:text-destructive text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                className="size-7 text-muted-foreground hover:text-destructive"
                 onClick={e => { e.stopPropagation(); handleDeleteList(list.id) }}
-              >×</button>
+              >
+                <Trash2 className="size-4" />
+              </Button>
             </div>
           </div>
         ))}
@@ -145,9 +167,9 @@ export default function TodosTab() {
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <div className="flex gap-2">
-              <input
+              <Input
                 data-testid="new-item-input"
-                className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                className="flex-1"
                 placeholder="Add todo"
                 value={newItemText}
                 onChange={e => setNewItemText(e.target.value)}
@@ -170,13 +192,18 @@ export default function TodosTab() {
                 aria-checked={item.done}
                 onClick={() => handleToggleItem(item.id)}
               >
-                <span className="text-primary text-sm w-5 text-center">{item.done ? '✓' : '○'}</span>
+                <Checkbox checked={item.done} tabIndex={-1} className="pointer-events-none" aria-hidden />
                 <span className={`flex-1 text-sm ${item.done ? 'line-through text-muted-foreground' : ''}`}>{item.text}</span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Delete item ${item.text}`}
                   data-testid="delete-item-button"
-                  className="text-muted-foreground hover:text-destructive text-sm"
+                  className="size-7 text-muted-foreground hover:text-destructive"
                   onClick={e => { e.stopPropagation(); handleDeleteItem(item.id) }}
-                >×</button>
+                >
+                  <Trash2 className="size-4" />
+                </Button>
               </div>
             ))}
           </CardContent>

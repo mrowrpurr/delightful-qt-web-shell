@@ -1,41 +1,55 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getBridge } from '@shared/api/bridge'
-import type { SystemBridge } from '@shared/api/system-bridge'
+import { toast } from 'sonner'
+import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
 import { Button } from '@shared/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@shared/components/ui/card'
 
-const system = await getBridge<SystemBridge>('system')
+// Lazy-init bridge — keep module-import resilient when the bridge isn't reachable
+let system: SystemBridge | null = null
+const systemReady = getSystemBridge().then(b => { system = b; return b }).catch(() => null)
 
 export default function SystemTab() {
   const [droppedFiles, setDroppedFiles] = useState<string[]>([])
   const [receivedArgs, setReceivedArgs] = useState<string[]>([])
   const [clipboardText, setClipboardText] = useState('')
-  const [copyFeedback, setCopyFeedback] = useState('')
 
   useEffect(() => {
-    return system.filesDropped(async () => {
-      setDroppedFiles(await system.getDroppedFiles())
+    let cancelled = false
+    let cleanup = () => {}
+    systemReady.then(b => {
+      if (cancelled || !b) return
+      cleanup = b.filesDropped(async () => {
+        setDroppedFiles(await b.getDroppedFiles())
+      })
     })
+    return () => { cancelled = true; cleanup() }
   }, [])
 
   useEffect(() => {
-    system.getAppLaunchArgs().then(resp => {
-      if (resp.items.length > 0) setReceivedArgs(resp.items)
+    let cancelled = false
+    let cleanup = () => {}
+    systemReady.then(b => {
+      if (cancelled || !b) return
+      b.getAppLaunchArgs().then(resp => {
+        if (resp.items.length > 0) setReceivedArgs(resp.items)
+      })
+      cleanup = b.appLaunchArgsReceived(async () => {
+        const resp = await b.getAppLaunchArgs()
+        setReceivedArgs(resp.items)
+      })
     })
-    return system.appLaunchArgsReceived(async () => {
-      const resp = await system.getAppLaunchArgs()
-      setReceivedArgs(resp.items)
-    })
+    return () => { cancelled = true; cleanup() }
   }, [])
 
   const handleCopy = useCallback(async () => {
+    if (!system) return
     const now = new Date().toLocaleString()
     await system.copyToClipboard({ text: `[Clipboard Test] ${now}` })
-    setCopyFeedback('Copied!')
-    setTimeout(() => setCopyFeedback(''), 2000)
+    toast.success('Copied!')
   }, [])
 
   const handleRead = useCallback(async () => {
+    if (!system) return
     const result = await system.readClipboard()
     setClipboardText(result.text)
   }, [])
@@ -56,7 +70,6 @@ export default function SystemTab() {
           <div className="flex gap-2">
             <Button size="sm" onClick={handleCopy}>Copy timestamp</Button>
             <Button size="sm" variant="outline" onClick={handleRead}>Read clipboard</Button>
-            {copyFeedback && <span className="text-sm text-primary self-center">{copyFeedback}</span>}
           </div>
           {clipboardText && (
             <pre className="text-xs font-mono text-muted-foreground bg-muted p-2 rounded break-all whitespace-pre-wrap">{clipboardText}</pre>

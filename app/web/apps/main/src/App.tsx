@@ -14,6 +14,7 @@ import {
 } from '@shared/components/ui/sidebar'
 import { applyTheme, getThemesSync, setDarkMode as persistDarkMode } from '@shared/lib/themes'
 import { getSystemBridge } from '@shared/api/system-bridge'
+import { Toaster } from '@shared/components/ui/sonner'
 import { applyThemeEffects } from './theme-effects'
 import DocsTab from './tabs/DocsTab'
 import TodosTab from './tabs/TodosTab'
@@ -179,6 +180,7 @@ export default function App() {
           {renderTab()}
         </SidebarInset>
       </SidebarProvider>
+      <Toaster />
     </div>
   )
 }
