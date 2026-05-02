@@ -60,7 +60,7 @@ QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host,
     QUrl url = contentUrl.isEmpty() ? app->appUrl("main") : contentUrl;
 
     auto* widget = new WebShellWidget(
-        app->webProfile(), app->shell(), url,
+        app->webProfile(), app->registry(), app->lifecycle(), url,
         WebShellWidget::FullOverlay);
 
     auto* dock = new QDockWidget(APP_NAME);

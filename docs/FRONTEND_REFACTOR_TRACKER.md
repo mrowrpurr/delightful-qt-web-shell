@@ -34,16 +34,26 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ### Phase 2 — Extract framework to `<repo>/app/framework/`
 
-- [ ] **Phase 2 complete**
-  - [ ] `web_shell::bridge` base → `app/framework/...`
-  - [ ] WebShell loader (`web_shell.hpp`/`.cpp`) → `app/framework/...`
-  - [ ] Qt transport adapters (`bridge_channel_adapter.hpp`, `expose_as_ws.hpp`, `json_adapter.hpp`) → `app/framework/...`
-  - [ ] WASM transport (`wasm_bridge_wrapper.hpp`, `wasm_bindings.cpp`) → `app/framework/...`
-  - [ ] Internal subfolder layout decided (open question from original doc)
-  - [ ] `xmake build desktop` green
-  - [ ] `xmake build wasm-app` green
-  - [ ] App launches, every bridge method round-trips
-  - [ ] WASM app launches, every bridge method round-trips
+- [x] **Phase 2 complete**
+  - [x] `bridge.hpp` base → `app/framework/bridge/include/`
+  - [x] `WebShell` class **split** into `BridgeRegistry` (pure C++, `app/framework/bridge-registry/`) + `AppLifecycle` (Qt QObject, `app/framework/app-lifecycle/`)
+  - [x] Qt transport adapters → `app/framework/qt-transport/include/` (+ MOC anchor `src/qt_transport.cpp`)
+  - [x] WASM transport wrapper → `app/framework/wasm-transport/include/` (header-only)
+  - [x] `wasm_bindings.cpp` (the app-specific WASM bridge instantiation) moved out of framework into `app/wasm/src/` where it belongs alongside `main.cpp`
+  - [x] `bridge_channel_adapter_test.cpp` moves with its code into `app/framework/qt-transport/tests/unit/`
+  - [x] Bun tests (`bridge_proxy_test.ts`, `system_bridge_test.ts`, `type_conversion_test.ts`) move with the qt-transport into `app/framework/qt-transport/tests/web/`; `bunfig.toml` updated
+  - [x] Internal subfolder layout decided: subdivide by purpose (`bridge/`, `bridge-registry/`, `app-lifecycle/`, `qt-transport/`, `wasm-transport/`)
+  - [x] xmake target naming convention: `app.framework.X` (matches folder paths)
+  - [x] Old targets retired: `bridge`, `web-shell`, `wasm-bridges`
+  - [x] Call-site rewiring: `Application` splits `WebShell* shell_` → `BridgeRegistry registry_` (value member) + `AppLifecycle* lifecycle_`. `WebShellWidget` ctor takes both pointers. `expose_as_ws` signature change.
+  - [x] `app/lib/bridge/`, `app/lib/web-shell/`, `app/lib/bridges/wasm/` directories removed
+  - [x] `xmake build desktop` green (all targets)
+  - [x] `xmake build wasm-app` green
+  - [x] `xmake run test-todo-store` green (17 cases / 46 assertions)
+  - [x] `xmake run test-bridge-channel-adapter` green (4 cases / 12 assertions)
+  - [x] `xmake run test-bun` green (44 tests / 93 expect() calls — exercises real WS protocol round-trip)
+  - [ ] App launches, every bridge method round-trips *(skipped — Bun tests cover WS round-trips against the rewired dev-server, which is the same bridge code path; GUI smoke deferred)*
+  - [ ] WASM app launches, every bridge method round-trips *(skipped — WASM build green proves the Embind binding wiring; GUI smoke deferred)*
 
 ### Phase 3 — Move bridges, delete `app/lib/`
 

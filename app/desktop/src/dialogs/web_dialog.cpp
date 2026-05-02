@@ -29,7 +29,7 @@ WebDialog::WebDialog(QWidget* parent)
     QUrl dialogUrl = app->appUrl("main");
     dialogUrl.setFragment("/dialog");
     webShell_ = new WebShellWidget(
-        app->webProfile(), app->shell(), dialogUrl,
+        app->webProfile(), app->registry(), app->lifecycle(), dialogUrl,
         WebShellWidget::SpinnerOverlay, this);
     layout->addWidget(webShell_);
 }

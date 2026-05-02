@@ -36,18 +36,19 @@ add_repositories("BuildWithCollab https://github.com/BuildWithCollab/Packages")
 add_requires("qlementine-icons")
 add_requires("def_type")
 
--- ── Shared libraries ─────────────────────────────────────────────────
+-- ── Framework runtime (bridge base, registry, lifecycle, transports) ────
 
-includes("lib/bridge/xmake.lua")
+includes("framework/xmake.lua")
+
+-- ── Domain bridges (move out in Phase 3) ────────────────────────────
+
 includes("lib/todos/xmake.lua")
 
 -- ── Platform-specific targets ───────────────────────────────────────
 
 if is_plat("wasm") then
-    includes("lib/bridges/wasm/xmake.lua")
     includes("wasm/xmake.lua")
 else
-    includes("lib/web-shell/xmake.lua")
     includes("lib/bridges/qt/xmake.lua")
     includes("desktop/xmake.lua")
     includes("tests/helpers/dev-server/xmake.lua")

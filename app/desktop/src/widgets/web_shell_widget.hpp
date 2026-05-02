@@ -9,13 +9,13 @@
 // fire to every connected view automatically.
 //
 // Usage:
-//   auto* widget = new WebShellWidget(profile, shell,
+//   auto* widget = new WebShellWidget(profile, registry, lifecycle,
 //                                     QUrl("app://main/"), this);
 //
 // The widget handles:
 //   - QWebEngineView + page setup
 //   - qwebchannel.js injection
-//   - QWebChannel registration of shell + bridges
+//   - QWebChannel registration of lifecycle + bridges (read from registry)
 //   - LoadingOverlay (auto-dismissed when React calls signalReady())
 //   - Developer tools window (F12)
 
@@ -24,10 +24,11 @@
 #include <QUrl>
 #include <QWidget>
 
+namespace web_shell { class BridgeRegistry; }
+class AppLifecycle;
 class LoadingOverlay;
 class QWebEngineView;
 class QWebEngineProfile;
-class WebShell;
 
 class WebShellWidget : public QWidget {
     Q_OBJECT
@@ -36,11 +37,14 @@ public:
     enum OverlayStyle { FullOverlay, SpinnerOverlay };
 
     // profile      — shared QWebEngineProfile (owned by Application)
-    // shell        — the WebShell that owns all bridges (shared across widgets)
+    // registry     — the bridge registry (shared across widgets, owned by Application)
+    // lifecycle    — Qt↔JS lifecycle handshake (shared, owned by Application)
     // contentUrl   — what to load (e.g. QUrl("app://main/") or QUrl("http://localhost:5173"))
     // overlayStyle — Full (logo+progress) for main window, Spinner for dialogs
     // parent       — parent widget (MainWindow, QDialog, etc.)
-    WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
+    WebShellWidget(QWebEngineProfile* profile,
+                   web_shell::BridgeRegistry* registry,
+                   AppLifecycle* lifecycle,
                    const QUrl& contentUrl,
                    OverlayStyle overlayStyle = FullOverlay,
                    QWidget* parent = nullptr);
@@ -58,5 +62,5 @@ private:
     QWebEngineView* view_ = nullptr;
     QWebEngineView* devToolsView_ = nullptr;
     LoadingOverlay* overlay_ = nullptr;
-    WebShell* shell_ = nullptr;
+    web_shell::BridgeRegistry* registry_ = nullptr;
 };

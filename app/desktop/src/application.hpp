@@ -11,12 +11,14 @@
 #include <QApplication>
 #include <QUrl>
 
+#include "bridge_registry.hpp"
+
+class AppLifecycle;
 class DockManager;
 class QLocalServer;
 class QSystemTrayIcon;
 class QWebEngineProfile;
 class StyleManager;
-class WebShell;
 
 class Application : public QApplication {
     Q_OBJECT
@@ -30,8 +32,12 @@ public:
     // Shared web engine profile — persistent localStorage/IndexedDB
     QWebEngineProfile* webProfile() const { return profile_; }
 
-    // The shell that owns all bridges — shared across all WebShellWidgets
-    WebShell* shell() const { return shell_; }
+    // The bridge registry — shared across all WebShellWidgets
+    web_shell::BridgeRegistry* registry() { return &registry_; }
+    const web_shell::BridgeRegistry* registry() const { return &registry_; }
+
+    // The Qt↔JS lifecycle handshake (appReady / ready signal)
+    AppLifecycle* lifecycle() const { return lifecycle_; }
 
     // Style manager — handles QSS theme loading, live reload, SCSS compilation
     StyleManager* styleManager() const { return styleManager_; }
@@ -85,7 +91,8 @@ private:
     bool devMode_ = false;
     bool isPrimary_ = true;
     QWebEngineProfile* profile_ = nullptr;
-    WebShell* shell_ = nullptr;
+    web_shell::BridgeRegistry registry_;
+    AppLifecycle* lifecycle_ = nullptr;
     QLocalServer* instanceServer_ = nullptr;
     QSystemTrayIcon* trayIcon_ = nullptr;
     StyleManager* styleManager_ = nullptr;

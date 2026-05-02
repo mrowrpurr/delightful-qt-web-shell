@@ -4,16 +4,7 @@ local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
 -- test-todo-store now lives with the pure-domain library at <repo>/lib/todos/xmake.lua
-
-target("test-bridge-channel-adapter")
-    set_kind("binary")
-    set_default(false)
-    add_rules("qt.console")
-    add_deps("web-shell")
-    add_files(path.join(TEMPLATE_ROOT, "lib", "web-shell", "tests", "unit", "bridge_channel_adapter_test.cpp"))
-    add_frameworks("QtCore", "QtTest")
-    add_packages("catch2")
-    set_rundir("$(projectdir)")
+-- test-bridge-channel-adapter now lives with the qt-transport at app/framework/qt-transport/xmake.lua
 
 -- ── pywinauto tests (native Qt window) ─────────────────────────────
 

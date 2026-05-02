@@ -5,7 +5,6 @@
 #include "dock_manager.hpp"
 #include "logging.hpp"
 #include "system_bridge.hpp"
-#include "web_shell.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "windows/main_window.hpp"
 
@@ -49,7 +48,7 @@ int main(int argc, char* argv[]) {
     // Forward args to the SystemBridge so React can see them.
     // Handles: first launch args, second-instance args, and URL protocol activations.
     auto* systemBridge = static_cast<SystemBridge*>(
-        app.shell()->bridges().value("system"));
+        app.registry()->get("system"));
     if (systemBridge) {
         QObject::connect(&app, &Application::appLaunchArgsReceived,
                          &app, [systemBridge](const QStringList& args) {

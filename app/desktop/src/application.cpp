@@ -33,7 +33,7 @@
 // @scaffold:include
 #include "system_bridge.hpp"
 #include "todo_bridge.hpp"
-#include "web_shell.hpp"
+#include "app_lifecycle.hpp"
 
 // Must match --bg in App.css — prevents white flash before web content loads.
 static constexpr QColor kBackground{0x24, 0x24, 0x24};
@@ -112,16 +112,17 @@ Application::Application(int& argc, char** argv)
         profile_->installUrlSchemeHandler("app", handler);
     }
 
-    // ── Shell + bridges ──────────────────────────────────────
-    // The shell owns all bridges. Every WebShellWidget registers the same
-    // bridge instances on its own QWebChannel — one source of truth,
-    // signals reach all connected views.
-    shell_ = new WebShell(this);
+    // ── Bridges + lifecycle ──────────────────────────────────
+    // The registry owns the master bridge map. Every WebShellWidget
+    // registers the same bridge instances on its own QWebChannel — one
+    // source of truth, signals reach all connected views. Lifecycle is
+    // the Qt↔JS appReady handshake.
+    lifecycle_ = new AppLifecycle(this);
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;
-    shell_->addBridge("todos", todoBridge);
+    registry_.add("todos", todoBridge);
     auto* systemBridge = new SystemBridge;
-    shell_->addBridge("system", systemBridge);
+    registry_.add("system", systemBridge);
 
     // ── Wire StyleManager ↔ SystemBridge ──────────────────────
     // When StyleManager changes theme (toolbar, live reload) → update bridge state → React gets signal

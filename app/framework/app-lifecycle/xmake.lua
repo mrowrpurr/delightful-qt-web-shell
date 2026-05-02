@@ -1,0 +1,6 @@
+target("app.framework.app-lifecycle")
+    set_kind("static")
+    add_rules("qt.static")
+    add_files("src/*.cpp", "include/**.hpp")
+    add_includedirs("include", {public = true})
+    add_frameworks("QtCore", {public = true})

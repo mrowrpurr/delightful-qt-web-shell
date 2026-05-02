@@ -1,4 +1,5 @@
-target("bridge")
+target("app.framework.wasm-transport")
     set_kind("headeronly")
+    add_deps("app.framework.bridge", {public = true})
     add_includedirs("include", {public = true})
     add_packages("def_type", {public = true})

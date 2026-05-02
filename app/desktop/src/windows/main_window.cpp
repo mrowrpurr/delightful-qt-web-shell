@@ -31,7 +31,6 @@
 
 #include "dialogs/web_dialog.hpp"
 #include "system_bridge.hpp"
-#include "web_shell.hpp"
 
 MainWindow::MainWindow(const QString& windowId, QWidget* parent)
     : QMainWindow(parent)
@@ -113,7 +112,7 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
 
     // ── Wire React → native dialog ──────────────────────────
     auto* systemBridge = static_cast<SystemBridge*>(
-        app->shell()->bridges().value("system"));
+        app->registry()->get("system"));
     if (systemBridge) {
         systemBridge->on_signal("openDialogRequested", [this](const nlohmann::json&) {
             QTimer::singleShot(0, this, [this]() {

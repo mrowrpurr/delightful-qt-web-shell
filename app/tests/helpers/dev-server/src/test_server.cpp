@@ -10,7 +10,8 @@
 #include "system_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "expose_as_ws.hpp"
-#include "web_shell.hpp"
+#include "app_lifecycle.hpp"
+#include "bridge_registry.hpp"
 
 int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
@@ -25,13 +26,14 @@ int main(int argc, char* argv[]) {
     // Register your bridges here — must match desktop/src/main.cpp.
     // If you add a bridge in main.cpp but forget here, browser-mode dev
     // and Playwright tests will silently be missing that bridge.
-    WebShell shell;
+    web_shell::BridgeRegistry registry;
+    AppLifecycle lifecycle;
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;
-    shell.addBridge("todos", todoBridge);
+    registry.add("todos", todoBridge);
     auto* systemBridge = new SystemBridge;
-    shell.addBridge("system", systemBridge);
-    auto* server = expose_as_ws(&shell, port);
+    registry.add("system", systemBridge);
+    auto* server = expose_as_ws(&registry, &lifecycle, port);
     if (!server) return 1;
 
     return app.exec();

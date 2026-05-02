@@ -24,16 +24,17 @@
 #include <QWebSocketServer>
 
 #include "json_adapter.hpp"
-#include "web_shell.hpp"
+#include "bridge_registry.hpp"
+#include "app_lifecycle.hpp"
 
-// ── appReady dispatch (WebShell is still a QObject for this one method) ──
+// ── appReady dispatch — calls into AppLifecycle ──
 
-inline QJsonValue invoke_shell_method(QObject* shell, const QString& method_name) {
+inline QJsonValue invoke_lifecycle_method(AppLifecycle* lifecycle, const QString& method_name) {
     if (method_name == "appReady") {
-        QMetaObject::invokeMethod(shell, "appReady", Qt::DirectConnection);
+        QMetaObject::invokeMethod(lifecycle, "appReady", Qt::DirectConnection);
         return QJsonObject{{"ok", true}};
     }
-    return QJsonObject{{"error", "Unknown shell method: " + method_name}};
+    return QJsonObject{{"error", "Unknown lifecycle method: " + method_name}};
 }
 
 // ── Bridge meta ────────────────────────────────────────────────
@@ -76,7 +77,10 @@ inline void forward_signals(web_shell::bridge* bridge, const QString& bridgeName
 
 // ── expose_as_ws ─────────────────────────────────────────────────────
 
-inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent = nullptr) {
+inline QWebSocketServer* expose_as_ws(web_shell::BridgeRegistry* registry,
+                                      AppLifecycle* lifecycle,
+                                      int port,
+                                      QObject* parent = nullptr) {
     auto* server = new QWebSocketServer(
         QStringLiteral("BridgeServer"), QWebSocketServer::NonSecureMode, parent);
 
@@ -86,13 +90,13 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
         return nullptr;
     }
 
-    QObject::connect(server, &QWebSocketServer::newConnection, server, [shell, server]() {
+    QObject::connect(server, &QWebSocketServer::newConnection, server, [registry, lifecycle, server]() {
         auto* socket = server->nextPendingConnection();
         if (!socket) return;
 
         // ── Method dispatch ──────────────────────────────────────
         QObject::connect(socket, &QWebSocket::textMessageReceived, server,
-            [shell, socket](const QString& message) {
+            [registry, lifecycle, socket](const QString& message) {
                 QJsonParseError parseErr;
                 QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8(), &parseErr);
                 if (parseErr.error != QJsonParseError::NoError) {
@@ -119,14 +123,14 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
 
                 if (method == "__meta__") {
                     QJsonObject bridges;
-                    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
-                        bridges[it.key()] = collect_bridge_meta(it.value());
+                    for (const auto& [name, bridge_ptr] : registry->all())
+                        bridges[QString::fromStdString(name)] = collect_bridge_meta(bridge_ptr);
                     result_value = QJsonObject{{"bridges", bridges}};
                 } else if (bridgeName.isEmpty()) {
-                    // Shell method (appReady)
-                    result_value = invoke_shell_method(shell, method);
+                    // Lifecycle method (appReady)
+                    result_value = invoke_lifecycle_method(lifecycle, method);
                 } else {
-                    auto* bridge = shell->bridges().value(bridgeName);
+                    auto* bridge = registry->get(bridgeName.toStdString());
                     if (!bridge) {
                         result_value = QJsonObject{{"error", "Unknown bridge: " + bridgeName}};
                     } else {
@@ -156,8 +160,8 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
             });
 
         // ── Forward signals ──────────────────────────────────────
-        for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
-            forward_signals(it.value(), it.key(), socket);
+        for (const auto& [name, bridge_ptr] : registry->all())
+            forward_signals(bridge_ptr, QString::fromStdString(name), socket);
 
         // ── Cleanup ──────────────────────────────────────────────
         QObject::connect(socket, &QWebSocket::disconnected, socket, &QWebSocket::deleteLater);

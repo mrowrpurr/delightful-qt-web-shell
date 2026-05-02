@@ -25,7 +25,8 @@
 
 #include "bridge_channel_adapter.hpp"
 #include "system_bridge.hpp"
-#include "web_shell.hpp"
+#include "app_lifecycle.hpp"
+#include "bridge_registry.hpp"
 
 // Must match --bg in App.css and LoadingOverlay
 static constexpr QColor kBackground{0x24, 0x24, 0x24};
@@ -49,11 +50,13 @@ protected:
     }
 };
 
-WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
+WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
+                               web_shell::BridgeRegistry* registry,
+                               AppLifecycle* lifecycle,
                                const QUrl& contentUrl,
                                OverlayStyle overlayStyle,
                                QWidget* parent)
-    : QWidget(parent), shell_(shell)
+    : QWidget(parent), registry_(registry)
 {
     // ── Layout ───────────────────────────────────────────────
     auto* layout = new QVBoxLayout(this);
@@ -81,7 +84,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
         qDebug() << "[load-time]" << this << "loadFinished at"
                  << loadTimer->elapsed() << "ms ok=" << ok;
     });
-    connect(shell, &WebShell::ready, this, [this, loadTimer]() {
+    connect(lifecycle, &AppLifecycle::ready, this, [this, loadTimer]() {
         qDebug() << "[load-time]" << this << "react ready (signalReady) at"
                  << loadTimer->elapsed() << "ms";
     });
@@ -99,16 +102,17 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
         page->scripts().insert(wcScript);
     }
 
-    // ── Register shell + bridges on this view's channel ──────
+    // ── Register lifecycle + bridges on this view's channel ──
     auto* channel = new QWebChannel(page);
-    channel->registerObject("_shell", shell);
+    channel->registerObject("_shell", lifecycle);
     qInfo() << "[WebShellWidget] creating adapters" << this
-            << "bridgeCount=" << shell->bridges().size()
+            << "bridgeCount=" << registry_->all().size()
             << "url=" << contentUrl.toString();
-    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it) {
-        qInfo() << "[WebShellWidget]   bridge=" << it.key();
-        auto* adapter = new BridgeChannelAdapter(it.value(), channel);
-        channel->registerObject(it.key(), adapter);
+    for (const auto& [name, bridge_ptr] : registry_->all()) {
+        auto qname = QString::fromStdString(name);
+        qInfo() << "[WebShellWidget]   bridge=" << qname;
+        auto* adapter = new BridgeChannelAdapter(bridge_ptr, channel);
+        channel->registerObject(qname, adapter);
     }
     page->setWebChannel(channel);
 
@@ -146,7 +150,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
     overlay_ = new LoadingOverlay(style, this);
 
     // Dismiss the overlay when the React app signals it's ready
-    connect(shell, &WebShell::ready, this, [this]() {
+    connect(lifecycle, &AppLifecycle::ready, this, [this]() {
         if (overlay_) {
             overlay_->dismiss();
             overlay_ = nullptr;  // dismiss() calls deleteLater
@@ -189,7 +193,7 @@ bool WebShellWidget::eventFilter(QObject* obj, QEvent* event) {
         }
         if (!paths.isEmpty()) {
             auto* bridge = static_cast<SystemBridge*>(
-                shell_->bridges().value("system"));
+                registry_->get("system"));
             if (bridge)
                 bridge->handleFilesDropped(paths);
         }

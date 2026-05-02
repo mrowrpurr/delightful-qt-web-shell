@@ -21,7 +21,6 @@
 #include "dialogs/demo_widget_dialog.hpp"
 #include "dialogs/web_dialog.hpp"
 #include "style_manager.hpp"
-#include "web_shell.hpp"
 #include "system_bridge.hpp"
 
 #include <QAction>
@@ -75,7 +74,7 @@ MenuActions buildMenuBar(QMainWindow* window) {
     {
         auto* appInstance = qobject_cast<Application*>(qApp);
         auto* sysBridge = appInstance
-            ? static_cast<SystemBridge*>(appInstance->shell()->bridges().value("system"))
+            ? static_cast<SystemBridge*>(appInstance->registry()->get("system"))
             : nullptr;
         QObject::connect(out.save, &QAction::triggered, window, [window, sysBridge]() {
             if (sysBridge && sysBridge->has_listeners("saveRequested")) {

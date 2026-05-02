@@ -1,2 +1,2 @@
 [test]
-root = "./lib/web-shell/tests/web"
+root = "./framework/qt-transport/tests/web"

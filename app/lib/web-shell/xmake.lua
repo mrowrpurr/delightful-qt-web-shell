@@ -1,8 +1,0 @@
-target("web-shell")
-    set_kind("static")
-    add_rules("qt.static")
-    add_deps("bridge", {public = true})
-    add_files("src/*.cpp", "include/**.hpp")
-    add_includedirs("include", {public = true})
-    add_frameworks("QtCore", "QtNetwork", "QtWebSockets", {public = true})
-    add_packages("def_type", {public = true})
