@@ -123,8 +123,6 @@ Web before tests and scaffold because both downstream pieces want stable paths t
 - No remaining references to `web_shell::` in the codebase (check with grep)
 - `xmake build desktop` green
 - `xmake build wasm-app` green
-- `xmake run test-all` green (first full-suite run since Phase 0 — takes the desktop, ask Purr first)
-- WASM app: bridge calls work
 
 ---
 
@@ -147,9 +145,7 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 **Verification:**
 - `bun install` from `web/` resolves cleanly
-- `main` app builds and runs
-- Components render correctly (snapshot diff against Phase 0)
-- Storybook still launches (`xmake run storybook`)
+- `main` app builds (`bun run build:main` / equivalent compile-only check)
 
 ---
 
@@ -168,12 +164,8 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 **Critical pattern preservation:** localStorage keys (`theme-name`, `theme-mode`, `editor-theme-name`, `editor-use-app-theme`, `page-transparency`, `surface-transparency`, font keys) **must not change**. Renaming or relocating any of them wipes user preferences across upgrades. Audit them at the end of this phase by clearing localStorage, setting preferences in the running app, then comparing keys with Phase 0.
 
 **Verification:**
-- `main` app builds and runs
-- Theme switching works (every theme — try a few including Tron and Dragon)
-- Font switching works (app font and editor font independently)
-- Transparency sliders work
-- localStorage keys match Phase 0 baseline
-- Snapshot diff matches Phase 0
+- `main` app builds
+- localStorage key list reviewed against Phase 0 baseline (grep of source for the key strings; runtime check is human-driven by Purr if/when she chooses)
 
 ---
 
@@ -191,10 +183,7 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 **Critical pattern preservation:** Monaco worker setup runs before any editor mount. Preserve the initialization order during the move.
 
 **Verification:**
-- Editor tab in `main` app loads without console errors
-- Vim mode works
-- Editor theme syncs with app theme
-- Editor font is independently configurable
+- `main` app builds (compile-only — runtime exercise of editor/vim/theme-sync is human-driven by Purr if/when she chooses)
 
 ---
 
@@ -215,11 +204,9 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 **JS-side `_shell` rename:** the QWebChannel object name `_shell` in `bridge-transport.ts` is named after the deleted `WebShell` class. Phase 2 split the C++ side into `BridgeRegistry` + `AppLifecycle` but kept registering the AppLifecycle as `_shell` for JS compatibility. This phase updates the JS side and the `channel->registerObject(...)` call site to a name that matches the C++ class — likely `_lifecycle` or `_appLifecycle`. Coordinated change in `bridge-transport.ts` and `web_shell_widget.cpp` (the registration site).
 
 **Verification:**
-- `main` app builds and runs
-- Every bridge method round-trips (smoke a few)
-- WASM transport still works (`xmake run dev-wasm` + WASM app launches)
-- Snapshot diff matches Phase 0
+- `main` app builds
 - `_shell` no longer appears in any `.ts` or `.cpp` file (check with grep)
+- WASM build still compiles (`xmake build wasm-app`)
 
 ---
 
@@ -256,13 +243,9 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 **Verification:**
 - All three apps build (`bun run build:demo`, `build:settings`, `build:app`)
-- Desktop launches at the chosen default URL
-- User can navigate between demo, settings, and app from the running desktop
-- Snapshot per app captured (these become the new baseline)
-- Bridge calls work in each app
-- WASM dev flow still produces a runnable WASM app
-- Storybook still launches and renders components
-- `xmake run test-all` green (full-suite run — ask Purr first)
+- `xmake build desktop` green (compiles with new scheme_handler routing + WEB_APPS list)
+- `xmake build wasm-app` green
+- Runtime exercise (launching desktop, navigating between apps, snapshots, etc.) is human-driven by Purr if/when she chooses
 
 ---
 
@@ -333,7 +316,6 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 **Verification:**
 - `xmake build` runs through every namespaced target green
-- `xmake run app.test.all` (or whatever the renamed full-suite target ends up) drives the full suite
 - Every `os.execv("xmake", {"run", "..."})` call inside `app/xmake/*.lua` updated to the new names
 - Every `xmake run` reference in `app/docs/` and `docs/` and CI workflow files updated
 - Documentation grep for old bare names returns nothing
@@ -348,15 +330,8 @@ After every phase except 0, before declaring the phase done:
 
 - [ ] `xmake build desktop` green
 - [ ] `xmake build wasm-app` green (skip on phases that don't touch C++ or WASM-relevant paths)
-- [ ] `xmake run test-todo-store` green (after Phase 1)
-- [ ] `xmake run test-bun` green
-- [ ] `xmake run test-browser` green
-- [ ] App launches, snapshots match the current baseline
-- [ ] Every bridge round-trips (smoke a few via `eval_js`)
-- [ ] localStorage keys unchanged (Phase 5 onwards)
-- [ ] No new console errors in the web view
 
-`xmake run test-all` (which includes pywinauto and takes over the desktop) runs **once at end of each multi-phase block** — end of P3, end of P8, end of P9, end of P10, end of P11. Not per-phase. Always ask Purr before running it.
+**Tests are intentionally excluded from per-phase verification.** Phase 9 trims tests aggressively — running existing tests during phases 1–8 burns time on suites that are about to be reduced or replaced, and treats pre-existing failures as if they're regressions. Compile-time green is the bar. Runtime verification (launching the app, exercising features, running test suites) is human-driven — Purr decides when and what to exercise. Don't run tests as part of phase verification unless Purr explicitly asks.
 
 ---
 

@@ -71,8 +71,6 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] No remaining `web_shell::` references in the codebase (verify with grep)
   - [ ] `xmake build desktop` green
   - [ ] `xmake build wasm-app` green
-  - [ ] `xmake run test-all` green (full-suite — ask Purr first)
-  - [ ] WASM app: bridge calls work
 
 ---
 
@@ -86,9 +84,7 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] Package name decided
   - [ ] `main` app imports from the new package via workspace name
   - [ ] `bun install` from `web/` resolves cleanly
-  - [ ] `main` app builds and runs
-  - [ ] Components render correctly (snapshot diff vs Phase 0)
-  - [ ] Storybook still launches (`xmake run storybook`)
+  - [ ] `main` app builds (compile-only)
 
 ### Phase 5 — Preferences package
 
@@ -97,24 +93,17 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] `shared/lib/tron-grid.ts`, theme-effects code (Tron, Dragon, Synthwave glow, wallpapers) moved
   - [ ] `<ThemePicker>`, `<FontPicker>`, `<TransparencySlider>`, `<DarkModeToggle>`, `<AppearancePanel>` moved
   - [ ] Package name decided
-  - [ ] localStorage keys unchanged (`theme-name`, `theme-mode`, `editor-theme-name`, `editor-use-app-theme`, `page-transparency`, `surface-transparency`, font keys)
-  - [ ] `main` app builds and runs
-  - [ ] Theme switching works (incl. Tron and Dragon)
-  - [ ] Font switching works (app + editor independently)
-  - [ ] Transparency sliders work
-  - [ ] Snapshot diff matches Phase 0
+  - [ ] localStorage keys unchanged (`theme-name`, `theme-mode`, `editor-theme-name`, `editor-use-app-theme`, `page-transparency`, `surface-transparency`, font keys) — verified via grep of source for the key strings
+  - [ ] `main` app builds (compile-only)
 
 ### Phase 6 — Monaco package
 
 - [ ] **Phase 6 complete**
   - [ ] `@monaco-editor/react`, `monaco-editor`, `monaco-vim` deps moved to package
   - [ ] `shared/lib/monaco-theme.ts` and Monaco setup code moved
-  - [ ] Monaco worker setup runs before any editor mount (initialization order preserved)
+  - [ ] Monaco worker setup runs before any editor mount (initialization order preserved — verify by reading the moved init code, not by running)
   - [ ] Package name decided
-  - [ ] Editor tab in `main` loads without console errors
-  - [ ] Vim mode works
-  - [ ] Editor theme syncs with app theme
-  - [ ] Editor font is independently configurable
+  - [ ] `main` app builds (compile-only)
 
 ### Phase 7 — Place bridge transport TS
 
@@ -123,10 +112,8 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] Transport files moved to chosen location
   - [ ] JS-side `_shell` identifier renamed (likely `_lifecycle`) — coordinated change in `bridge-transport.ts` + `web_shell_widget.cpp` `channel->registerObject(...)` site
   - [ ] No remaining `_shell` references in `.ts` or `.cpp` (verify with grep)
-  - [ ] `main` app builds and runs
-  - [ ] Every bridge method round-trips
-  - [ ] WASM transport still works (`xmake run dev-wasm` + WASM app launches)
-  - [ ] Snapshot diff matches Phase 0
+  - [ ] `main` app builds (compile-only)
+  - [ ] `xmake build wasm-app` green
 
 ### Phase 8 — Split apps, wire react-router, delete `web/shared/`
 
@@ -150,13 +137,8 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] `assetsInlineLimit: 0` verified in every new `vite.config.ts`
   - [ ] `qtSyncGuard` preserved
   - [ ] All three apps build (`bun run build:demo`, `build:settings`, `build:app`)
-  - [ ] Desktop launches at chosen default URL
-  - [ ] User can navigate between demo, settings, and app
-  - [ ] Snapshot per app captured (new baseline)
-  - [ ] Bridge calls work in each app
-  - [ ] WASM dev flow still produces a runnable WASM app
-  - [ ] Storybook still launches and renders components
-  - [ ] `xmake run test-all` green (ask Purr first)
+  - [ ] `xmake build desktop` green (compiles with new scheme_handler routing + WEB_APPS list)
+  - [ ] `xmake build wasm-app` green
 
 ---
 
@@ -209,4 +191,3 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] All `xmake run` references in `app/docs/`, `docs/`, and CI workflow files updated
   - [ ] Grep for old bare names in docs returns nothing
   - [ ] `xmake build` runs through every namespaced target green
-  - [ ] `xmake run app.test.all` (or chosen renamed full-suite target) green — ask Purr first
