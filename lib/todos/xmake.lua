@@ -1,0 +1,12 @@
+target("todos")
+    set_kind("headeronly")
+    add_includedirs("include", {public = true})
+    add_packages("def_type", {public = true})
+
+target("test-todo-store")
+    set_kind("binary")
+    set_default(false)
+    add_deps("todos")
+    add_files("tests/unit/todo_store_test.cpp")
+    add_packages("catch2")
+    set_rundir("$(projectdir)")

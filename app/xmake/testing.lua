@@ -3,13 +3,7 @@ local _APP_NAME = APP_NAME
 local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
-
-target("test-todo-store")
-    set_kind("binary")
-    set_default(false)
-    add_deps("todos")
-    add_files(path.join(TEMPLATE_ROOT, "lib", "todos", "tests", "unit", "todo_store_test.cpp"))
-    add_packages("catch2")
+-- test-todo-store now lives with the pure-domain library at <repo>/lib/todos/xmake.lua
 
 target("test-bridge-channel-adapter")
     set_kind("binary")

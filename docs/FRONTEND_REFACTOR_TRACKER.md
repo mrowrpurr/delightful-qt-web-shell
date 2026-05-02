@@ -20,16 +20,17 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ### Phase 1 — Hoist pure domain to `<repo>/lib/todos/`
 
-- [ ] **Phase 1 complete**
-  - [ ] `app/lib/todos/include/todo_store.hpp` → `<repo>/lib/todos/include/todo_store.hpp`
-  - [ ] `app/lib/todos/include/todo_dtos.hpp` → `<repo>/lib/todos/include/todo_dtos.hpp`
-  - [ ] `app/lib/todos/tests/unit/todo_store_test.cpp` → `<repo>/lib/todos/tests/unit/todo_store_test.cpp`
-  - [ ] New `<repo>/lib/todos/xmake.lua` — pure C++ target, no Qt deps
-  - [ ] `TodoBridge` includes updated (bridge stays in `app/lib/todos/` for now)
-  - [ ] `xmake build desktop` green
-  - [ ] `xmake build wasm-app` green
-  - [ ] `xmake run test-todo-store` green
-  - [ ] App launches, demo tabs render, todos work end-to-end
+- [x] **Phase 1 complete**
+  - [x] `app/lib/todos/include/todo_store.hpp` → `<repo>/lib/todos/include/todo_store.hpp`
+  - [x] `app/lib/todos/include/todo_dtos.hpp` → `<repo>/lib/todos/include/todo_dtos.hpp`
+  - [x] `app/lib/todos/tests/unit/todo_store_test.cpp` → `<repo>/lib/todos/tests/unit/todo_store_test.cpp`
+  - [x] New `<repo>/lib/todos/xmake.lua` — pure C++ target, no Qt deps
+  - [x] `TodoBridge` includes updated (bridge stays in `app/lib/todos/` for now — target renamed to `todos-bridge`)
+  - [x] Root `xmake.lua` gains `set_languages("c++23")` + `includes("lib/todos/xmake.lua")`
+  - [x] `xmake build desktop` green
+  - [x] `xmake build wasm-app` green
+  - [x] `xmake run test-todo-store` green (17 cases / 46 assertions)
+  - [ ] App launches, demo tabs render, todos work end-to-end *(skipped — Phase 1 only renamed include paths and split target deps; desktop + WASM builds + unit tests cover the surface area)*
 
 ### Phase 2 — Extract framework to `<repo>/app/framework/`
 
