@@ -52,6 +52,7 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [x] `xmake run test-todo-store` green (17 cases / 46 assertions)
   - [x] `xmake run test-bridge-channel-adapter` green (4 cases / 12 assertions)
   - [x] `xmake run test-bun` green (44 tests / 93 expect() calls — exercises real WS protocol round-trip)
+  - [x] `xmake run test-browser` — verified **pre-existing red**: 4 fail / 2 pass on baseline commit `a45ba66` (pre-Phase-1) with identical failure pattern. Phase 2 did not introduce these failures. Bug needs its own investigation.
   - [ ] App launches, every bridge method round-trips *(skipped — Bun tests cover WS round-trips against the rewired dev-server, which is the same bridge code path; GUI smoke deferred)*
   - [ ] WASM app launches, every bridge method round-trips *(skipped — WASM build green proves the Embind binding wiring; GUI smoke deferred)*
 
