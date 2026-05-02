@@ -53,6 +53,11 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] `app/lib/` directory removed
   - [ ] `application.cpp` registration includes updated
   - [ ] `test_server.cpp` registration includes updated (verify both!)
+  - [ ] Target rename: `todos-bridge` → `app.bridges.todos`
+  - [ ] Target rename: `qt-bridges` → `app.bridges.system`
+  - [ ] Namespace decision recorded: `web_shell::` → `<chosen>::` (candidates: `framework::`, `app::framework::`)
+  - [ ] Namespace rename applied to `bridge.hpp`, `BridgeRegistry`, `AppLifecycle`, `WasmBridgeWrapper`, every bridge derived class
+  - [ ] No remaining `web_shell::` references in the codebase (verify with grep)
   - [ ] `xmake build desktop` green
   - [ ] `xmake build wasm-app` green
   - [ ] `xmake run test-all` green (full-suite — ask Purr first)
@@ -105,6 +110,8 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 - [ ] **Phase 7 complete**
   - [ ] Decision recorded: where `bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts`, `system-bridge.ts`, `todo-bridge.ts` live
   - [ ] Transport files moved to chosen location
+  - [ ] JS-side `_shell` identifier renamed (likely `_lifecycle`) — coordinated change in `bridge-transport.ts` + `web_shell_widget.cpp` `channel->registerObject(...)` site
+  - [ ] No remaining `_shell` references in `.ts` or `.cpp` (verify with grep)
   - [ ] `main` app builds and runs
   - [ ] Every bridge method round-trips
   - [ ] WASM transport still works (`xmake run dev-wasm` + WASM app launches)
@@ -169,3 +176,26 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] Generated bridge callable from running app
   - [ ] Tool does not write into `<repo>/lib/`
   - [ ] Test bridge removed after verification
+
+---
+
+## Phase 11 — Namespace bare-name template targets
+
+- [ ] **Phase 11 complete**
+  - [ ] Open question resolved: scheme for nested-concept targets (e.g., `app.test.browser` vs `app.test-browser`)
+  - [ ] `desktop` → `app.desktop`
+  - [ ] `dev-server` → `app.dev-server`
+  - [ ] `dev-web`, `dev-web-main`, `dev-desktop`, `dev-wasm` → `app.dev.*` (or chosen scheme)
+  - [ ] `start-desktop`, `stop-desktop` → `app.start-desktop`, `app.stop-desktop`
+  - [ ] `storybook` → `app.storybook`
+  - [ ] `setup` → `app.setup`
+  - [ ] `validate-bridges` → `app.validate-bridges`
+  - [ ] `playwright-cdp` → `app.playwright-cdp`
+  - [ ] `scaffold-bridge` → `app.scaffold-bridge`
+  - [ ] All `test-*` targets renamed to namespaced scheme
+  - [ ] Pure-domain targets at `<repo>/lib/` (`todos`, etc.) → `lib.<name>`
+  - [ ] All `os.execv("xmake", {"run", "..."})` calls inside `app/xmake/*.lua` updated to new names
+  - [ ] All `xmake run` references in `app/docs/`, `docs/`, and CI workflow files updated
+  - [ ] Grep for old bare names in docs returns nothing
+  - [ ] `xmake build` runs through every namespaced target green
+  - [ ] `xmake run app.test.all` (or chosen renamed full-suite target) green — ask Purr first

@@ -26,6 +26,7 @@ Phases 1–3       C++ reshape
 Phases 4–8       Web reshape
 Phase 9          Test trim
 Phase 10         scaffold-bridge update
+Phase 11         Namespace bare-name template targets
 ```
 
 C++ before web because the TypeScript layer doesn't reference C++ paths — the (still single, still ugly) web app keeps working through every C++ phase, providing a free integration test for the reshape.
@@ -95,7 +96,7 @@ Web before tests and scaffold because both downstream pieces want stable paths t
 
 ### Phase 3 — Move bridges, delete `app/lib/`
 
-**Goal:** bridges land in their final homes; `app/lib/` ceases to exist.
+**Goal:** bridges land in their final homes; `app/lib/` ceases to exist. Namespace `web_shell::` is renamed at the same time, since this phase touches every `web_shell::bridge` include site already.
 
 **Moves:**
 - `TodoBridge` (currently in `app/lib/todos/include/todo_bridge.hpp`) → `app/bridges/todos/include/todo_bridge.hpp`
@@ -103,12 +104,23 @@ Web before tests and scaffold because both downstream pieces want stable paths t
 - `app/lib/` removed.
 - `application.cpp` and `test_server.cpp` registration includes update.
 
+**Target renames** (the bridges' new paths drive new target names in the `app.X` scheme):
+- `todos-bridge` (introduced in Phase 1) → `app.bridges.todos`
+- `qt-bridges` → `app.bridges.system`
+
+**Namespace rename:** `web_shell::bridge`, `web_shell::WasmBridgeWrapper`, etc. → new namespace. The old name was bolted onto the now-deleted `WebShell` class and is misleading. Touches `bridge.hpp` itself, every bridge derived class, `wasm_bindings.cpp`, `BridgeRegistry`, `AppLifecycle`, and every `#include` and `using` site.
+
+**Open question (resolve in this phase):** new namespace name. Candidates:
+- `framework::` — single-level, matches the folder
+- `app::framework::` — two-level, matches the `app.framework.X` target prefix
+
 **Why last in C++:** with framework and pure domain stable in their new homes, the bridges are the last residents to evict. After this phase, C++ matches the target tree.
 
 **Critical pattern preservation:** bridges register in **both** `application.cpp` and `test_server.cpp`. Forgetting either makes the bridge silently absent in that environment. Verify both before declaring this phase done.
 
 **Verification:**
 - `app/lib/` directory does not exist
+- No remaining references to `web_shell::` in the codebase (check with grep)
 - `xmake build desktop` green
 - `xmake build wasm-app` green
 - `xmake run test-all` green (first full-suite run since Phase 0 — takes the desktop, ask Purr first)
@@ -200,11 +212,14 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 **Why this gets its own phase:** splitting apps before bridge transport has a stable home means thrash — every app would need to update its transport import path twice. Doing this as its own atomic phase keeps the apps-split phase focused on apps, not on transport.
 
+**JS-side `_shell` rename:** the QWebChannel object name `_shell` in `bridge-transport.ts` is named after the deleted `WebShell` class. Phase 2 split the C++ side into `BridgeRegistry` + `AppLifecycle` but kept registering the AppLifecycle as `_shell` for JS compatibility. This phase updates the JS side and the `channel->registerObject(...)` call site to a name that matches the C++ class — likely `_lifecycle` or `_appLifecycle`. Coordinated change in `bridge-transport.ts` and `web_shell_widget.cpp` (the registration site).
+
 **Verification:**
 - `main` app builds and runs
 - Every bridge method round-trips (smoke a few)
 - WASM transport still works (`xmake run dev-wasm` + WASM app launches)
 - Snapshot diff matches Phase 0
+- `_shell` no longer appears in any `.ts` or `.cpp` file (check with grep)
 
 ---
 
@@ -293,6 +308,40 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 ---
 
+## Phase 11 — Namespace bare-name template targets
+
+**Goal:** every xmake target the template defines carries an `app.X` (or `lib.X` for repo-root pure-C++ libs) prefix so it doesn't squat on bare names the consumer might want for their own targets.
+
+**Why this exists at all:** the template lives alongside a consumer's other code in the same xmake project. Bare-name targets like `desktop`, `dev-server`, `test-todo-store`, `start-desktop`, `validate-bridges`, etc. would collide with anything a consumer names the same. Phases 1–3 introduced the `app.X` / `lib.X` scheme for new and moved targets — this phase retrofits everything that wasn't already touched.
+
+**Renames (illustrative, not exhaustive — final list is whatever's still bare-named after Phase 10):**
+- `desktop` → `app.desktop`
+- `dev-server` → `app.dev-server`
+- `dev-web`, `dev-web-main`, `dev-desktop`, `dev-wasm` → `app.dev.*`
+- `start-desktop`, `stop-desktop` → `app.start-desktop`, `app.stop-desktop`
+- `storybook` → `app.storybook`
+- `setup` → `app.setup`
+- `validate-bridges` → `app.validate-bridges`
+- `playwright-cdp` → `app.playwright-cdp`
+- `scaffold-bridge` → `app.scaffold-bridge`
+- All `test-*` targets → `app.test.*` (e.g., `test-todo-store` → `lib.todos.test` since the test target lives with the lib; `test-browser` → `app.test.browser`; `test-all` → `app.test.all`)
+- Pure-domain targets at `<repo>/lib/` (e.g., `todos`) → `lib.todos`
+
+**Why last:** renaming targets cascades to every `add_deps()`, every `xmake run X` invocation in `app/xmake/` files, every doc reference, and every CI workflow. Doing this after the major refactor settles means the rename touches a stable target list, not a moving one. It also becomes a single legible commit ("renamed every template target to namespaced form") rather than churn smeared across earlier phases.
+
+**Open question (resolve in this phase):** scheme for nested-concept targets. Does `test-browser` become `app.test.browser` or `app.test-browser`? The dot is a stronger separator semantically; the dash matches the existing single-word convention. Decide here.
+
+**Verification:**
+- `xmake build` runs through every namespaced target green
+- `xmake run app.test.all` (or whatever the renamed full-suite target ends up) drives the full suite
+- Every `os.execv("xmake", {"run", "..."})` call inside `app/xmake/*.lua` updated to the new names
+- Every `xmake run` reference in `app/docs/` and `docs/` and CI workflow files updated
+- Documentation grep for old bare names returns nothing
+
+**Why a separate phase, not folded into earlier ones:** the rename is mechanical but wide. Folding into Phase 3 (which already touches a lot of xmake.lua) would conflate "move bridges" with "rename every template target." Each phase should be reviewable as one concern.
+
+---
+
 ## Verification checklist (every phase)
 
 After every phase except 0, before declaring the phase done:
@@ -307,7 +356,7 @@ After every phase except 0, before declaring the phase done:
 - [ ] localStorage keys unchanged (Phase 5 onwards)
 - [ ] No new console errors in the web view
 
-`xmake run test-all` (which includes pywinauto and takes over the desktop) runs **once at end of each multi-phase block** — end of P3, end of P8, end of P9, end of P10. Not per-phase. Always ask Purr before running it.
+`xmake run test-all` (which includes pywinauto and takes over the desktop) runs **once at end of each multi-phase block** — end of P3, end of P8, end of P9, end of P10, end of P11. Not per-phase. Always ask Purr before running it.
 
 ---
 
