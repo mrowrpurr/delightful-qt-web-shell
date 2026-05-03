@@ -13,10 +13,10 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@app/ui/components/sidebar'
-import { applyTheme, loadTheme, setDarkMode as persistDarkMode } from '@shared/lib/themes'
+import { applyTheme, loadTheme, setDarkMode as persistDarkMode } from '@app/theming/lib/themes'
 import { getSystemBridge } from '@shared/api/system-bridge'
 import { Toaster } from '@app/ui/components/sonner'
-import { applyThemeEffects } from './theme-effects'
+import { applyThemeEffects } from '@app/theming/lib/theme-effects'
 import DocsTab from './tabs/DocsTab'
 import TodosTab from './tabs/TodosTab'
 import FileBrowserTab from './tabs/FileBrowserTab'

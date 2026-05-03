@@ -5,10 +5,10 @@ import '../shared/styles/globals.css'
 // Storybook is a dev tool, not the production load path — it imports themes.json
 // directly so the addon panel has the full data to search/select. The desktop app
 // uses lazy-loaded per-theme modules (see web/shared/lib/themes.ts).
-import { applyTheme, isDarkMode, setDarkMode } from '../shared/lib/themes'
-import { setFontData, initFont, applyFont, getGoogleFontsSync } from '../shared/lib/fonts'
-import themesJson from '../shared/data/themes.json'
-import fontsJson from '../shared/data/google-fonts.json'
+import { applyTheme, isDarkMode, setDarkMode } from '@app/theming/lib/themes'
+import { setFontData, initFont, applyFont, getGoogleFontsSync } from '@app/theming/lib/fonts'
+import themesJson from '@app/theming/data/themes.json'
+import fontsJson from '@app/theming/data/google-fonts.json'
 
 interface RawThemeEntry {
   name: string

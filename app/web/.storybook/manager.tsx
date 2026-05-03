@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { addons, types } from 'storybook/manager-api'
+import { isDarkMode } from '@app/theming/lib/themes'
 
 const ADDON_ID = 'theme-font-addon'
 const PANEL_ID = `${ADDON_ID}/panel`
@@ -83,7 +84,7 @@ function ThemeFontPanel() {
   const [themes, setThemes] = useState<ThemeEntry[]>([])
   const [fonts, setFonts] = useState<GoogleFont[]>([])
   const [currentTheme, setCurrentTheme] = useState(localStorage.getItem('theme-name') || 'Default')
-  const [dark, setDark] = useState(localStorage.getItem('theme-mode') !== 'light')
+  const [dark, setDark] = useState(isDarkMode())
   const [currentFont, setCurrentFont] = useState<string | null>(localStorage.getItem('app-font-family'))
   const [tab, setTab] = useState<'themes' | 'fonts'>('themes')
   const channel = addons.getChannel()

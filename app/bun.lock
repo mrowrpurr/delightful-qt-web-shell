@@ -18,6 +18,7 @@
     "web": {
       "name": "delightful-web",
       "dependencies": {
+        "@app/theming": "workspace:*",
         "@app/ui": "workspace:*",
         "@base-ui/react": "^1.4.1",
         "@hookform/resolvers": "^5.2.2",
@@ -65,6 +66,10 @@
       "name": "@app/main",
       "version": "0.0.0",
     },
+    "web/packages/theming": {
+      "name": "@app/theming",
+      "version": "0.0.0",
+    },
     "web/packages/ui": {
       "name": "@app/ui",
       "version": "0.0.0",
@@ -77,6 +82,8 @@
     "@adobe/css-tools": ["@adobe/css-tools@4.4.4", "", {}, "sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg=="],
 
     "@app/main": ["@app/main@workspace:web/apps/main"],
+
+    "@app/theming": ["@app/theming@workspace:web/packages/theming"],
 
     "@app/ui": ["@app/ui@workspace:web/packages/ui"],
 

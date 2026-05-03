@@ -87,15 +87,26 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [x] `main` app builds (`bun run build:main` green, 28.50s)
   - [x] `xmake build desktop` green (web bundle embedded via qrc)
 
-### Phase 5 — Preferences package
+### Phase 5 — Theming package
 
-- [ ] **Phase 5 complete**
-  - [ ] `shared/lib/themes.ts`, `themes.json`, `shared/lib/fonts.ts`, `google-fonts.json` moved
-  - [ ] `shared/lib/tron-grid.ts`, theme-effects code (Tron, Dragon, Synthwave glow, wallpapers) moved
-  - [ ] `<ThemePicker>`, `<FontPicker>`, `<TransparencySlider>`, `<DarkModeToggle>`, `<AppearancePanel>` moved
-  - [ ] Package name decided
-  - [ ] localStorage keys unchanged (`theme-name`, `theme-mode`, `editor-theme-name`, `editor-use-app-theme`, `page-transparency`, `surface-transparency`, font keys) — verified via grep of source for the key strings
-  - [ ] `main` app builds (compile-only)
+- [x] **Phase 5 complete**
+  - [x] `shared/lib/themes.ts`, `themes.json`, `themes-index.ts`, `themes/*.ts` (1021 generated modules) → `web/packages/theming/lib/themes.ts` + `web/packages/theming/data/`
+  - [x] `shared/lib/fonts.ts`, `google-fonts.json` → `web/packages/theming/lib/fonts.ts` + `web/packages/theming/data/`
+  - [x] `shared/lib/tron-grid.ts`, `apps/main/src/theme-effects.ts` + wallpaper assets (`themes/dragon.png`, `dragon-legacy.jpg`, `tron.svg`, `tron-animated.svg`, `tron-moving.svg`) → `web/packages/theming/lib/` + `web/packages/theming/themes/`
+  - [x] `<ThemePicker>`, `<FontPicker>`, `<TransparencySlider>`, `<DarkModeToggle>`, `<AppearancePanel>` extracted from inline SettingsTab.tsx into `web/packages/theming/components/*.tsx`
+  - [x] SettingsTab rewired to a thin re-export of `<AppearancePanel />`
+  - [x] Package name decided: `@app/theming`
+  - [x] `web/package.json` declares `"@app/theming": "workspace:*"` so bun symlinks it
+  - [x] localStorage keys unchanged (`theme-name`, `theme-mode`, `theme-css`, `app-font-family`, `editor-font-family`, `editor-theme-name`, `editor-use-app-theme`, `editor-use-app-font`, `page-transparency`, `surface-transparency`, `editor-transparency`) — verified by grep of moved files
+  - [x] All consumers re-pointed: `App.tsx`, `main.tsx`, `EditorTab.tsx`, `.storybook/preview.ts` → `@app/theming/lib/...` and `@app/theming/data/...`
+  - [x] `web/packages/ui/components/sonner.tsx` — deleted local `isDarkMode` workaround + the misleading "avoids coupling" comment, now imports `isDarkMode` from `@app/theming/lib/themes` directly. Coupling between workspace packages is fine in this opinionated single-deploy template; the workaround was solving an invented problem.
+  - [x] `xmake build desktop` green (Vite 35.87s + linked exe)
+  - [x] `xmake build wasm-app` green
+  - [x] **Post-audit fixes:** `tools/generate-qss-themes.ts` paths repointed to `web/packages/theming/data/` (was reading/writing dead `web/shared/data/` paths); `.storybook/manager.tsx` switched to `import { isDarkMode } from '@app/theming/lib/themes'` (matched the sonner.tsx fix); empty `web/shared/data/` directory removed; `docs/FRONTEND_REFACTOR_PHASES.md` Phase 5 retitled "Theming package (`@app/theming`)". Re-verified: `xmake build desktop` (SKIP_VITE) green, `bun run build-storybook` green (10.30s), `xmake build wasm-app` green.
+
+**Deferred from Phase 5 (flagged for later phases):**
+- **AppearancePanel editor leak (Phase 8):** `appearance-panel.tsx` includes editor-specific UI (use-app-theme/font toggles, separate editor theme/font sub-pickers, editor-transparency slider). Editors aren't a universal app concern. Phase 8's `apps/settings/` should decide: keep AppearancePanel as-is (less portable to editor-less consumers) or split it.
+- **system-bridge import path (Phase 7):** `appearance-panel.tsx` imports `@shared/api/system-bridge`. When Phase 7 moves bridge transport TS, this import needs updating.
 
 ### Phase 6 — Monaco package
 

@@ -1,14 +1,14 @@
 // Special theme effects — glow, wallpapers, animated tron grid.
 // These are applied on top of the base CSS variable theme.
 
-import { startTronGrid, stopTronGrid } from '@shared/lib/tron-grid'
+import { startTronGrid, stopTronGrid } from './tron-grid'
 
 // Import backgrounds as Vite assets — they get hashed URLs that work in QRC
-import dragonBg from './themes/dragon.png'
-import dragonLegacyBg from './themes/dragon-legacy.jpg'
-import tronBg from './themes/tron.svg'
-import tronAnimatedBg from './themes/tron-animated.svg'
-import tronMovingBg from './themes/tron-moving.svg'
+import dragonBg from '../themes/dragon.png'
+import dragonLegacyBg from '../themes/dragon-legacy.jpg'
+import tronBg from '../themes/tron.svg'
+import tronAnimatedBg from '../themes/tron-animated.svg'
+import tronMovingBg from '../themes/tron-moving.svg'
 
 const GLOW_THEMES = new Set([
   "Mrowr Purr - Synthwave '84",

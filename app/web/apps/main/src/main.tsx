@@ -21,9 +21,9 @@ loader.config({ monaco })
 // applyTheme()). On miss, dynamic-import the saved theme's module.
 // The full themes-index + per-theme modules are split into their own
 // chunks by Vite — main.tsx never parses the 3MB themes.json.
-import { tryFastTheme, isDarkMode, loadTheme, applyTheme, slugifyThemeName } from '@shared/lib/themes'
-import { setFontData, initFont } from '@shared/lib/fonts'
-import fontsJson from '@shared/data/google-fonts.json'
+import { tryFastTheme, isDarkMode, loadTheme, applyTheme, slugifyThemeName } from '@app/theming/lib/themes'
+import { setFontData, initFont } from '@app/theming/lib/fonts'
+import fontsJson from '@app/theming/data/google-fonts.json'
 
 setFontData(fontsJson as any)
 
@@ -40,7 +40,7 @@ const usedFastPath = tryFastTheme()
 lap(usedFastPath ? 'theme: fast-path (cached CSS injected)' : 'theme: cold-path (no cache, will fetch)')
 
 // Apply theme effects + font (these don't need theme vars, just the name)
-import { applyThemeEffects } from './theme-effects'
+import { applyThemeEffects } from '@app/theming/lib/theme-effects'
 const savedThemeName = localStorage.getItem('theme-name') || 'Default'
 initFont()
 applyThemeEffects(savedThemeName)

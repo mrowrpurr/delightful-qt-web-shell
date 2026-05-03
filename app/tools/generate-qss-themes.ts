@@ -7,8 +7,8 @@
  *     desktop/styles/compiled/<slug>-light.qss
  *
  *   Web side (per theme + index):
- *     web/shared/data/themes/<slug>.ts   — { light, dark } CSS vars (one chunk per theme)
- *     web/shared/data/themes-index.ts    — [{ name, slug, pL, pD }] for the picker (one chunk)
+ *     web/packages/theming/data/themes/<slug>.ts   — { light, dark } CSS vars (one chunk per theme)
+ *     web/packages/theming/data/themes-index.ts    — [{ name, slug, pL, pD }] for the picker (one chunk)
  *
  * The web outputs let main.tsx skip parsing the 3MB themes.json at startup.
  *
@@ -22,11 +22,11 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { join, resolve } from 'path'
 
 const ROOT = resolve(import.meta.dir, '..')
-const THEMES_JSON = join(ROOT, 'web/shared/data/themes.json')
+const THEMES_JSON = join(ROOT, 'web/packages/theming/data/themes.json')
 const TEMPLATE_PATH = join(ROOT, 'desktop/styles/shared/widgets.qss.template')
 const COMPILED_DIR = join(ROOT, 'desktop/styles/compiled')
-const WEB_THEMES_DIR = join(ROOT, 'web/shared/data/themes')
-const WEB_INDEX_PATH = join(ROOT, 'web/shared/data/themes-index.ts')
+const WEB_THEMES_DIR = join(ROOT, 'web/packages/theming/data/themes')
+const WEB_INDEX_PATH = join(ROOT, 'web/packages/theming/data/themes-index.ts')
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -218,6 +218,6 @@ writeFileSync(join(COMPILED_DIR, 'theme-names.json'), JSON.stringify(slugToName,
 writeFileSync(WEB_INDEX_PATH, generateIndexModule(indexEntries))
 
 console.log(`\n✅ Qt:  ${generated * 2} QSS files + theme-names.json in desktop/styles/compiled/`)
-console.log(`✅ Web: ${generated} per-theme modules in web/shared/data/themes/`)
+console.log(`✅ Web: ${generated} per-theme modules in web/packages/theming/data/themes/`)
 console.log(`✅ Web: themes-index.ts with ${indexEntries.length} entries`)
 if (skipped > 0) console.log(`   (${skipped} themes skipped — empty name)`)

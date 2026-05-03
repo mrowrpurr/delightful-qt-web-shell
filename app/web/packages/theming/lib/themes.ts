@@ -5,7 +5,7 @@
 //   themes/<slug>.ts         — per-theme {light, dark} vars (lazy-loaded)
 //
 // Run `bun run tools/generate-qss-themes.ts` to regenerate after editing
-// web/shared/data/themes.json.
+// web/packages/theming/data/themes.json.
 
 export interface ThemeVars extends Record<string, string> {}
 
@@ -15,7 +15,7 @@ export interface ThemeEntry {
   dark: ThemeVars
 }
 
-export type { ThemeIndexEntry } from '@shared/data/themes-index'
+export type { ThemeIndexEntry } from '../data/themes-index'
 
 // Every theme defines these 31 vars for both light and dark.
 // applyTheme() writes them to :root as `--foo` AND `--color-foo` so both
@@ -58,11 +58,11 @@ export function slugifyThemeName(name: string): string {
 
 // Lazy-loaded picker index. Cached after first call so dark/light flip
 // doesn't re-fetch.
-let cachedIndex: import('@shared/data/themes-index').ThemeIndexEntry[] | null = null
+let cachedIndex: import('../data/themes-index').ThemeIndexEntry[] | null = null
 
 export async function loadThemeIndex() {
   if (!cachedIndex) {
-    const mod = await import('@shared/data/themes-index')
+    const mod = await import('../data/themes-index')
     cachedIndex = mod.themeIndex
   }
   return cachedIndex

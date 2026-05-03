@@ -141,7 +141,7 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 **Why first in web:** leaf deps. Nothing else in the codebase depends on these primitives except apps. Establishing workspaces here means future packages have a known mechanic to follow.
 
-**Open question (carried):** package name. The original doc lists three "?" placeholders — `?shadcn-ui`, `?preferences`, `?monaco`. Resolve names during their respective extraction phases.
+**Open question (carried):** package name. The original doc lists three "?" placeholders — `?shadcn-ui`, `?preferences`, `?monaco`. Resolve names during their respective extraction phases. (Phase 4 resolved → `@app/ui`. Phase 5 resolved → `@app/theming`.)
 
 **Verification:**
 - `bun install` from `web/` resolves cleanly
@@ -149,7 +149,7 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 ---
 
-### Phase 5 — Preferences package
+### Phase 5 — Theming package (`@app/theming`)
 
 **Goal:** themes, fonts, theme effects extract into a single reusable package.
 

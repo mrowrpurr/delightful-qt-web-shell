@@ -9,10 +9,7 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-
-// localStorage key matches the preferences-package convention; reading it
-// directly here avoids coupling shadcn primitives to preferences.
-const isDarkMode = () => localStorage.getItem("theme-mode") !== "light"
+import { isDarkMode } from "@app/theming/lib/themes"
 
 // Sonner mode-tracker — listens for theme changes (qt-theme-synced and
 // editor-theme-changed both fire on dark/light flips) so the toaster
