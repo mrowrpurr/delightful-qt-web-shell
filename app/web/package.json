@@ -11,6 +11,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@app/bridge": "workspace:*",
     "@app/monaco": "workspace:*",
     "@app/theming": "workspace:*",
     "@app/ui": "workspace:*",

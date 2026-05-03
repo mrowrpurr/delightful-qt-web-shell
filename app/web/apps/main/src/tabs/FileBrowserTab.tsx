@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
+import { getSystemBridge, type SystemBridge } from '@app/bridge/lib/bridges/system-bridge'
 import { Button } from '@app/ui/components/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@app/ui/components/card'
 import { Input } from '@app/ui/components/input'

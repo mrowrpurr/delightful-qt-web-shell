@@ -56,7 +56,7 @@ if (!usedFastPath) {
 
 // Sync React's persisted theme state to Qt on startup.
 // React owns the truth (localStorage persists across sessions, Qt doesn't).
-import { getSystemBridge } from '@shared/api/system-bridge'
+import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
 getSystemBridge().then(system => {
   system.setQtTheme({ displayName: savedThemeName, isDark: isDarkMode() })
 }).catch(() => {}) // WASM/browser mode — no bridge

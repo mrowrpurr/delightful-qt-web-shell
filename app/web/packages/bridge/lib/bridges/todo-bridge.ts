@@ -1,4 +1,4 @@
-import { getBridge } from './bridge'
+import { getBridge } from '../transport/bridge'
 
 // TypeScript interface for the TodoBridge C++ bridge.
 // CRUD over todo lists + items, with signals for live updates.

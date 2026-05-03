@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'sonner'
-import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
+import { getSystemBridge, type SystemBridge } from '@app/bridge/lib/bridges/system-bridge'
 import { Button } from '@app/ui/components/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@app/ui/components/card'
 

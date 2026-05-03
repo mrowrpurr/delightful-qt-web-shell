@@ -7,7 +7,7 @@ import { isDarkMode, loadTheme } from '@app/theming/lib/themes'
 import { getEditorFont, injectGoogleFont } from '@app/theming/lib/fonts'
 import { toast } from 'sonner'
 import { Button } from '@app/ui/components/button'
-import { getSystemBridge } from '@shared/api/system-bridge'
+import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
 
 // Lazy-init bridge
 let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null

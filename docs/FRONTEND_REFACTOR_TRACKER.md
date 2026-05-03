@@ -120,13 +120,16 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ### Phase 7 — Place bridge transport TS
 
-- [ ] **Phase 7 complete**
-  - [ ] Decision recorded: where `bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts`, `system-bridge.ts`, `todo-bridge.ts` live
-  - [ ] Transport files moved to chosen location
-  - [ ] JS-side `_shell` identifier renamed (likely `_lifecycle`) — coordinated change in `bridge-transport.ts` + `web_shell_widget.cpp` `channel->registerObject(...)` site
-  - [ ] No remaining `_shell` references in `.ts` or `.cpp` (verify with grep)
-  - [ ] `main` app builds (compile-only)
-  - [ ] `xmake build wasm-app` green
+- [x] **Phase 7 complete**
+  - [x] Decision recorded: bridge transport TS lives in a 4th workspace package `@app/bridge` at `web/packages/bridge/`. Internal layout split by purpose: `lib/transport/` (`bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts` — framework runtime, consumers never touch) + `lib/bridges/` (`system-bridge.ts`, `todo-bridge.ts` — typed declarations of named bridges; this is where consumer-added bridges land). Folder name `bridges/` mirrors the C++ side's `app/bridges/` for matching vocabulary across the wire.
+  - [x] Transport files moved into `web/packages/bridge/lib/transport/` and `web/packages/bridge/lib/bridges/`
+  - [x] JS-side `_shell` identifier renamed to `_lifecycle` — coordinated change in `bridge-transport.ts` (`channel._lifecycle`, `lifecycle.appReady(...)`) + `web_shell_widget.cpp` (`channel->registerObject("_lifecycle", lifecycle);`). Doc comment in `app_lifecycle.hpp` updated to drop the "Phase 7 will rename" note.
+  - [x] No remaining `_shell` references in `.ts`, `.tsx`, `.cpp`, `.hpp` (verified with grep — empty)
+  - [x] `main` app builds (`bun run --cwd web build:main` green, 26.48s)
+  - [x] `xmake build wasm-app` green (2.45s)
+  - [x] `xmake build desktop` green (7.06s with `_lifecycle` rename)
+  - [x] `@app/bridge` symlinked at `web/node_modules/@app/bridge` after `bun install` (declared as workspace dep in `web/package.json`, matching the established convention from Phases 4/5/6 — sibling packages don't self-declare workspace deps)
+  - [x] Phase-5-deferred consumer fix bundled: `appearance-panel.tsx` rewired from `@shared/api/system-bridge` to `@app/bridge/lib/bridges/system-bridge`
 
 ### Phase 8 — Split apps, wire react-router, delete `web/shared/`
 

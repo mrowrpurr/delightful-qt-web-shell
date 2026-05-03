@@ -1,4 +1,4 @@
-import { getBridge } from './bridge'
+import { getBridge } from '../transport/bridge'
 
 // TypeScript interface for the SystemBridge C++ bridge.
 // Desktop capabilities: clipboard, file I/O, file drop, etc.

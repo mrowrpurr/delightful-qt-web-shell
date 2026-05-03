@@ -105,7 +105,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
 
     // ── Register lifecycle + bridges on this view's channel ──
     auto* channel = new QWebChannel(page);
-    channel->registerObject("_shell", lifecycle);
+    channel->registerObject("_lifecycle", lifecycle);
     qInfo() << "[WebShellWidget] creating adapters" << this
             << "bridgeCount=" << registry_->all().size()
             << "url=" << contentUrl.toString();

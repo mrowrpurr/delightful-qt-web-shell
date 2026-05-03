@@ -18,6 +18,7 @@
     "web": {
       "name": "delightful-web",
       "dependencies": {
+        "@app/bridge": "workspace:*",
         "@app/monaco": "workspace:*",
         "@app/theming": "workspace:*",
         "@app/ui": "workspace:*",
@@ -64,6 +65,10 @@
       "name": "@app/main",
       "version": "0.0.0",
     },
+    "web/packages/bridge": {
+      "name": "@app/bridge",
+      "version": "0.0.0",
+    },
     "web/packages/monaco": {
       "name": "@app/monaco",
       "version": "0.0.0",
@@ -87,6 +92,8 @@
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.4.4", "", {}, "sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg=="],
+
+    "@app/bridge": ["@app/bridge@workspace:web/packages/bridge"],
 
     "@app/main": ["@app/main@workspace:web/apps/main"],
 

@@ -132,7 +132,7 @@ export async function createQtConnection(): Promise<BridgeConnection> {
     })
   })
 
-  const shell = channel._shell
+  const lifecycle = channel._lifecycle
 
   function makeBridgeProxy<T extends object>(bridgeName: string): T {
     const adapter = channel[bridgeName]
@@ -199,7 +199,7 @@ export async function createQtConnection(): Promise<BridgeConnection> {
     },
     signalReady(): Promise<void> {
       return new Promise((resolve, reject) => {
-        shell.appReady((result: any) => {
+        lifecycle.appReady((result: any) => {
           try {
             const data = typeof result === 'string' ? JSON.parse(result) : result
             if (data?.error) reject(new Error(data.error))

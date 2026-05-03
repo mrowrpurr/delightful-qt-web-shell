@@ -1,13 +1,12 @@
 // AppLifecycle — the Qt↔JS ready handshake.
 //
-// React calls `_shell.appReady()` from the web side after mounting. That call
-// lands here as a Q_INVOKABLE, which fires the `ready()` Qt signal. The
+// React calls `_lifecycle.appReady()` from the web side after mounting. That
+// call lands here as a Q_INVOKABLE, which fires the `ready()` Qt signal. The
 // loading overlay subscribes to `ready()` and fades out. If `appReady()`
 // never fires (broken bridge, JS crash), the overlay's 15-second timeout
 // shows an error.
 //
-// Registered into QWebChannel as the object name "_shell" (a JS-side
-// historical name; rename is its own task in the refactor — Phase 7).
+// Registered into QWebChannel as the object name "_lifecycle".
 
 #pragma once
 
