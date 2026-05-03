@@ -108,14 +108,15 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 - **AppearancePanel editor leak (Phase 8):** `appearance-panel.tsx` includes editor-specific UI (use-app-theme/font toggles, separate editor theme/font sub-pickers, editor-transparency slider). Editors aren't a universal app concern. Phase 8's `apps/settings/` should decide: keep AppearancePanel as-is (less portable to editor-less consumers) or split it.
 - **system-bridge import path (Phase 7):** `appearance-panel.tsx` imports `@shared/api/system-bridge`. When Phase 7 moves bridge transport TS, this import needs updating.
 
-### Phase 6 — Monaco package
+### Phase 6 — Monaco package (`@app/monaco`)
 
-- [ ] **Phase 6 complete**
-  - [ ] `@monaco-editor/react`, `monaco-editor`, `monaco-vim` deps moved to package
-  - [ ] `shared/lib/monaco-theme.ts` and Monaco setup code moved
-  - [ ] Monaco worker setup runs before any editor mount (initialization order preserved — verify by reading the moved init code, not by running)
-  - [ ] Package name decided
-  - [ ] `main` app builds (compile-only)
+- [x] **Phase 6 complete**
+  - [x] `@monaco-editor/react`, `monaco-editor`, `monaco-vim` deps moved to `web/packages/monaco/package.json`
+  - [x] `shared/lib/monaco-theme.ts` → `web/packages/monaco/lib/monaco-theme.ts`; the 4-line worker+`loader.config({ monaco })` bootstrap from `main.tsx` extracted to `web/packages/monaco/lib/setup.ts` as a side-effect module
+  - [x] Monaco worker setup runs before any editor mount — `import '@app/monaco/setup'` is the **first** import in `main.tsx`, before any other module that could mount an editor
+  - [x] Package name decided: `@app/monaco`
+  - [x] `main` app builds (`bun run build:main` green, 28.13s)
+  - [x] `xmake build desktop` green (SKIP_VITE, web bundle embedded via qrc)
 
 ### Phase 7 — Place bridge transport TS
 

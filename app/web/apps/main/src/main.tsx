@@ -1,3 +1,4 @@
+import '@app/monaco/lib/setup'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
@@ -8,14 +9,6 @@ import './App.css'
 const t0 = performance.now()
 const lap = (label: string) => console.log(`[load-time] web: ${label} at ${(performance.now() - t0).toFixed(1)}ms`)
 lap('main.tsx start')
-
-// Monaco setup — share a single instance between @monaco-editor/react and monaco-vim.
-// The web worker must be configured before any editor mounts.
-import * as monaco from 'monaco-editor'
-import { loader } from '@monaco-editor/react'
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
-self.MonacoEnvironment = { getWorker: () => new editorWorker() }
-loader.config({ monaco })
 
 // Theme: try the synchronous fast-path first (cached CSS from a previous
 // applyTheme()). On miss, dynamic-import the saved theme's module.
