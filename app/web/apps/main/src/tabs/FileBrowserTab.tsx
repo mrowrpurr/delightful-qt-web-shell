@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
 import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
-import { Button } from '@shared/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@shared/components/ui/card'
-import { Input } from '@shared/components/ui/input'
-import { ScrollArea } from '@shared/components/ui/scroll-area'
+import { Button } from '@app/ui/components/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@app/ui/components/card'
+import { Input } from '@app/ui/components/input'
+import { ScrollArea } from '@app/ui/components/scroll-area'
 
 // Lazy-init bridge — keep module-import resilient when the bridge isn't reachable
 let system: SystemBridge | null = null

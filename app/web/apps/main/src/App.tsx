@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { SidebarSlotProvider } from '@/hooks/use-sidebar-slot'
+import { SidebarSlotProvider } from '@app/ui/hooks/use-sidebar-slot'
 import { signalReady } from '@shared/api/bridge'
 import {
   Sidebar,
@@ -12,10 +12,10 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from '@shared/components/ui/sidebar'
+} from '@app/ui/components/sidebar'
 import { applyTheme, loadTheme, setDarkMode as persistDarkMode } from '@shared/lib/themes'
 import { getSystemBridge } from '@shared/api/system-bridge'
-import { Toaster } from '@shared/components/ui/sonner'
+import { Toaster } from '@app/ui/components/sonner'
 import { applyThemeEffects } from './theme-effects'
 import DocsTab from './tabs/DocsTab'
 import TodosTab from './tabs/TodosTab'

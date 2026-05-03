@@ -11,6 +11,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@app/ui": "workspace:*",
     "@base-ui/react": "^1.4.1",
     "@hookform/resolvers": "^5.2.2",
     "@monaco-editor/react": "^4.7.0",

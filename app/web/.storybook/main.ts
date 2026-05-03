@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const config: StorybookConfig = {
   stories: [
-    '../shared/**/*.stories.@(ts|tsx)',
+    '../packages/ui/components/**/*.stories.@(ts|tsx)',
   ],
   addons: [
     '@storybook/addon-docs',

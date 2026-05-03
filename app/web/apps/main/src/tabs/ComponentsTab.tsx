@@ -10,93 +10,93 @@ import {
 import { toast } from 'sonner'
 
 // Forms
-import { Button } from '@shared/components/ui/button'
-import { ButtonGroup } from '@shared/components/ui/button-group'
-import { Input } from '@shared/components/ui/input'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@shared/components/ui/input-group'
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@shared/components/ui/input-otp'
-import { Textarea } from '@shared/components/ui/textarea'
-import { Label } from '@shared/components/ui/label'
-import { Checkbox } from '@shared/components/ui/checkbox'
-import { Switch } from '@shared/components/ui/switch'
-import { RadioGroup, RadioGroupItem } from '@shared/components/ui/radio-group'
-import { Slider } from '@shared/components/ui/slider'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select'
-import { Toggle } from '@shared/components/ui/toggle'
-import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group'
+import { Button } from '@app/ui/components/button'
+import { ButtonGroup } from '@app/ui/components/button-group'
+import { Input } from '@app/ui/components/input'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@app/ui/components/input-group'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@app/ui/components/input-otp'
+import { Textarea } from '@app/ui/components/textarea'
+import { Label } from '@app/ui/components/label'
+import { Checkbox } from '@app/ui/components/checkbox'
+import { Switch } from '@app/ui/components/switch'
+import { RadioGroup, RadioGroupItem } from '@app/ui/components/radio-group'
+import { Slider } from '@app/ui/components/slider'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@app/ui/components/select'
+import { Toggle } from '@app/ui/components/toggle'
+import { ToggleGroup, ToggleGroupItem } from '@app/ui/components/toggle-group'
 
 // Combobox via popover + cmdk (the same composition used by SettingsTab pickers)
-import { Popover, PopoverContent, PopoverTrigger } from '@shared/components/ui/popover'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@shared/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@app/ui/components/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@app/ui/components/command'
 
 // Multi-select chips combobox (base-ui)
-import { Combobox, ComboboxChips, ComboboxChip, ComboboxChipsInput, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList } from '@shared/components/ui/combobox'
+import { Combobox, ComboboxChips, ComboboxChip, ComboboxChipsInput, ComboboxCollection, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList } from '@app/ui/components/combobox'
 
 // Field + Form (react-hook-form integration)
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from '@shared/components/ui/field'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@shared/components/ui/form'
-import { SelectGroup, SelectLabel, SelectSeparator } from '@shared/components/ui/select'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from '@app/ui/components/field'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@app/ui/components/form'
+import { SelectGroup, SelectLabel, SelectSeparator } from '@app/ui/components/select'
 
 // DropdownMenu enriched
 import {
   DropdownMenuCheckboxItem, DropdownMenuGroup, DropdownMenuPortal,
   DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuShortcut,
   DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger,
-} from '@shared/components/ui/dropdown-menu'
+} from '@app/ui/components/dropdown-menu'
 import {
   ContextMenuCheckboxItem, ContextMenuLabel, ContextMenuRadioGroup, ContextMenuRadioItem,
   ContextMenuSeparator, ContextMenuShortcut, ContextMenuSub, ContextMenuSubContent,
   ContextMenuSubTrigger,
-} from '@shared/components/ui/context-menu'
+} from '@app/ui/components/context-menu'
 import {
   MenubarCheckboxItem, MenubarRadioGroup, MenubarRadioItem, MenubarShortcut,
   MenubarSub, MenubarSubContent, MenubarSubTrigger,
-} from '@shared/components/ui/menubar'
-import { BreadcrumbEllipsis } from '@shared/components/ui/breadcrumb'
-import { EmptyContent } from '@shared/components/ui/empty'
+} from '@app/ui/components/menubar'
+import { BreadcrumbEllipsis } from '@app/ui/components/breadcrumb'
+import { EmptyContent } from '@app/ui/components/empty'
 
 // Display
-import { Avatar, AvatarFallback, AvatarImage } from '@shared/components/ui/avatar'
-import { Badge } from '@shared/components/ui/badge'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@shared/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@shared/components/ui/alert'
-import { Skeleton } from '@shared/components/ui/skeleton'
-import { Spinner } from '@shared/components/ui/spinner'
-import { Progress } from '@shared/components/ui/progress'
-import { Separator } from '@shared/components/ui/separator'
-import { Kbd } from '@shared/components/ui/kbd'
-import { AspectRatio } from '@shared/components/ui/aspect-ratio'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@shared/components/ui/empty'
+import { Avatar, AvatarFallback, AvatarImage } from '@app/ui/components/avatar'
+import { Badge } from '@app/ui/components/badge'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@app/ui/components/card'
+import { Alert, AlertDescription, AlertTitle } from '@app/ui/components/alert'
+import { Skeleton } from '@app/ui/components/skeleton'
+import { Spinner } from '@app/ui/components/spinner'
+import { Progress } from '@app/ui/components/progress'
+import { Separator } from '@app/ui/components/separator'
+import { Kbd } from '@app/ui/components/kbd'
+import { AspectRatio } from '@app/ui/components/aspect-ratio'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@app/ui/components/empty'
 
 // Navigation
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/components/ui/tabs'
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@shared/components/ui/breadcrumb'
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@shared/components/ui/pagination'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@shared/components/ui/dropdown-menu'
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@shared/components/ui/context-menu'
-import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger } from '@shared/components/ui/menubar'
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from '@shared/components/ui/navigation-menu'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/ui/components/tabs'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@app/ui/components/breadcrumb'
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@app/ui/components/pagination'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@app/ui/components/dropdown-menu'
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@app/ui/components/context-menu'
+import { Menubar, MenubarContent, MenubarItem, MenubarMenu, MenubarSeparator, MenubarTrigger } from '@app/ui/components/menubar'
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from '@app/ui/components/navigation-menu'
 
 // Overlays
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@shared/components/ui/dialog'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@shared/components/ui/alert-dialog'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@shared/components/ui/sheet'
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@shared/components/ui/drawer'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@shared/components/ui/tooltip'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@shared/components/ui/hover-card'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@app/ui/components/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@app/ui/components/alert-dialog'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@app/ui/components/sheet'
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from '@app/ui/components/drawer'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@app/ui/components/tooltip'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@app/ui/components/hover-card'
 
 // Containers
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@shared/components/ui/accordion'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@shared/components/ui/collapsible'
-import { ScrollArea } from '@shared/components/ui/scroll-area'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@shared/components/ui/resizable'
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@shared/components/ui/carousel'
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table'
-import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@shared/components/ui/item'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@app/ui/components/accordion'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/ui/components/collapsible'
+import { ScrollArea } from '@app/ui/components/scroll-area'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@app/ui/components/resizable'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@app/ui/components/carousel'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@app/ui/components/table'
+import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@app/ui/components/item'
 
 // Data
-import { Calendar } from '@shared/components/ui/calendar'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from '@shared/components/ui/chart'
+import { Calendar } from '@app/ui/components/calendar'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig } from '@app/ui/components/chart'
 import {
   Bar, BarChart,
   Line, LineChart,

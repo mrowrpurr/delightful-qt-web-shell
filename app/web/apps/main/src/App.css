@@ -1,12 +1,6 @@
 @import "tailwindcss";
+@import "@app/ui/styles/theme.css";
 
-@source "../../../shared/components";
-
-/* Theme scaffolding for this app. Values come from the active theme via
-   applyTheme() at runtime — we just tell Tailwind v4 to resolve the
-   `bg-background` / `text-foreground` / etc. utilities from the `--*`
-   variables our theme system writes to :root.
-   --radius stays declared here because no theme authors it. */
 /* Transparency knobs — set on :root, defaulted to 1 (fully opaque).
    `--page-opacity` controls the page background (.bg-page utility, used by
    the App root div + SidebarInset). `--surface-opacity` folds into card and
@@ -16,35 +10,6 @@
 :root {
   --page-opacity: 1;
   --surface-opacity: 1;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: oklch(from var(--card) l c h / var(--surface-opacity, 1));
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-sidebar: oklch(from var(--sidebar) l c h / var(--surface-opacity, 1));
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius: 0.5rem;
 }
 
 body {

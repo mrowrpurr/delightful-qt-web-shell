@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@shared/components/ui/select'
-import { Switch } from '@shared/components/ui/switch'
-import { Label } from '@shared/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card'
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@app/ui/components/select'
+import { Switch } from '@app/ui/components/switch'
+import { Label } from '@app/ui/components/label'
+import { Card, CardContent, CardHeader, CardTitle } from '@app/ui/components/card'
 
 // ── Human docs ────────────────────────────────────────────
 import readme from '../../../../../README.md?raw'

@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
-import { Button } from '@shared/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@shared/components/ui/card'
+import { Button } from '@app/ui/components/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@app/ui/components/card'
 
 // Lazy-init bridge — keep module-import resilient when the bridge isn't reachable
 let system: SystemBridge | null = null

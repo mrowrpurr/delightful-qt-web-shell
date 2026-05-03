@@ -12,7 +12,7 @@
   },
   "private": true,
   "type": "module",
-  "workspaces": ["web"],
+  "workspaces": ["web", "web/apps/*", "web/packages/*"],
   "dependencies": {
     "lucide-react": "^1.11.0"
   }

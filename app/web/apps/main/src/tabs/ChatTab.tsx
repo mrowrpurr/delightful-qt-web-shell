@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { Button } from '@shared/components/ui/button'
-import { Input } from '@shared/components/ui/input'
+import { Button } from '@app/ui/components/button'
+import { Input } from '@app/ui/components/input'
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@shared/components/ui/sidebar'
-import { useSidebarSlot } from '@/hooks/use-sidebar-slot'
+} from '@app/ui/components/sidebar'
+import { useSidebarSlot } from '@app/ui/hooks/use-sidebar-slot'
 
 type Session = { id: string, title: string }
 

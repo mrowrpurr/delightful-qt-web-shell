@@ -6,7 +6,7 @@ import { buildMonacoTheme, buildMonacoThemeFromVars } from '@shared/lib/monaco-t
 import { isDarkMode, loadTheme } from '@shared/lib/themes'
 import { getEditorFont, injectGoogleFont } from '@shared/lib/fonts'
 import { toast } from 'sonner'
-import { Button } from '@shared/components/ui/button'
+import { Button } from '@app/ui/components/button'
 import { getSystemBridge } from '@shared/api/system-bridge'
 
 // Lazy-init bridge

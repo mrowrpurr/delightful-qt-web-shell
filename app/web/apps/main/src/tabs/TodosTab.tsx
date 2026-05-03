@@ -3,10 +3,10 @@ import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getTodoBridge, type TodoBridge, type TodoList, type ListDetail } from '@shared/api/todo-bridge'
 import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
-import { Button } from '@shared/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@shared/components/ui/card'
-import { Input } from '@shared/components/ui/input'
-import { Checkbox } from '@shared/components/ui/checkbox'
+import { Button } from '@app/ui/components/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@app/ui/components/card'
+import { Input } from '@app/ui/components/input'
+import { Checkbox } from '@app/ui/components/checkbox'
 
 // Lazy-init bridges — keep module-import resilient when a bridge isn't reachable
 let todos: TodoBridge | null = null

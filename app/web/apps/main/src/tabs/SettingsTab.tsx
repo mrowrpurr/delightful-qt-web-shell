@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { cn } from '@shared/lib/utils'
+import { cn } from '@app/ui/lib/cn'
 import { applyTheme, loadTheme, loadThemeIndex, isDarkMode, setDarkMode, type ThemeIndexEntry } from '@shared/lib/themes'
 import { loadGoogleFonts, getGoogleFontsSync, applyFont, type GoogleFont } from '@shared/lib/fonts'
 import { applyThemeEffects } from '../theme-effects'
 import { getSystemBridge } from '@shared/api/system-bridge'
-import { Switch } from '@shared/components/ui/switch'
-import { Label } from '@shared/components/ui/label'
-import { Button } from '@shared/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@shared/components/ui/popover'
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@shared/components/ui/command'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@shared/components/ui/card'
+import { Switch } from '@app/ui/components/switch'
+import { Label } from '@app/ui/components/label'
+import { Button } from '@app/ui/components/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@app/ui/components/popover'
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@app/ui/components/command'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@app/ui/components/card'
 
 // Lazy-init the system bridge (may not be available in WASM/browser mode)
 let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null

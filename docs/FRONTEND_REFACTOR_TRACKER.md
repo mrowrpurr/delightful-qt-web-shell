@@ -58,19 +58,19 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ### Phase 3 — Move bridges, delete `app/lib/`
 
-- [ ] **Phase 3 complete**
-  - [ ] `TodoBridge` → `app/bridges/todos/include/todo_bridge.hpp`
-  - [ ] `SystemBridge` (+ DTOs + MOC anchor `bridges.cpp`) → `app/bridges/system/...`
-  - [ ] `app/lib/` directory removed
-  - [ ] `application.cpp` registration includes updated
-  - [ ] `test_server.cpp` registration includes updated (verify both!)
-  - [ ] Target rename: `todos-bridge` → `app.bridges.todos`
-  - [ ] Target rename: `qt-bridges` → `app.bridges.system`
-  - [ ] Namespace decision recorded: `web_shell::` → `<chosen>::` (candidates: `framework::`, `app::framework::`)
-  - [ ] Namespace rename applied to `bridge.hpp`, `BridgeRegistry`, `AppLifecycle`, `WasmBridgeWrapper`, every bridge derived class
-  - [ ] No remaining `web_shell::` references in the codebase (verify with grep)
-  - [ ] `xmake build desktop` green
-  - [ ] `xmake build wasm-app` green
+- [x] **Phase 3 complete**
+  - [x] `TodoBridge` → `app/bridges/todos/include/todo_bridge.hpp`
+  - [x] `SystemBridge` (+ DTOs + MOC anchor `bridges.cpp`) → `app/bridges/system/...`
+  - [x] `app/lib/` directory removed
+  - [x] `application.cpp` registration includes updated
+  - [x] `test_server.cpp` registration includes updated (verify both!)
+  - [x] Target rename: `todos-bridge` → `app.bridges.todos`
+  - [x] Target rename: `qt-bridges` → `app.bridges.system`
+  - [x] Namespace decision recorded: `web_shell::` → `app_shell::` (locked in `FRONTEND_REFACTOR_PHASES.md`; class casing fix `web_shell::bridge` → `app_shell::Bridge` bundled in)
+  - [x] Namespace rename applied to `bridge.hpp`, `BridgeRegistry`, `AppLifecycle`, `WasmBridgeWrapper`, every bridge derived class
+  - [x] No remaining `web_shell::` references in the codebase (verify with grep)
+  - [x] `xmake build desktop` green
+  - [x] `xmake build wasm-app` green
 
 ---
 
@@ -78,13 +78,14 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ### Phase 4 — Bun workspaces + shadcn primitives package
 
-- [ ] **Phase 4 complete**
-  - [ ] `web/package.json` configured with bun workspaces
-  - [ ] `web/packages/<shadcn-pkg-name>/` created with shadcn primitives (`shared/components/ui/*`), `cn` helper, `useSidebarSlot`, `tailwind.css`
-  - [ ] Package name decided
-  - [ ] `main` app imports from the new package via workspace name
-  - [ ] `bun install` from `web/` resolves cleanly
-  - [ ] `main` app builds (compile-only)
+- [x] **Phase 4 complete**
+  - [x] `app/package.json` workspaces extended to `["web", "web/apps/*", "web/packages/*"]` (outer `app/` is the actual workspace root, not `web/`)
+  - [x] `web/packages/ui/` created with shadcn primitives (`shared/components/ui/*`), `cn` helper, `useSidebarSlot`, `useIsMobile`, `theme.css`
+  - [x] Package name decided: `@app/ui`
+  - [x] `main` app imports from the new package via workspace name (`@app/ui/components/*`, `@app/ui/lib/cn`, `@app/ui/hooks/use-sidebar-slot`, `@app/ui/styles/theme.css`)
+  - [x] `bun install` resolves cleanly (`@app/ui` symlinked at `web/node_modules/@app/ui`)
+  - [x] `main` app builds (`bun run build:main` green, 28.50s)
+  - [x] `xmake build desktop` green (web bundle embedded via qrc)
 
 ### Phase 5 — Preferences package
 

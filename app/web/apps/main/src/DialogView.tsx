@@ -2,10 +2,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { signalReady } from '@shared/api/bridge'
 import { getTodoBridge, type TodoBridge, type TodoList } from '@shared/api/todo-bridge'
-import { Button } from '@shared/components/ui/button'
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@shared/components/ui/select'
-import { Input } from '@shared/components/ui/input'
-import { Toaster } from '@shared/components/ui/sonner'
+import { Button } from '@app/ui/components/button'
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@app/ui/components/select'
+import { Input } from '@app/ui/components/input'
+import { Toaster } from '@app/ui/components/sonner'
 
 // Lazy-init bridge — keeps module-import resilient when the bridge isn't reachable
 let todos: TodoBridge | null = null
