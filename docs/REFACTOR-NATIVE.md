@@ -286,7 +286,6 @@ These came up and are explicitly NOT part of this refactor.
 - **Lifecycle hooks** (signals on `App` like `beforeBridgeRegistration`, `afterFirstWindowShown`) — invented to solve a problem that doesn't exist. Dropped. If a real need surfaces later, add a signal then.
 - **Multiple starting templates as folders** (`app/templates/tray-popup/` etc.) — slate + demo + docs is enough. If consumers need more example shapes, doc snippets handle it without shipping copyable folders that need maintenance.
 - **Registry / Bridge base class naming** — owned by the frontend refactor agent (transport-agnostic concern). Whatever they pick, `app_shell::App` adapts to it.
-- **Settings class extract** (`WindowSettings`/`DockSettings`/`AppSettings`) — real smell (QSettings keys built with inline string-concat across `main_window.cpp`, `dock_manager.cpp`, `application.cpp`), but **deferred** to a focused follow-on cleanup. Doesn't block the headline refactor.
 
 ---
 
