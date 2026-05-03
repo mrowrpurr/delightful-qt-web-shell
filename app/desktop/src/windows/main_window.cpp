@@ -1,7 +1,7 @@
 // MainWindow — wires together menu bar, tool bar, status bar, and dock widgets.
 //
 // This file should stay short. If you're adding logic here, ask yourself:
-//   - App-level concern? → Application
+//   - App-level concern? → app_shell::App
 //   - Dock lifecycle/persistence? → DockManager
 //   - Menu/toolbar action? → menus/menu_bar.cpp
 //   - Reusable widget? → widgets/

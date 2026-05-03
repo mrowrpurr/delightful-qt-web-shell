@@ -6,7 +6,7 @@
 //   - status bar (from widgets/)
 //   - Tabified QDockWidgets with WebShellWidgets (main app docks)
 //
-// Business logic, bridges, and app-level concerns live in Application.
+// Business logic, bridges, and app-level concerns live in app_shell::App.
 // Dock lifecycle and persistence live in DockManager.
 // Window-level concerns (geometry, zoom, active dock UI) live here.
 

@@ -1,6 +1,6 @@
 // DockManager — app-level dock lifecycle, persistence, and shutdown.
 //
-// Owned by Application. Tracks all docks across all MainWindows.
+// Owned by app_shell::App. Tracks all docks across all MainWindows.
 // Persists each dock individually (URL, floating state, geometry) keyed by UUID.
 // Grid layout (tabified groups, splits, splitter ratios) persisted via
 // QMainWindow::saveState/restoreState with stable dock UUIDs.
