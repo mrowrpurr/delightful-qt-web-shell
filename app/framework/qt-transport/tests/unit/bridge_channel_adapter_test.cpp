@@ -8,7 +8,7 @@
 
 namespace {
 
-class TestBridge : public web_shell::bridge {
+class TestBridge : public app_shell::Bridge {
 public:
     TestBridge() {
         signal("foo");

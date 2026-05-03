@@ -32,7 +32,7 @@ struct AddItemRequest {
 Add the method to `lib/todos/include/todo_bridge.hpp` and register it in the constructor:
 
 ```cpp
-class TodoBridge : public web_shell::bridge {
+class TodoBridge : public app_shell::Bridge {
 public:
     TodoBridge() {
         // ... existing registrations ...
@@ -100,7 +100,7 @@ xmake run scaffold-bridge notes
 ```
 
 This creates a new bridge class with def_type DTOs:
-1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — bridge class extending `web_shell::bridge` with method/signal registration skeleton
+1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — bridge class extending `app_shell::Bridge` with method/signal registration skeleton
 2. Creates a DTOs header for request/response structs
 3. Creates `web/shared/api/notes-bridge.ts` — TypeScript interface stub
 4. Wires `#include` + `addBridge()` into both `desktop/src/application.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
@@ -116,13 +116,13 @@ No xmake.lua edits needed — the bridge targets use glob discovery.
 5. Mirror methods in the TypeScript interface
 6. Use it: `const notes = await getBridge<NotesBridge>('notes')`
 
-No WASM-specific bridge needed. The generic `WasmBridgeWrapper` handles any `web_shell::bridge` automatically.
+No WASM-specific bridge needed. The generic `WasmBridgeWrapper` handles any `app_shell::Bridge` automatically.
 
 ### Checklist
 
 - [ ] Domain logic in `lib/` — pure C++, no framework deps
 - [ ] Request DTOs — plain C++ structs (auto-serialized by PFR)
-- [ ] Bridge class extending `web_shell::bridge` — methods registered with `method("name", &fn)`
+- [ ] Bridge class extending `app_shell::Bridge` — methods registered with `method("name", &fn)`
 - [ ] Bridge registered in `application.cpp` and `test_server.cpp`: `shell.addBridge("name", bridge)`
 - [ ] TypeScript interface with request objects matching the DTOs
 - [ ] Compiles — compile-time type safety catches DTO mismatches

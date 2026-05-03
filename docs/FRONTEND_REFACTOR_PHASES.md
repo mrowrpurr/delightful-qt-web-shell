@@ -108,11 +108,11 @@ Web before tests and scaffold because both downstream pieces want stable paths t
 - `todos-bridge` (introduced in Phase 1) → `app.bridges.todos`
 - `qt-bridges` → `app.bridges.system`
 
-**Namespace rename:** `web_shell::bridge`, `web_shell::WasmBridgeWrapper`, etc. → new namespace. The old name was bolted onto the now-deleted `WebShell` class and is misleading. Touches `bridge.hpp` itself, every bridge derived class, `wasm_bindings.cpp`, `BridgeRegistry`, `AppLifecycle`, and every `#include` and `using` site.
+**Namespace rename:** `web_shell::` → `app_shell::`. The old name was bolted onto the now-deleted `WebShell` class and is misleading. Touches `bridge.hpp` itself, every bridge derived class, `wasm_bindings.cpp`, `BridgeRegistry`, `AppLifecycle`, and every `#include` and `using` site.
 
-**Open question (resolve in this phase):** new namespace name. Candidates:
-- `framework::` — single-level, matches the folder
-- `app::framework::` — two-level, matches the `app.framework.X` target prefix
+**Class casing fix bundled in:** `web_shell::bridge` (lowercase, the lone offender among class names in the namespace) → `app_shell::Bridge` (PascalCase). Every other class in `web_shell::` (`BridgeRegistry`, `WasmBridgeWrapper`, `AppLifecycle`) is already PascalCase and just needs the namespace swap. Free functions in the namespace (`from_qt_json`, `to_qt_json_value`) stay snake_case — that's conventional and fine.
+
+No `framework::` namespace exists or will exist. The folder is `app/framework/`; the namespace is `app_shell::`.
 
 **Why last in C++:** with framework and pure domain stable in their new homes, the bridges are the last residents to evict. After this phase, C++ matches the target tree.
 

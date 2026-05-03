@@ -51,7 +51,7 @@ protected:
 };
 
 WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
-                               web_shell::BridgeRegistry* registry,
+                               app_shell::BridgeRegistry* registry,
                                AppLifecycle* lifecycle,
                                const QUrl& contentUrl,
                                OverlayStyle overlayStyle,

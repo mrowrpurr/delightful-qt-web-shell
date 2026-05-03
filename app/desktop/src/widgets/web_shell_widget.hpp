@@ -24,7 +24,7 @@
 #include <QUrl>
 #include <QWidget>
 
-namespace web_shell { class BridgeRegistry; }
+namespace app_shell { class BridgeRegistry; }
 class AppLifecycle;
 class LoadingOverlay;
 class QWebEngineView;
@@ -43,7 +43,7 @@ public:
     // overlayStyle — Full (logo+progress) for main window, Spinner for dialogs
     // parent       — parent widget (MainWindow, QDialog, etc.)
     WebShellWidget(QWebEngineProfile* profile,
-                   web_shell::BridgeRegistry* registry,
+                   app_shell::BridgeRegistry* registry,
                    AppLifecycle* lifecycle,
                    const QUrl& contentUrl,
                    OverlayStyle overlayStyle = FullOverlay,
@@ -62,5 +62,5 @@ private:
     QWebEngineView* view_ = nullptr;
     QWebEngineView* devToolsView_ = nullptr;
     LoadingOverlay* overlay_ = nullptr;
-    web_shell::BridgeRegistry* registry_ = nullptr;
+    app_shell::BridgeRegistry* registry_ = nullptr;
 };

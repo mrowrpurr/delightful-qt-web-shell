@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     // Register your bridges here — must match desktop/src/main.cpp.
     // If you add a bridge in main.cpp but forget here, browser-mode dev
     // and Playwright tests will silently be missing that bridge.
-    web_shell::BridgeRegistry registry;
+    app_shell::BridgeRegistry registry;
     AppLifecycle lifecycle;
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;

@@ -40,16 +40,16 @@ add_requires("def_type")
 
 includes("framework/xmake.lua")
 
--- ── Domain bridges (move out in Phase 3) ────────────────────────────
+-- ── Domain bridges ──────────────────────────────────────────────────
 
-includes("lib/todos/xmake.lua")
+includes("bridges/todos/xmake.lua")
 
 -- ── Platform-specific targets ───────────────────────────────────────
 
 if is_plat("wasm") then
     includes("wasm/xmake.lua")
 else
-    includes("lib/bridges/qt/xmake.lua")
+    includes("bridges/system/xmake.lua")
     includes("desktop/xmake.lua")
     includes("tests/helpers/dev-server/xmake.lua")
     includes("xmake/setup.lua")

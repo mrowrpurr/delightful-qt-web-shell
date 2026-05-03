@@ -2,7 +2,7 @@
 
 The template includes two bridges: **TodoBridge** (the example — learn from it, then replace it) and **SystemBridge** (the built-in toolkit — keep it, use it). This doc tells you what's already here so you don't reinvent it.
 
-Both bridges extend `web_shell::bridge` and use def_type DTOs for all method signatures. No QObject inheritance, no Q_INVOKABLE, no QVariant. One bridge class serves both desktop (QWebChannel) and WASM transports.
+Both bridges extend `app_shell::Bridge` and use def_type DTOs for all method signatures. No QObject inheritance, no Q_INVOKABLE, no QVariant. One bridge class serves both desktop (QWebChannel) and WASM transports.
 
 Full API: `web/shared/api/system-bridge.ts` (TypeScript interface) and `lib/bridges/qt/include/system_bridge.hpp` (C++ implementation). DTOs: `lib/bridges/qt/include/system_dtos.hpp`.
 

@@ -18,7 +18,7 @@
 
 #include "bridge.hpp"
 
-namespace web_shell {
+namespace app_shell {
 
 // ── nlohmann::json ↔ emscripten::val conversion ─────────────────────
 
@@ -39,10 +39,10 @@ inline nlohmann::json from_em_val(const emscripten::val& v) {
 // ── WasmBridgeWrapper ────────────────────────────────────────────────
 
 class WasmBridgeWrapper {
-    bridge* bridge_;
+    Bridge* bridge_;
 
 public:
-    explicit WasmBridgeWrapper(bridge* b) : bridge_(b) {}
+    explicit WasmBridgeWrapper(Bridge* b) : bridge_(b) {}
 
     // Call a bridge method. Args come in as a JS object, result goes out as a JS object.
     emscripten::val call(const std::string& method, emscripten::val args) {
@@ -83,4 +83,4 @@ public:
     }
 };
 
-} // namespace web_shell
+} // namespace app_shell

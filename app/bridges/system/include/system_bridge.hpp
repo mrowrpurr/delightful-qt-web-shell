@@ -18,7 +18,7 @@
 #include "system_dtos.hpp"
 #include "bridge.hpp"
 
-class SystemBridge : public web_shell::bridge {
+class SystemBridge : public app_shell::Bridge {
     QStringList droppedFiles_;
     QStringList receivedArgs_;
     QMap<QString, QFile*> openFiles_;

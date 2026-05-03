@@ -13,7 +13,7 @@ local WEB_APPS = {"main"}
 target("desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
-    add_deps("qt-bridges", "app.framework.qt-transport", "app.framework.app-lifecycle")
+    add_deps("app.bridges.system", "app.framework.qt-transport", "app.framework.app-lifecycle")
     add_files("src/**.cpp", "src/**.hpp")
     add_files(
         "resources/resources.qrc",

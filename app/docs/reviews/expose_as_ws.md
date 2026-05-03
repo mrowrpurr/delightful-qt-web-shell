@@ -1,7 +1,7 @@
 # Code Review — `expose_as_ws.hpp`
 
 **File:** `lib/web-shell/include/expose_as_ws.hpp`
-**What it does:** WebSocket JSON-RPC server that exposes `web_shell::bridge` instances over WS. Sibling of `bridge_channel_adapter.hpp` (QWebChannel transport) and the WASM `WasmBridgeWrapper`. All three should behave identically from the TS side.
+**What it does:** WebSocket JSON-RPC server that exposes `app_shell::Bridge` instances over WS. Sibling of `bridge_channel_adapter.hpp` (QWebChannel transport) and the WASM `WasmBridgeWrapper`. All three should behave identically from the TS side.
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### 1. 💀 Use-after-free on signal emission after disconnect (HIGH)
 
-`forward_signals()` at `expose_as_ws.hpp:60-75` subscribes a per-socket callback to every bridge signal and **discards the unsubscribe token** returned by `bridge::on_signal()`.
+`forward_signals()` at `expose_as_ws.hpp:60-75` subscribes a per-socket callback to every bridge signal and **discards the unsubscribe token** returned by `Bridge::on_signal()`.
 
 ```cpp
 bridge->on_signal(signal_name, [socket, bridgeName, sig](const nlohmann::json& data) {
@@ -67,7 +67,7 @@ else
 
 Any bridge method that legitimately returns a DTO with a field named `error` (e.g., `{valid: false, error: "name required"}`) gets its response hoisted into the JSON-RPC envelope's `error` slot and dropped. The TS client rejects the promise on a perfectly valid domain reply.
 
-**Fix:** use a sentinel only the framework emits (e.g., `{"__dispatch_error__": "..."}`), or change `bridge::dispatch` to return `std::variant<json, error>` / throw, so the transport decides the envelope explicitly.
+**Fix:** use a sentinel only the framework emits (e.g., `{"__dispatch_error__": "..."}`), or change `Bridge::dispatch` to return `std::variant<json, error>` / throw, so the transport decides the envelope explicitly.
 
 ---
 

@@ -5,7 +5,7 @@ target("dev-server")
     set_kind("binary")
     set_default(false)
     add_rules("qt.console")
-    add_deps("qt-bridges", "app.framework.qt-transport", "app.framework.app-lifecycle")
+    add_deps("app.bridges.system", "app.framework.qt-transport", "app.framework.app-lifecycle")
     add_files(
         "src/test_server.cpp",
         "include/type_test_bridge.hpp"

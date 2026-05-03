@@ -20,11 +20,11 @@
 
 class BridgeChannelAdapter : public QObject {
     Q_OBJECT
-    web_shell::bridge* bridge_;
+    app_shell::Bridge* bridge_;
     std::vector<std::function<void()>> unsubscribers_;
 
 public:
-    BridgeChannelAdapter(web_shell::bridge* bridge, QObject* parent = nullptr)
+    BridgeChannelAdapter(app_shell::Bridge* bridge, QObject* parent = nullptr)
         : QObject(parent), bridge_(bridge)
     {
         auto names = bridge_->signal_names();
@@ -64,7 +64,7 @@ public:
                  << "method=" << method;
         auto result = bridge_->dispatch(
             method.toStdString(),
-            web_shell::from_qt_json(args));
+            app_shell::from_qt_json(args));
         return QString::fromStdString(result.dump());
     }
 

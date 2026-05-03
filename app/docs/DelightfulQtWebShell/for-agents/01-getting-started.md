@@ -41,8 +41,8 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 ├── lib/
 │   ├── todos/                #   Domain logic + bridge (pure C++, no Qt, no Emscripten)
 │   │   └── include/
-│   │       ├── bridge.hpp        # Bridge base class (web_shell::bridge)
-│   │       ├── todo_bridge.hpp   # TodoBridge — extends web_shell::bridge
+│   │       ├── bridge.hpp        # Bridge base class (app_shell::Bridge)
+│   │       ├── todo_bridge.hpp   # TodoBridge — extends app_shell::Bridge
 │   │       ├── todo_dtos.hpp     # Request DTOs for TodoBridge methods
 │   │       └── todo_store.hpp    # Domain logic — pure C++ structs + operations
 │   ├── bridges/

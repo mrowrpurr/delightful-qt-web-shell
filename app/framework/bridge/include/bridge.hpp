@@ -20,7 +20,7 @@ struct OkResponse {
     bool ok = true;
 };
 
-namespace web_shell {
+namespace app_shell {
 
 namespace detail {
 
@@ -47,12 +47,12 @@ nlohmann::json serialize_response(const T& value) {
 
 } // namespace detail
 
-class bridge {
+class Bridge {
 public:
     using dispatch_fn = std::function<nlohmann::json(const nlohmann::json&)>;
     using signal_callback = std::function<void(const nlohmann::json&)>;
 
-    virtual ~bridge() = default;
+    virtual ~Bridge() = default;
 
     // ── Method dispatch ──────────────────────────────────────────────
 
@@ -213,4 +213,4 @@ private:
     uint64_t next_listener_id_ = 0;
 };
 
-} // namespace web_shell
+} // namespace app_shell

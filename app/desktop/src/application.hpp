@@ -33,8 +33,8 @@ public:
     QWebEngineProfile* webProfile() const { return profile_; }
 
     // The bridge registry — shared across all WebShellWidgets
-    web_shell::BridgeRegistry* registry() { return &registry_; }
-    const web_shell::BridgeRegistry* registry() const { return &registry_; }
+    app_shell::BridgeRegistry* registry() { return &registry_; }
+    const app_shell::BridgeRegistry* registry() const { return &registry_; }
 
     // The Qt↔JS lifecycle handshake (appReady / ready signal)
     AppLifecycle* lifecycle() const { return lifecycle_; }
@@ -91,7 +91,7 @@ private:
     bool devMode_ = false;
     bool isPrimary_ = true;
     QWebEngineProfile* profile_ = nullptr;
-    web_shell::BridgeRegistry registry_;
+    app_shell::BridgeRegistry registry_;
     AppLifecycle* lifecycle_ = nullptr;
     QLocalServer* instanceServer_ = nullptr;
     QSystemTrayIcon* trayIcon_ = nullptr;

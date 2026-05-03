@@ -5,7 +5,7 @@ local _TEMPLATE_ROOT = TEMPLATE_ROOT
 --
 -- xmake run scaffold-bridge settings
 --
--- Creates a pure C++ bridge (extending web_shell::bridge) with def_type
+-- Creates a pure C++ bridge (extending app_shell::Bridge) with def_type
 -- DTOs, wires it into application.cpp and test_server.cpp, and creates
 -- a TS interface stub.
 
@@ -63,7 +63,7 @@ target("scaffold-bridge")
             '#pragma once\n\n'
             .. '#include "' .. dtos_name .. '.hpp"\n'
             .. '#include "bridge.hpp"\n\n'
-            .. 'class ' .. class_name .. ' : public web_shell::bridge {\n'
+            .. 'class ' .. class_name .. ' : public app_shell::Bridge {\n'
             .. 'public:\n'
             .. '    ' .. class_name .. '() {\n'
             .. '        // Register methods:\n'

@@ -9,7 +9,7 @@
 #include "todo_store.hpp"
 #include "bridge.hpp"
 
-class TodoBridge : public web_shell::bridge {
+class TodoBridge : public app_shell::Bridge {
     TodoStore store_;
 
 public:

@@ -11,7 +11,7 @@ One React UI, one domain library, two deployment targets:
                           │     │ dispatch()        │    ┌──────────────┐
  React (Vite)             │     └──────────────────┘    │ TodoBridge   │
  ┌──────────┐    transport│            │                │ extends      │
- │  UI      │<────────────┤            └───────────────>│ web_shell::  │───> TodoStore
+ │  UI      │<────────────┤            └───────────────>│ app_shell::  │───> TodoStore
  │  bridge  │  auto-detect│                             │ bridge       │    (pure C++)
  │  proxy   │             │     ┌──────────────────┐    │              │
  └──────────┘             └────>│ WasmBridgeWrapper│───>│ One class.   │
@@ -28,7 +28,7 @@ One React UI, one domain library, two deployment targets:
 
 1. **Domain logic** (`lib/todos/include/todo_store.hpp`) — Pure C++, no Qt, no Emscripten. Your business logic lives here. Testable with Catch2 in isolation. Compiled for both desktop and WASM.
 
-2. **Bridge** (`lib/todos/include/todo_bridge.hpp`) — A class extending `web_shell::bridge`. Methods are registered with `method("name", &Bridge::fn)`. Each method takes a plain C++ request DTO and returns a plain C++ response struct. No `Q_INVOKABLE`, no `QVariant`, no `emscripten::val`. One bridge class serves both desktop and WASM.
+2. **Bridge** (`lib/todos/include/todo_bridge.hpp`) — A class extending `app_shell::Bridge`. Methods are registered with `method("name", &Bridge::fn)`. Each method takes a plain C++ request DTO and returns a plain C++ response struct. No `Q_INVOKABLE`, no `QVariant`, no `emscripten::val`. One bridge class serves both desktop and WASM.
 
 3. **TypeScript interface** (`web/shared/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
 
@@ -60,14 +60,14 @@ To add a new app, copy `web/apps/main/`, register it in the SchemeHandler, and a
 ```
 TypeScript -> WebSocket JSON-RPC -> expose_as_ws.hpp
                                        |
-                                       +-- bridge::dispatch()
+                                       +-- Bridge::dispatch()
                                             +-- from_json<Request>(args)
                                             +-- call bridge method
                                             +-- serialize_response(result)
                                             +-- return nlohmann::json
 ```
 
-No QObject dispatch. No QMetaObject. No `coerce_arg`. No `QGenericArgument`. The bridge base class (`web_shell::bridge` in `bridge.hpp`) handles everything:
+No QObject dispatch. No QMetaObject. No `coerce_arg`. No `QGenericArgument`. The bridge base class (`app_shell::Bridge` in `bridge.hpp`) handles everything:
 
 - **Method registration:** `method("name", &Bridge::fn)` — template deduction figures out the request/response types automatically.
 - **Deserialization:** `def_type::from_json<Request>(args)` converts the incoming JSON to a typed C++ request struct via PFR reflection. No hand-written deserialization.
@@ -119,7 +119,7 @@ await todos.addItem({ list_id: id, text: "Milk" })
 await todos.addList("Groceries")  // will fail
 ```
 
-**WASM side:** The generic `WasmBridgeWrapper` wraps any `web_shell::bridge` for Embind. It exposes `call(method, args)`, `subscribe(signal, callback)`, `methods()`, and `signals()`. No per-bridge WASM code needed.
+**WASM side:** The generic `WasmBridgeWrapper` wraps any `app_shell::Bridge` for Embind. It exposes `call(method, args)`, `subscribe(signal, callback)`, `methods()`, and `signals()`. No per-bridge WASM code needed.
 
 ## Three Transports, Same React Code
 
@@ -131,7 +131,7 @@ await todos.addList("Groceries")  // will fail
 
 React auto-detects: `VITE_TRANSPORT=wasm` -> Embind. `window.qt?.webChannelTransport` -> QWebChannel. Otherwise -> WebSocket to `localhost:9876`. Your React components don't know or care which transport is active.
 
-All three transports talk to the same `web_shell::bridge` instance. The bridge is pure C++. The transport adapters handle conversion at the edges:
+All three transports talk to the same `app_shell::Bridge` instance. The bridge is pure C++. The transport adapters handle conversion at the edges:
 - **WebSocket:** nlohmann::json passes through directly.
 - **QWebChannel:** `BridgeChannelAdapter` converts between nlohmann::json and Qt JSON (via `json_adapter.hpp`) at the boundary.
 - **WASM:** `WasmBridgeWrapper` converts between nlohmann::json and `emscripten::val` at the boundary.

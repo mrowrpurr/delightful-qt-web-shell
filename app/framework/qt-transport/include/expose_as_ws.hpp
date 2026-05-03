@@ -39,7 +39,7 @@ inline QJsonValue invoke_lifecycle_method(AppLifecycle* lifecycle, const QString
 
 // ── Bridge meta ────────────────────────────────────────────────
 
-inline QJsonObject collect_bridge_meta(const web_shell::bridge* bridge) {
+inline QJsonObject collect_bridge_meta(const app_shell::Bridge* bridge) {
     QJsonArray method_list;
     for (const auto& name : bridge->method_names()) {
         QJsonObject m;
@@ -58,14 +58,14 @@ inline QJsonObject collect_bridge_meta(const web_shell::bridge* bridge) {
 
 // ── Forward bridge signals over WebSocket ──────────────────────
 
-inline void forward_signals(web_shell::bridge* bridge, const QString& bridgeName, QWebSocket* socket) {
+inline void forward_signals(app_shell::Bridge* bridge, const QString& bridgeName, QWebSocket* socket) {
     for (const auto& signal_name : bridge->signal_names()) {
         bridge->on_signal(signal_name, [socket, bridgeName, sig = QString::fromStdString(signal_name)](const nlohmann::json& data) {
             QJsonObject msg;
             msg["bridge"] = bridgeName;
             msg["event"] = sig;
             if (!data.is_null())
-                msg["args"] = web_shell::to_qt_json_value(data);
+                msg["args"] = app_shell::to_qt_json_value(data);
             auto text = QString::fromUtf8(QJsonDocument(msg).toJson(QJsonDocument::Compact));
             QMetaObject::invokeMethod(socket, [socket, text]() {
                 if (socket->isValid())
@@ -77,7 +77,7 @@ inline void forward_signals(web_shell::bridge* bridge, const QString& bridgeName
 
 // ── expose_as_ws ─────────────────────────────────────────────────────
 
-inline QWebSocketServer* expose_as_ws(web_shell::BridgeRegistry* registry,
+inline QWebSocketServer* expose_as_ws(app_shell::BridgeRegistry* registry,
                                       AppLifecycle* lifecycle,
                                       int port,
                                       QObject* parent = nullptr) {
@@ -137,14 +137,14 @@ inline QWebSocketServer* expose_as_ws(web_shell::BridgeRegistry* registry,
                         // Convert args for typed bridge dispatch
                         nlohmann::json nlArgs;
                         if (args.size() == 1 && args[0].isObject())
-                            nlArgs = web_shell::from_qt_json(args[0].toObject());
+                            nlArgs = app_shell::from_qt_json(args[0].toObject());
                         else if (args.isEmpty())
                             nlArgs = nlohmann::json::object();
                         else
-                            nlArgs = web_shell::from_qt_json(args);
+                            nlArgs = app_shell::from_qt_json(args);
 
                         auto result = bridge->dispatch(method.toStdString(), nlArgs);
-                        result_value = web_shell::to_qt_json_value(result);
+                        result_value = app_shell::to_qt_json_value(result);
                     }
                 }
 

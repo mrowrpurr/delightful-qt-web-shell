@@ -1,4 +1,4 @@
-target("todos-bridge")
+target("app.bridges.todos")
     set_kind("headeronly")
     add_deps("app.framework.bridge", {public = true})
     add_deps("todos", {public = true})

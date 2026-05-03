@@ -12,20 +12,20 @@
 
 #include "bridge.hpp"
 
-namespace web_shell {
+namespace app_shell {
 
 class BridgeRegistry {
-    std::map<std::string, bridge*> bridges_;
+    std::map<std::string, Bridge*> bridges_;
 
 public:
-    void add(const std::string& name, bridge* b) { bridges_[name] = b; }
+    void add(const std::string& name, Bridge* b) { bridges_[name] = b; }
 
-    bridge* get(const std::string& name) const {
+    Bridge* get(const std::string& name) const {
         auto it = bridges_.find(name);
         return it == bridges_.end() ? nullptr : it->second;
     }
 
-    const std::map<std::string, bridge*>& all() const { return bridges_; }
+    const std::map<std::string, Bridge*>& all() const { return bridges_; }
 };
 
-} // namespace web_shell
+} // namespace app_shell

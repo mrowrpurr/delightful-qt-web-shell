@@ -8,16 +8,16 @@
 
 // Bridge instances live for the lifetime of the WASM module.
 static TodoBridge todoBridge;
-static web_shell::WasmBridgeWrapper todoWrapper(&todoBridge);
+static app_shell::WasmBridgeWrapper todoWrapper(&todoBridge);
 
 EMSCRIPTEN_BINDINGS(bridges) {
-    emscripten::class_<web_shell::WasmBridgeWrapper>("BridgeWrapper")
-        .function("call", &web_shell::WasmBridgeWrapper::call)
-        .function("subscribe", &web_shell::WasmBridgeWrapper::subscribe)
-        .function("methods", &web_shell::WasmBridgeWrapper::methods)
-        .function("signals", &web_shell::WasmBridgeWrapper::signals);
+    emscripten::class_<app_shell::WasmBridgeWrapper>("BridgeWrapper")
+        .function("call", &app_shell::WasmBridgeWrapper::call)
+        .function("subscribe", &app_shell::WasmBridgeWrapper::subscribe)
+        .function("methods", &app_shell::WasmBridgeWrapper::methods)
+        .function("signals", &app_shell::WasmBridgeWrapper::signals);
 
-    emscripten::function("getBridge", +[](const std::string& name) -> web_shell::WasmBridgeWrapper* {
+    emscripten::function("getBridge", +[](const std::string& name) -> app_shell::WasmBridgeWrapper* {
         if (name == "todos") return &todoWrapper;
         return nullptr;
     }, emscripten::allow_raw_pointers());

@@ -13,7 +13,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace web_shell {
+namespace app_shell {
 
 // ── nlohmann → Qt ────────────────────────────────────────────────────
 
@@ -58,4 +58,4 @@ inline nlohmann::json from_qt_json(const QJsonValue& val) {
     return nullptr;
 }
 
-} // namespace web_shell
+} // namespace app_shell

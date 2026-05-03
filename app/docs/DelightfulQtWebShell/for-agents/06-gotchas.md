@@ -17,7 +17,7 @@ This is a concise index of traps. Details live in the doc where you're doing the
 | `fetch()` with `app://` scheme | Fetch API cannot load `app://` URLs. Use Vite JSON import at build time instead. | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
 | Vite asset inlining | SVGs < 4KB get inlined as data URIs which break in QWebEngine. Set `assetsInlineLimit: 0` in `vite.config.ts` | [06-gotchas.md](#theming-gotchas) |
 
-> Register bridges manually in both `application.cpp` and `test_server.cpp` with `shell.addBridge("name", bridge)`. Bridges extend `web_shell::bridge` — no QObject, no MOC setup needed.
+> Register bridges manually in both `application.cpp` and `test_server.cpp` with `shell.addBridge("name", bridge)`. Bridges extend `app_shell::Bridge` — no QObject, no MOC setup needed.
 
 ## Build Gotchas
 
