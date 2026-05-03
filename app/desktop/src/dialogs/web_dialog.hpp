@@ -18,11 +18,13 @@
 
 class WebShellWidget;
 
+namespace app_shell { class App; }
+
 class WebDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit WebDialog(QWidget* parent = nullptr);
+    explicit WebDialog(app_shell::App& app, QWidget* parent = nullptr);
 
 private:
     WebShellWidget* webShell_ = nullptr;

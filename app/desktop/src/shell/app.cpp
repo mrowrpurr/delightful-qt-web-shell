@@ -126,7 +126,7 @@ App::App(int& argc, char** argv)
     setupSystemTray();
 
     // ── Dock manager ─────────────────────────────────────────
-    dockManager_ = new DockManager(this);
+    dockManager_ = new DockManager(*this, this);
 
     // ── Shutdown ─────────────────────────────────────────────
     connect(this, &QApplication::aboutToQuit, this, [this]() {

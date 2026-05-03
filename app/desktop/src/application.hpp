@@ -1,9 +1,9 @@
 // Application — transitional thin subclass of app_shell::App.
 //
-// Phase 1 of the native refactor moved all behavior into app_shell::App.
-// Application remains as a backward-compatible name so existing call sites
-// (e.g. qobject_cast<Application*>(qApp)) keep working until later phases
-// migrate them to typed App& references.
+// Phase 1 of the native refactor moved all behavior into app_shell::App and
+// killed every qobject_cast<Application*>(qApp) site. Application stays only
+// because main.cpp still names it; later phases will rename that and delete
+// this shim.
 
 #pragma once
 

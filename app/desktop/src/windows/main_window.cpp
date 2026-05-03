@@ -8,7 +8,7 @@
 //   - Business logic? → lib/
 
 #include "main_window.hpp"
-#include "application.hpp"
+#include "shell/app.hpp"
 #include "dock_manager.hpp"
 #include "menus/menu_bar.hpp"
 #include "widgets/dock_tab_manager.hpp"
@@ -32,8 +32,8 @@
 #include "dialogs/web_dialog.hpp"
 #include "system_bridge.hpp"
 
-MainWindow::MainWindow(const QString& windowId, QWidget* parent)
-    : QMainWindow(parent)
+MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* parent)
+    : QMainWindow(parent), app_(app)
 {
     // Assign or generate a UUID for this window.
     if (windowId.isEmpty())
@@ -58,8 +58,8 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
     }
 
     // ── Menu bar + toolbar ───────────────────────────────────
-    actions_ = new MenuActions(buildMenuBar(this));
-    buildToolBar(this, *actions_);
+    actions_ = new MenuActions(buildMenuBar(app_, this));
+    buildToolBar(app_, this, *actions_);
 
     // ── Status bar ───────────────────────────────────────────
     statusBar_ = new StatusBar(this);
@@ -76,8 +76,7 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
     tabManager_ = new DockTabManager(this);
 
     // ── Docks ─────────────────────────────────────────────────
-    auto* app = qobject_cast<Application*>(qApp);
-    auto* dm = app->dockManager();
+    auto* dm = app_.dockManager();
 
     if (!windowId.isEmpty())
         dm->restoreDocks(this);
@@ -91,8 +90,8 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
     activeDock_ = docks_.first();
 
     // ── Wire window + dock actions ───────────────────────────
-    connect(actions_->newWindow, &QAction::triggered, this, []() {
-        auto* win = new MainWindow();
+    connect(actions_->newWindow, &QAction::triggered, this, [this]() {
+        auto* win = new MainWindow(app_);
         win->show();
     });
 
@@ -112,11 +111,11 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
 
     // ── Wire React → native dialog ──────────────────────────
     auto* systemBridge = static_cast<SystemBridge*>(
-        app->registry()->get("system"));
+        app_.registry()->get("system"));
     if (systemBridge) {
         systemBridge->on_signal("openDialogRequested", [this](const nlohmann::json&) {
             QTimer::singleShot(0, this, [this]() {
-                WebDialog dlg(this);
+                WebDialog dlg(app_, this);
                 dlg.exec();
             });
         });
@@ -210,7 +209,7 @@ QDockWidget* MainWindow::dockForTab(QTabBar* tabBar, int index) const {
 }
 
 void MainWindow::wireTabBar() {
-    auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+    auto* dm = app_.dockManager();
 
     for (auto* tabBar : findChildren<QTabBar*>()) {
         if (!tabBar->property("dockWired").toBool()) {
@@ -290,7 +289,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
     // this, tabified docks accumulate forever in the saved layout.
     // Skip during shutdown — shutdownAll handles cleanup.
     if (event->type() == QEvent::Close) {
-        auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+        auto* dm = app_.dockManager();
         auto* dock = qobject_cast<QDockWidget*>(obj);
         if (dock && !dm->isQuitting()
             && docks_.contains(dock) && docks_.size() > 1) {
@@ -309,7 +308,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             if (me->button() == Qt::MiddleButton) {
                 int index = tabBar->tabAt(me->pos());
                 if (auto* dock = dockForTab(tabBar, index)) {
-                    qobject_cast<Application*>(qApp)->dockManager()->closeDock(dock);
+                    app_.dockManager()->closeDock(dock);
                     return true;
                 }
             }
@@ -323,7 +322,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             auto* ce = static_cast<QContextMenuEvent*>(event);
             int index = tabBar->tabAt(ce->pos());
             if (index >= 0) {
-                auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+                auto* dm = app_.dockManager();
 
                 QDockWidget* clickedDock = dockForTab(tabBar, index);
                 if (!clickedDock) return QMainWindow::eventFilter(obj, event);
@@ -393,7 +392,7 @@ void MainWindow::changeEvent(QEvent* event) {
 
 void MainWindow::closeEvent(QCloseEvent* event) {
     // During shutdown, always accept the close — don't hide to tray.
-    auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+    auto* dm = app_.dockManager();
     if (dm->isQuitting()) {
         QMainWindow::closeEvent(event);
         return;

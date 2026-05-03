@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     // Restore saved windows, or create one default window.
     auto windows = app.dockManager()->restoreWindows();
     if (windows.isEmpty())
-        windows.append(new MainWindow());
+        windows.append(new MainWindow(app));
 
     // When another instance tries to launch, raise any visible MainWindow.
     QObject::connect(&app, &Application::activationRequested, windows.first(), [&windows]() {

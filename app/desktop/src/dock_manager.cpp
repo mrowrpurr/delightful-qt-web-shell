@@ -1,7 +1,7 @@
 // DockManager — see dock_manager.hpp for overview.
 
 #include "dock_manager.hpp"
-#include "application.hpp"
+#include "shell/app.hpp"
 #include "widgets/web_shell_widget.hpp"
 #include "windows/main_window.hpp"
 
@@ -46,8 +46,8 @@ void DockManager::clearLog() {
 
 // ── Construction ─────────────────────────────────────────────
 
-DockManager::DockManager(QObject* parent)
-    : QObject(parent)
+DockManager::DockManager(app_shell::App& app, QObject* parent)
+    : QObject(parent), app_(app)
 {
     log("DockManager created");
 }
@@ -56,11 +56,10 @@ DockManager::DockManager(QObject* parent)
 
 QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host,
                                      const QString& dockId) {
-    auto* app = qobject_cast<Application*>(qApp);
-    QUrl url = contentUrl.isEmpty() ? app->appUrl("main") : contentUrl;
+    QUrl url = contentUrl.isEmpty() ? app_.appUrl("main") : contentUrl;
 
     auto* widget = new WebShellWidget(
-        app->webProfile(), app->registry(), app->lifecycle(), url,
+        app_.webProfile(), app_.registry(), app_.lifecycle(), url,
         WebShellWidget::FullOverlay);
 
     auto* dock = new QDockWidget(APP_NAME);
@@ -228,7 +227,7 @@ QList<MainWindow*> DockManager::restoreWindows() {
 
     QList<MainWindow*> windows;
     for (const auto& id : windowIds) {
-        auto* win = new MainWindow(id);
+        auto* win = new MainWindow(app_, id);
         windows.append(win);
         log(QString("  created MainWindow: %1").arg(id));
     }

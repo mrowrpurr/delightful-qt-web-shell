@@ -16,7 +16,7 @@
 //   toolBar->addAction(actions.myAction);
 
 #include "menu_bar.hpp"
-#include "application.hpp"
+#include "shell/app.hpp"
 #include "dialogs/about_dialog.hpp"
 #include "dialogs/demo_widget_dialog.hpp"
 #include "dialogs/web_dialog.hpp"
@@ -57,7 +57,7 @@ static QIcon tintedIcon(Icons16 icon, const QColor& color = Qt::white) {
     return QIcon(pix);
 }
 
-MenuActions buildMenuBar(QMainWindow* window) {
+MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
     auto* menuBar = window->menuBar();
     MenuActions out;
 
@@ -72,10 +72,7 @@ MenuActions buildMenuBar(QMainWindow* window) {
     out.save->setShortcut(QKeySequence("Ctrl+S"));
     out.save->setToolTip("Save file (Ctrl+S)");
     {
-        auto* appInstance = qobject_cast<Application*>(qApp);
-        auto* sysBridge = appInstance
-            ? static_cast<SystemBridge*>(appInstance->registry()->get("system"))
-            : nullptr;
+        auto* sysBridge = static_cast<SystemBridge*>(app.registry()->get("system"));
         QObject::connect(out.save, &QAction::triggered, window, [window, sysBridge]() {
             if (sysBridge && sysBridge->has_listeners("saveRequested")) {
                 // React is listening — let it handle the save
@@ -125,7 +122,7 @@ MenuActions buildMenuBar(QMainWindow* window) {
     auto* quitAction = fileMenu->addAction("&Quit");
     quitAction->setShortcut(QKeySequence("Ctrl+Q"));
     QObject::connect(quitAction, &QAction::triggered,
-                     QApplication::instance(), [](){ qobject_cast<Application*>(qApp)->requestQuit(); });
+                     QApplication::instance(), [&app](){ app.requestQuit(); });
 
     // ── View ─────────────────────────────────────────────────
     auto* viewMenu = menuBar->addMenu("&View");
@@ -157,8 +154,8 @@ MenuActions buildMenuBar(QMainWindow* window) {
     // React-in-a-dialog — demonstrates WebShellWidget inside a QDialog.
     // Same bridges, same React app, different container.
     auto* webDialogAction = windowsMenu->addAction("&React Dialog...");
-    QObject::connect(webDialogAction, &QAction::triggered, window, [window]() {
-        WebDialog dlg(window);
+    QObject::connect(webDialogAction, &QAction::triggered, window, [&app, window]() {
+        WebDialog dlg(app, window);
         dlg.exec();
     });
 
@@ -176,8 +173,8 @@ MenuActions buildMenuBar(QMainWindow* window) {
     // URL protocol register/unregister — shows current state in the label
     auto* protocolAction = toolsMenu->addAction("");
     auto updateProtocolLabel = [protocolAction]() {
-        bool registered = Application::isUrlProtocolRegistered();
-        QString protocol = Application::urlProtocolName();
+        bool registered = app_shell::App::isUrlProtocolRegistered();
+        QString protocol = app_shell::App::urlProtocolName();
         protocolAction->setText(registered
             ? QString("Unregister %1:// Protocol").arg(protocol)
             : QString("Register %1:// Protocol").arg(protocol));
@@ -186,10 +183,10 @@ MenuActions buildMenuBar(QMainWindow* window) {
 
     QObject::connect(protocolAction, &QAction::triggered, window,
                      [window, updateProtocolLabel]() {
-        if (Application::isUrlProtocolRegistered()) {
-            Application::unregisterUrlProtocol();
+        if (app_shell::App::isUrlProtocolRegistered()) {
+            app_shell::App::unregisterUrlProtocol();
         } else {
-            Application::registerUrlProtocol();
+            app_shell::App::registerUrlProtocol();
         }
         updateProtocolLabel();
     });
@@ -206,7 +203,7 @@ MenuActions buildMenuBar(QMainWindow* window) {
     return out;
 }
 
-void buildToolBar(QMainWindow* window, const MenuActions& actions) {
+void buildToolBar(app_shell::App& app, QMainWindow* window, const MenuActions& actions) {
     // Main toolbar — reuses QAction objects from the menu bar.
     // Same action = same shortcut, tooltip, enabled state, and signal.
     // No duplicate connections needed — click the toolbar button or the menu
@@ -222,8 +219,7 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
     // ── Theme selector ────────────────────────────────────────
     // Searchable dropdown with base theme names (without -dark/-light suffix).
     // Combined with a dark/light toggle button.
-    auto* app = qobject_cast<Application*>(qApp);
-    if (app && app->styleManager()) {
+    if (app.styleManager()) {
         toolBar->addSeparator();
 
         auto* themeLabel = new QLabel(" Theme: ");
@@ -236,11 +232,11 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
         themeCombo->setMaxVisibleItems(20);
 
         // Populate with base theme names (deduplicated, no -dark/-light)
-        QStringList baseThemes = app->styleManager()->availableBaseThemes();
+        QStringList baseThemes = app.styleManager()->availableBaseThemes();
         themeCombo->addItems(baseThemes);
 
         // Set current base theme
-        QString currentBase = app->styleManager()->currentBaseName();
+        QString currentBase = app.styleManager()->currentBaseName();
         int idx = baseThemes.indexOf(currentBase);
         if (idx >= 0) themeCombo->setCurrentIndex(idx);
 
@@ -253,10 +249,10 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
         // Apply theme when user picks from dropdown or presses Enter.
         // NOT currentTextChanged — that fires on every keystroke and fights typing.
         QObject::connect(themeCombo, &QComboBox::activated,
-                         window, [app, themeCombo]() {
+                         window, [&app, themeCombo]() {
             QString baseName = themeCombo->currentText();
             if (!baseName.isEmpty())
-                app->styleManager()->applyTheme(baseName, app->styleManager()->isDarkMode());
+                app.styleManager()->applyTheme(baseName, app.styleManager()->isDarkMode());
         });
 
         toolBar->addWidget(themeCombo);
@@ -264,21 +260,21 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
         // ── Dark/Light toggle ─────────────────────────────────
         auto* darkToggle = new QToolButton;
         darkToggle->setCheckable(true);
-        darkToggle->setChecked(app->styleManager()->isDarkMode());
-        darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+        darkToggle->setChecked(app.styleManager()->isDarkMode());
+        darkToggle->setText(app.styleManager()->isDarkMode() ? "🌙" : "☀️");
         darkToggle->setToolTip("Toggle dark/light mode");
 
         QObject::connect(darkToggle, &QToolButton::clicked,
-                         window, [app, darkToggle]() {
-            app->styleManager()->toggleDarkMode();
+                         window, [&app, darkToggle]() {
+            app.styleManager()->toggleDarkMode();
             // Update button text after toggle
-            darkToggle->setChecked(app->styleManager()->isDarkMode());
-            darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+            darkToggle->setChecked(app.styleManager()->isDarkMode());
+            darkToggle->setText(app.styleManager()->isDarkMode() ? "🌙" : "☀️");
         });
 
         // Retint all icon-bearing actions to match the current theme mode.
-        auto retintIcons = [actions, app]() {
-            QColor color = app->styleManager()->isDarkMode() ? Qt::white : QColor(40, 40, 40);
+        auto retintIcons = [actions, &app]() {
+            QColor color = app.styleManager()->isDarkMode() ? Qt::white : QColor(40, 40, 40);
             actions.save->setIcon(tintedIcon(Icons16::Action_Save, color));
             actions.openFolder->setIcon(tintedIcon(Icons16::File_FolderOpen, color));
             actions.zoomIn->setIcon(tintedIcon(Icons16::Action_ZoomIn, color));
@@ -288,13 +284,13 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
         };
 
         // Keep toggle and icons in sync if theme changes from elsewhere (bridge, etc.)
-        QObject::connect(app->styleManager(), &StyleManager::themeChanged,
-                         darkToggle, [app, darkToggle, themeCombo, retintIcons]() {
-            darkToggle->setChecked(app->styleManager()->isDarkMode());
-            darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+        QObject::connect(app.styleManager(), &StyleManager::themeChanged,
+                         darkToggle, [&app, darkToggle, themeCombo, retintIcons]() {
+            darkToggle->setChecked(app.styleManager()->isDarkMode());
+            darkToggle->setText(app.styleManager()->isDarkMode() ? "🌙" : "☀️");
             retintIcons();
             // Update combo to match current base name
-            QString base = app->styleManager()->currentBaseName();
+            QString base = app.styleManager()->currentBaseName();
             if (themeCombo->currentText() != base) {
                 // Block signals to avoid re-triggering applyTheme
                 themeCombo->blockSignals(true);

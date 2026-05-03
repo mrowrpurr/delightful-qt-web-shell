@@ -12,6 +12,8 @@
 class QAction;
 class QMainWindow;
 
+namespace app_shell { class App; }
+
 // Actions that the caller may need to wire up to other widgets,
 // or that the toolbar reuses.
 struct MenuActions {
@@ -35,8 +37,8 @@ struct MenuActions {
 
 // Builds the full menu bar: File, View, Windows, Help.
 // Returns actions that need wiring to widgets and/or toolbar reuse.
-MenuActions buildMenuBar(QMainWindow* window);
+MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window);
 
 // Builds the main toolbar using shared actions from the menu bar.
 // Same QAction = same shortcut, tooltip, enabled state, signal.
-void buildToolBar(QMainWindow* window, const MenuActions& actions);
+void buildToolBar(app_shell::App& app, QMainWindow* window, const MenuActions& actions);

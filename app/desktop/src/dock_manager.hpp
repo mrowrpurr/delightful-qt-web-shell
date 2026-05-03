@@ -19,11 +19,13 @@ class QTimer;
 
 class MainWindow;
 
+namespace app_shell { class App; }
+
 class DockManager : public QObject {
     Q_OBJECT
 
 public:
-    explicit DockManager(QObject* parent = nullptr);
+    explicit DockManager(app_shell::App& app, QObject* parent = nullptr);
 
     // Create a new dock and register it. If host is provided, the dock
     // is added to that MainWindow; otherwise it floats independently.
@@ -76,6 +78,7 @@ private:
     // Debug log helper.
     static void log(const QString& msg);
 
+    app_shell::App& app_;
     QList<QDockWidget*> docks_;
     QHash<QDockWidget*, QTimer*> saveTimers_;  // debounce timers per dock
     bool quitting_ = false;

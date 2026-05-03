@@ -5,12 +5,12 @@
 // instead of the main App. One build, multiple UIs.
 
 #include "web_dialog.hpp"
-#include "application.hpp"
+#include "shell/app.hpp"
 #include "widgets/web_shell_widget.hpp"
 
 #include <QVBoxLayout>
 
-WebDialog::WebDialog(QWidget* parent)
+WebDialog::WebDialog(app_shell::App& app, QWidget* parent)
     : QDialog(parent)
 {
     setWindowTitle(QString("%1 — Dialog").arg(APP_NAME));
@@ -25,11 +25,10 @@ WebDialog::WebDialog(QWidget* parent)
     // Same React app as the main window, but with #/dialog hash route.
     // React checks window.location.hash at mount time and renders
     // DialogView instead of App — lightweight UI suited for a popup.
-    auto* app = qobject_cast<Application*>(qApp);
-    QUrl dialogUrl = app->appUrl("main");
+    QUrl dialogUrl = app.appUrl("main");
     dialogUrl.setFragment("/dialog");
     webShell_ = new WebShellWidget(
-        app->webProfile(), app->registry(), app->lifecycle(), dialogUrl,
+        app.webProfile(), app.registry(), app.lifecycle(), dialogUrl,
         WebShellWidget::SpinnerOverlay, this);
     layout->addWidget(webShell_);
 }

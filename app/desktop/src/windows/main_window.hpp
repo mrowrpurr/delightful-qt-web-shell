@@ -23,13 +23,16 @@ class StatusBar;
 class WebShellWidget;
 struct MenuActions;
 
+namespace app_shell { class App; }
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     // windowId: if non-empty, restore this window's geometry from settings.
     // Empty = fresh window with default geometry.
-    explicit MainWindow(const QString& windowId = {}, QWidget* parent = nullptr);
+    explicit MainWindow(app_shell::App& app, const QString& windowId = {},
+                        QWidget* parent = nullptr);
 
     // Add a dock to this window's UI. Called by DockManager after creating the dock.
     void addDock(QDockWidget* dock);
@@ -59,6 +62,7 @@ private:
     // than dereferencing whatever Qt handed us.
     QDockWidget* dockForTab(QTabBar* tabBar, int index) const;
 
+    app_shell::App& app_;
     QList<QDockWidget*> docks_;
     QDockWidget* activeDock_ = nullptr;
     StatusBar* statusBar_ = nullptr;
