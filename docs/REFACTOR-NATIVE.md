@@ -8,7 +8,7 @@
 
 Today: god-class `Application` + monolithic `MainWindow`. Every feature is hardcoded ON. To opt out, you edit framework code. Demo content (Alpha/Beta/Gamma tray submenus, demo dialogs, "Demo Widget" menu actions) lives mixed inside framework files.
 
-Target: `app_shell::App` is tiny. Every feature is either a class you instantiate or a `app.useX()` member call you make. The framework is silent about every choice you didn't make. Demo content lives in its own app binary, not in framework classes.
+Target: `app_shell::App` is tiny. Every capability is a `Feature` subclass the consumer constructs in `main()`. Features self-register on `App` so anywhere with `App&` can retrieve them via `app.feature<T>()`. The framework is silent about every choice you didn't make. Demo content lives in its own app binary, not in framework classes.
 
 > **Opt-in framework, not opt-out god-class.** Same thesis as the frontend's slate-app story — a consumer should be able to start from nothing and add only what they reach for.
 
@@ -24,9 +24,9 @@ Day one for someone forking this template. Three concrete shapes, same framework
 app_shell::App app(argc, argv);
 app.addBridge<MySettingsBridge>("settings");
 
-auto& tray = app.useTray();
-tray.addItem("Settings…", [&]{ app.openWebDialog(app.url("settings")); });
-tray.addItem("Quit",      [&]{ app.quit(); });
+app_shell::TrayFeature tray(app);
+tray.addItem("Settings…", [&]{ app.openWebDialog(app.appUrl("settings")); });
+tray.addItem("Quit",      [&]{ app.requestQuit(); });
 tray.show();
 
 return app.exec();
@@ -48,16 +48,22 @@ return app.exec();
 
 ```cpp
 app_shell::App app(argc, argv);
-app.useSingleInstance();
-app.useUrlProtocol();
-app.useTheming("default-dark");
-app.useTray();
+
+app_shell::SingleInstanceFeature singleInstance(app);
+if (!singleInstance.isPrimary()) return 0;
+
+app_shell::UrlProtocolFeature urlProtocol(app);
+urlProtocol.promptIfNeeded();
+
+app_shell::ThemingFeature theming(app, "default-dark");
+app_shell::TrayFeature   tray(app);
 
 app.addBridge<MyBridge>("my");
 app.addBridge<app_shell::SystemBridge>("system");
 
-auto windows = app.windows().restoreOrCreate<app_shell::MainWindow>();
-for (auto* w : windows) w->show();
+app_shell::WindowRegistryFeature windows(app);
+auto mainWindows = windows.restoreOrCreate<app_shell::MainWindow>();
+for (auto* w : mainWindows) w->show();
 
 return app.exec();
 ```
@@ -88,7 +94,7 @@ The other three scenarios — multi-window tools-and-inspectors (#3), WASM-only 
 │   ├── bridges/                ← typed bridge wrappers per domain
 │   │   ├── todos/                   wraps lib/todos
 │   │   ├── system/                  SystemBridge (clipboard, files, drag-drop, ...)
-│   │   └── theme/                   ThemeBridge (auto-registered by app.useTheming())
+│   │   └── theme/                   ThemeBridge (auto-registered by ThemingFeature ctor)
 │   │
 │   ├── apps/                   ← N desktop apps. Mirrors web/apps/.
 │   │   ├── demo/                    the showcase (IDE-like)
@@ -112,22 +118,25 @@ Every folder name announces its purpose. Consumer day-one journey: open `app/app
 
 ```cpp
 namespace app_shell {
-  // App + window + ui + services
+  // App + windows + ui
   class App;
   class MainWindow;
   class MainWindowBase;
   class WebShellWidget;
   class WebDialog;
-  class Tray;
-  class UrlProtocol;
-  class SingleInstance;
-  class Theming;
-  class DockSystem;
-  class WindowRegistry;
   class MenuBuilder;
   class StatusBar;
   class LoadingOverlay;
   class SchemeHandler;
+
+  // Features — App-scoped subsystems, retrieved via app.feature<T>()
+  class Feature;                       // base — self-registers on App ctor
+  class TrayFeature;
+  class UrlProtocolFeature;
+  class SingleInstanceFeature;
+  class ThemingFeature;
+  class DockSystemFeature;
+  class WindowRegistryFeature;
 
   // Transport adapters
   namespace qt   { class BridgeChannelAdapter; /* expose_as_ws, json_adapter */ }
@@ -183,24 +192,57 @@ public:
 
 `MainWindow` is just a tiny class that calls `useX()` helpers in its ctor. Not magic. The toolbox is the API; the preset is one composition of it.
 
-### 2. Opt-in services via member-style `app.useX()`
+### 2. Opt-in features via direct construction + DI registration
 
-`App`'s constructor does only the minimum: identity, web profile, scheme handler in production, the bridge dispatch contract, logging. Everything else attaches via member calls:
+`App`'s constructor does only the minimum: identity, web profile, scheme handler in production, the bridge dispatch contract, logging. Every other capability is a `Feature` subclass the consumer constructs in `main()`:
 
 ```cpp
-app.useTray()              → returns Tray&
-app.useUrlProtocol()       → returns UrlProtocol&
-app.useSingleInstance()    → returns SingleInstance&
-app.useTheming(baseline)   → returns Theming&
-app.windows()              → returns WindowRegistry& (dormant until used)
-app.bridge<T>()            → typed bridge access
-app.addBridge<T>(name)     → typed bridge registration
-app.openWebDialog(url)     → modal web dialog (one-liner from anywhere)
+class Feature {
+public:
+    explicit Feature(App& app);     // self-registers on App by typeid
+    virtual ~Feature();              // self-unregisters
+protected:
+    App& app_;
+};
+
+class TrayFeature           : public Feature { /* ... */ };
+class UrlProtocolFeature    : public Feature { /* ... */ };
+class SingleInstanceFeature : public Feature { /* ... */ };
+class ThemingFeature        : public Feature { /* ... */ };
+class WindowRegistryFeature : public Feature { /* ... */ };
 ```
 
-For full custom control, instantiate the service class directly: `app_shell::Tray tray(app)` (no defaults installed).
+Consumer constructs features in `main()`. There is one canonical construction path — no lazy `app.useX()` accessor, no parallel direct-construction escape hatch:
 
-**Why:** Today `Application::Application()` runs 14 setup steps in one constructor. Tray (with literal Alpha/Beta/Gamma demo submenus), URL protocol prompt, single-instance pipe, theme baseline, dock manager — all hardcoded ON. Consumer who doesn't want tray must edit framework code. The fix is composition: every feature is a thing you ask for.
+```cpp
+app_shell::TrayFeature tray(app);
+tray.addItem(...);
+tray.show();
+```
+
+Anywhere else with `App&` retrieves features by type:
+
+```cpp
+if (auto* tray = app.feature<app_shell::TrayFeature>()) {
+    tray->addItem(...);
+}
+```
+
+`app.feature<T>()` returns `nullptr` when no one constructed it — caller checks. Same shape and idiom as `app.bridge<T>()` (#3 below). App's surface stays small: one templated lookup method, one templated registration method, plus identity/lifecycle.
+
+App still exposes a few non-feature conveniences for things every consumer wants:
+
+```cpp
+app.bridge<T>()          → typed bridge access
+app.addBridge<T>(name)   → typed bridge registration
+app.openWebDialog(url)   → modal web dialog (one-liner from anywhere)
+app.requestQuit()        → cleanup-then-quit
+app.appUrl(name)         → resolve dev/prod URL for a web app
+```
+
+**Why:** Today `Application::Application()` runs 14 setup steps in one constructor. Tray (with literal Alpha/Beta/Gamma demo submenus), URL protocol prompt, single-instance pipe, theme baseline, dock manager — all hardcoded ON. Consumer who doesn't want tray must edit framework code.
+
+An earlier draft of this doc proposed lazy `app.useTray()` member methods. That aesthetic lies about what's happening: each `useX()` is a stateful side-effecting registry call dressed up as a builder. It also bloats App's surface (one method per feature) and creates a split-brain where direct construction (`Tray tray(app)`) and `app.useTray()` produce *different* state — defaults installed in one path, not in the other, with the same `addItem` method silently behaving differently depending on which constructor ran. Direct construction with self-registration is honest: features are real objects living in `main()`'s scope, App is a typed lookup, surface stays small.
 
 ### 3. Typed bridge access
 
@@ -218,7 +260,7 @@ auto* bridge = static_cast<SystemBridge*>(shell()->bridges().value("system"));
 
 ### 4. SystemBridge sheds theme control; `ThemeBridge` is separate
 
-`SystemBridge` today holds `setQtTheme`/`getQtTheme`/`qtThemeChanged` — a category error on a "stateless OS I/O" bridge. **Themes go to a dedicated `ThemeBridge`**, auto-registered by `app.useTheming(...)`. Consumer who skips theming has no theme bridge in their binary. Lives in `app/bridges/theme/`.
+`SystemBridge` today holds `setQtTheme`/`getQtTheme`/`qtThemeChanged` — a category error on a "stateless OS I/O" bridge. **Themes go to a dedicated `ThemeBridge`**, auto-registered by `ThemingFeature`'s constructor. Consumer who skips constructing the feature has no theme bridge in their binary. Lives in `app/bridges/theme/`.
 
 `SystemBridge` stays as one bridge for stateless OS I/O:
 
@@ -237,7 +279,7 @@ Ships in `app/bridges/system/`. Consumer registers it via `app.addBridge<SystemB
 
 ### 5. Theming is opt-in (heavy + composable)
 
-`app.useTheming(baseline)` attaches the full theme system: StyleManager, libsass, file watcher, JSON name mapping, dark/light suffix convention, `ThemeBridge` auto-registered. Consumer who skips the call gets Qt's default style and zero theming dependencies in their binary.
+`ThemingFeature(app, baseline)` attaches the full theme system: StyleManager, libsass, file watcher, JSON name mapping, dark/light suffix convention, `ThemeBridge` auto-registered. Consumer who skips constructing the feature gets Qt's default style and zero theming dependencies in their binary.
 
 Two axes, separately controllable:
 
@@ -246,7 +288,7 @@ Two axes, separately controllable:
 | **Feature richness** (Axis 1) | minimal — one QSS embedded, no live reload | full — StyleManager + libsass + watcher + JSON map + dark/light |
 | **Theme set size** (Axis 2) | 1 (e.g. `catppuccin-dark`) | 1000+ shadcn |
 
-Axis 1 = controlled by `app.useTheming(...)` options.
+Axis 1 = controlled by `ThemingFeature(...)` ctor options.
 Axis 2 = controlled at build time via xmake config (consumer's `xmake.lua` declares which themes embed). **Tracked as future work** — not load-bearing for the headline refactor.
 
 **Why:** The QSS theme system is genuinely production-grade and gets used in 100% of typical apps. But a tray-only utility shouldn't pay for libsass + 1000 themes + watcher just to exist. Opt-in keeps it heavy when wanted, invisible when not.
@@ -265,9 +307,9 @@ Both are full apps. Demo is the running showcase of every framework feature (Sce
 
 ### 8. xmake — one framework target
 
-**`app-shell` is one xmake target.** Static library. Everything inside it: `App`, `MainWindow` + `MainWindowBase`, `Tray`, `UrlProtocol`, `SingleInstance`, `Theming` (libsass and all), `DockSystem`, `WindowRegistry`, ui widgets, both transport adapters. Transport-qt vs transport-wasm is platform-conditional `add_files` *inside* `app-shell`'s `xmake.lua`, not separate targets.
+**`app-shell` is one xmake target.** Static library. Everything inside it: `App`, `MainWindow` + `MainWindowBase`, `Feature` base, `TrayFeature`, `UrlProtocolFeature`, `SingleInstanceFeature`, `ThemingFeature` (libsass and all), `DockSystemFeature`, `WindowRegistryFeature`, ui widgets, both transport adapters. Transport-qt vs transport-wasm is platform-conditional `add_files` *inside* `app-shell`'s `xmake.lua`, not separate targets.
 
-**Why:** Opt-in is a class-level concept — consumer who doesn't call `app.useTray()` doesn't instantiate the Tray class, and the linker DCEs unused symbols. xmake target granularity buys nothing on top of that. Splitting into per-service targets was overengineering against a phantom benefit.
+**Why:** Opt-in is a class-level concept — consumer who doesn't construct `TrayFeature` doesn't instantiate the class, and the linker DCEs unused symbols. xmake target granularity buys nothing on top of that. Splitting into per-feature targets was overengineering against a phantom benefit.
 
 Bridges live in their own xmake targets per Phase 1's plan (must-preserve #10 — WASM bridges need `set_kind("object")` to keep `EMSCRIPTEN_BINDINGS` from being dead-stripped). Frontend-agent territory.
 

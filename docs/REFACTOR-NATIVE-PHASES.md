@@ -18,14 +18,14 @@ Pivot point for everything that follows. Every later phase wants `App&` availabl
 
 ---
 
-## Phase 2 — Services opt-in
+## Phase 2 — Features opt-in
 
-Each service peels off independently. Demo's `main.cpp` adds the corresponding `useX()` call so behavior is preserved through every commit.
+Each App-level capability becomes a `Feature` subclass that self-registers on `App` so anywhere with `App&` can retrieve it via `app.feature<T>()`. The first commit ships the infrastructure (base class + typed lookup) along with the first feature; subsequent commits are uniform extractions. Demo's `main.cpp` constructs the corresponding feature on every commit so behavior is preserved.
 
-4. **`Tray` → `app.useTray()`.** Class extracted to `app_shell::Tray`. Demo's tray content (Alpha/Beta/Gamma submenus, demo dialog hooks) moves into the demo's `main.cpp`. Framework's tray class never sees demo strings again.
-5. **`UrlProtocol` → `app.useUrlProtocol()`.**
-6. **`SingleInstance` → `app.useSingleInstance()`.**
-7. **`WindowRegistry` → `app.windows()`.** Dormant until referenced.
+4. **Introduce `Feature` base + extract `TrayFeature`.** Ships the `app_shell::Feature` base (self-registration in ctor, self-unregistration in dtor) and `App::feature<T>()` typed lookup, then carries `TrayFeature` over with it. Demo's tray content (Alpha/Beta/Gamma submenus) moves into demo's `main.cpp`. Framework's tray class never sees demo strings again.
+5. **Extract `UrlProtocolFeature`.** Static methods on `App` (`isUrlProtocolRegistered`, `registerUrlProtocol`, `unregisterUrlProtocol`, `urlProtocolName`) become instance methods on the feature. The Tools menu register/unregister action retrieves the feature via `app.feature<UrlProtocolFeature>()`.
+6. **Extract `SingleInstanceFeature`.** ⚠️ Ordering caveat: today's `setupSingleInstance()` is the *first* thing App's ctor does and short-circuits the rest for secondary processes. After extraction, `App app(argc, argv)` runs to completion before `main()` constructs `SingleInstanceFeature` and checks `isPrimary()` — secondary processes pay for whatever heavy init App's ctor still does (web profile setup, bridges, dock manager) before exiting. This shrinks naturally as Phases 3 and 4 lighten App's ctor; until then it's a transitional regression. **Open question:** accept it, or land Phase 2.6 *after* Phases 3 and 4?
+7. **Extract `WindowRegistryFeature`.** `DockManager::restoreWindows()` and the `topLevelWidgets()`-iteration in `MainWindow::closeEvent` move into the feature. Constructed only by consumers who want it.
 
 ---
 
@@ -34,7 +34,7 @@ Each service peels off independently. Demo's `main.cpp` adds the corresponding `
 Heaviest opt-in. Carve before gating.
 
 8. **Carve `ThemeBridge` from `SystemBridge`.** Theme methods and signals move to a dedicated bridge at `app/bridges/theme/`, registered alongside `SystemBridge`. JS-side calls update to `getBridge<ThemeBridge>('theme')`. `SystemBridge` becomes pure stateless OS I/O.
-9. **`app.useTheming(baseline)` makes the theme stack opt-in.** Demo calls it. Skip the call → no StyleManager, no libsass, no watcher, no `ThemeBridge` registered.
+9. **Extract `ThemingFeature(app, baseline)`.** Demo constructs it. Skip the construction → no StyleManager, no libsass, no watcher, no `ThemeBridge` registered.
 
 ---
 

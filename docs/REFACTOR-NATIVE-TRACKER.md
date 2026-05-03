@@ -15,13 +15,13 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ---
 
-## Phase 2 — Services opt-in
+## Phase 2 — Features opt-in
 
 - [ ] **Phase 2 complete**
-  - [ ] **4. `Tray` → `app.useTray()`** — class extracted to `app_shell::Tray`; demo's tray content (Alpha/Beta/Gamma submenus, demo dialog hooks) moves into demo's `main.cpp`
-  - [ ] **5. `UrlProtocol` → `app.useUrlProtocol()`**
-  - [ ] **6. `SingleInstance` → `app.useSingleInstance()`**
-  - [ ] **7. `WindowRegistry` → `app.windows()`** — dormant until referenced
+  - [ ] **4. Introduce `Feature` base + extract `TrayFeature`** — base class with self-registration, `App::feature<T>()` typed lookup, `TrayFeature` migrated; demo's tray content (Alpha/Beta/Gamma submenus) moves into demo's `main.cpp`
+  - [ ] **5. Extract `UrlProtocolFeature`** — static methods on `App` move to instance methods; menu_bar.cpp retrieves via `app.feature<UrlProtocolFeature>()`
+  - [ ] **6. Extract `SingleInstanceFeature`** — ⚠️ secondary-process ordering regression until Phases 3-4 lighten App's ctor (see PHASES.md note); decide whether to land 2.6 before or after 3-4
+  - [ ] **7. Extract `WindowRegistryFeature`** — `DockManager::restoreWindows()` and the `topLevelWidgets()`-iteration in `MainWindow::closeEvent` move here
 
 ---
 
@@ -29,7 +29,7 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 - [ ] **Phase 3 complete**
   - [ ] **8. Carve `ThemeBridge` from `SystemBridge`** — theme methods/signals move to `app/bridges/theme/`; JS-side updates to `getBridge<ThemeBridge>('theme')`; `SystemBridge` becomes pure stateless OS I/O
-  - [ ] **9. `app.useTheming(baseline)` makes the theme stack opt-in** — skip the call → no StyleManager, no libsass, no watcher, no `ThemeBridge` registered
+  - [ ] **9. Extract `ThemingFeature`** — demo constructs it; skip the construction → no StyleManager, no libsass, no watcher, no `ThemeBridge` registered
 
 ---
 
