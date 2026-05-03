@@ -16,7 +16,7 @@
 // Must match --bg in App.css — prevents white flash before web content loads.
 static constexpr QColor kBackground{0x09, 0x09, 0x0b};
 
-LoadingOverlay::LoadingOverlay(Style style, QWidget* parent)
+LoadingOverlay::LoadingOverlay(Style style, const QString& brandingImagePath, QWidget* parent)
     : QWidget(parent), style_(style)
 {
     setObjectName(QStringLiteral("LoadingOverlay"));
@@ -29,10 +29,10 @@ LoadingOverlay::LoadingOverlay(Style style, QWidget* parent)
     layout->setAlignment(Qt::AlignCenter);
 
     if (style == Full) {
-        // App logo — scaled from the embedded icon resource
+        // App logo — scaled from the branding image (path supplied by App)
         logo_ = new QLabel(this);
         logo_->setPixmap(
-            QPixmap(":/icon.png").scaled(
+            QPixmap(brandingImagePath).scaled(
                 128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         logo_->setAlignment(Qt::AlignCenter);
         layout->addStretch();

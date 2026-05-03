@@ -54,6 +54,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
                                app_shell::BridgeRegistry* registry,
                                AppLifecycle* lifecycle,
                                const QUrl& contentUrl,
+                               const QString& brandingImagePath,
                                OverlayStyle overlayStyle,
                                QWidget* parent)
     : QWidget(parent), registry_(registry)
@@ -147,7 +148,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
     // Covers the view until React calls signalReady().
     auto style = (overlayStyle == FullOverlay)
         ? LoadingOverlay::Full : LoadingOverlay::Spinner;
-    overlay_ = new LoadingOverlay(style, this);
+    overlay_ = new LoadingOverlay(style, brandingImagePath, this);
 
     // Dismiss the overlay when the React app signals it's ready
     connect(lifecycle, &AppLifecycle::ready, this, [this]() {

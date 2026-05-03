@@ -39,6 +39,16 @@ public:
 
     QUrl appUrl(const QString& appName) const;
 
+    // The window/tray icon (a Windows .ico bundle on Windows, a PNG elsewhere).
+    // Framework reads the icon through this accessor so consumers can rename
+    // their icon without editing framework code.
+    QString iconPath() const { return iconPath_; }
+
+    // The PNG used for in-app branding (about dialog, loading overlay).
+    // Separate from iconPath() because Windows wants .ico for window/tray
+    // metadata but Qt widgets want a real raster format.
+    QString brandingImagePath() const { return brandingImagePath_; }
+
     bool isPrimaryInstance() const { return isPrimary_; }
 
     static bool isUrlProtocolRegistered();
@@ -67,6 +77,8 @@ private:
 
     bool devMode_ = false;
     bool isPrimary_ = true;
+    QString iconPath_ = ":/icon.ico";
+    QString brandingImagePath_ = ":/icon.png";
     QWebEngineProfile* profile_ = nullptr;
     BridgeRegistry registry_;
     AppLifecycle* lifecycle_ = nullptr;

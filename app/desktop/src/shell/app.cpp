@@ -56,7 +56,7 @@ App::App(int& argc, char** argv)
     // Settings file lives in AppData/Local/<org>/<app>.ini.
     QSettings::setDefaultFormat(QSettings::IniFormat);
     setApplicationVersion(APP_VERSION);
-    setWindowIcon(QIcon(":/icon.ico"));
+    setWindowIcon(QIcon(iconPath_));
 
     // ── Command line ─────────────────────────────────────────
     QCommandLineParser parser;
@@ -299,7 +299,7 @@ bool App::event(QEvent* event) {
 void App::setupSystemTray() {
     if (!QSystemTrayIcon::isSystemTrayAvailable()) return;
 
-    trayIcon_ = new QSystemTrayIcon(QIcon(":/icon.ico"), this);
+    trayIcon_ = new QSystemTrayIcon(QIcon(iconPath_), this);
     trayIcon_->setToolTip(APP_NAME);
 
     auto* trayMenu = new QMenu;

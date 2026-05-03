@@ -4,7 +4,7 @@
 // demonstrate the pattern: layout, widgets, buttons, accept/reject.
 //
 // Usage:
-//   AboutDialog dlg(parentWindow);
+//   AboutDialog dlg(app.brandingImagePath(), parentWindow);
 //   dlg.exec();  // modal
 
 #pragma once
@@ -15,5 +15,5 @@ class AboutDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit AboutDialog(QWidget* parent = nullptr);
+    AboutDialog(const QString& brandingImagePath, QWidget* parent = nullptr);
 };

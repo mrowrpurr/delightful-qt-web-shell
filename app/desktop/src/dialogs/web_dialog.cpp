@@ -29,6 +29,6 @@ WebDialog::WebDialog(app_shell::App& app, QWidget* parent)
     dialogUrl.setFragment("/dialog");
     webShell_ = new WebShellWidget(
         app.webProfile(), app.registry(), app.lifecycle(), dialogUrl,
-        WebShellWidget::SpinnerOverlay, this);
+        app.brandingImagePath(), WebShellWidget::SpinnerOverlay, this);
     layout->addWidget(webShell_);
 }

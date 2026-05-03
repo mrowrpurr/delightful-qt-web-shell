@@ -14,7 +14,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-AboutDialog::AboutDialog(QWidget* parent)
+AboutDialog::AboutDialog(const QString& brandingImagePath, QWidget* parent)
     : QDialog(parent)
 {
     setWindowTitle(QString("About %1").arg(APP_NAME));
@@ -31,7 +31,7 @@ AboutDialog::AboutDialog(QWidget* parent)
 
     auto* icon = new QLabel(this);
     icon->setPixmap(
-        QPixmap(":/icon.png").scaled(
+        QPixmap(brandingImagePath).scaled(
             64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     icon->setFixedSize(64, 64);
     topRow->addWidget(icon);

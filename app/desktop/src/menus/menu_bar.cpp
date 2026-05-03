@@ -195,8 +195,8 @@ MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
     auto* helpMenu = menuBar->addMenu("&Help");
 
     auto* aboutAction = helpMenu->addAction("&About");
-    QObject::connect(aboutAction, &QAction::triggered, window, [window]() {
-        AboutDialog dlg(window);
+    QObject::connect(aboutAction, &QAction::triggered, window, [&app, window]() {
+        AboutDialog dlg(app.brandingImagePath(), window);
         dlg.exec();
     });
 

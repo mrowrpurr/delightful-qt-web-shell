@@ -7,7 +7,8 @@
 //             dialog popups where a full logo would be overkill.
 //
 // Usage:
-//   auto* overlay = new LoadingOverlay(LoadingOverlay::Full, parentWidget);
+//   auto* overlay = new LoadingOverlay(LoadingOverlay::Full,
+//                                      app.brandingImagePath(), parentWidget);
 //   // Later, when content is ready:
 //   overlay->dismiss();   // fade out and delete
 //
@@ -28,7 +29,7 @@ class LoadingOverlay : public QWidget {
 public:
     enum Style { Full, Spinner };
 
-    explicit LoadingOverlay(Style style, QWidget* parent);
+    LoadingOverlay(Style style, const QString& brandingImagePath, QWidget* parent);
 
     // Fade out the overlay and delete it when the animation finishes.
     // Safe to call multiple times — second call is a no-op.

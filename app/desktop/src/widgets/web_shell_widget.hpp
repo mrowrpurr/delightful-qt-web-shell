@@ -36,16 +36,18 @@ class WebShellWidget : public QWidget {
 public:
     enum OverlayStyle { FullOverlay, SpinnerOverlay };
 
-    // profile      — shared QWebEngineProfile (owned by Application)
-    // registry     — the bridge registry (shared across widgets, owned by Application)
-    // lifecycle    — Qt↔JS lifecycle handshake (shared, owned by Application)
-    // contentUrl   — what to load (e.g. QUrl("app://main/") or QUrl("http://localhost:5173"))
-    // overlayStyle — Full (logo+progress) for main window, Spinner for dialogs
-    // parent       — parent widget (MainWindow, QDialog, etc.)
+    // profile             — shared QWebEngineProfile (owned by App)
+    // registry            — the bridge registry (shared across widgets, owned by App)
+    // lifecycle           — Qt↔JS lifecycle handshake (shared, owned by App)
+    // contentUrl          — what to load (e.g. QUrl("app://main/") or http://localhost:5173)
+    // brandingImagePath   — image shown in the LoadingOverlay (App::brandingImagePath())
+    // overlayStyle        — Full (logo+progress) for main window, Spinner for dialogs
+    // parent              — parent widget (MainWindow, QDialog, etc.)
     WebShellWidget(QWebEngineProfile* profile,
                    app_shell::BridgeRegistry* registry,
                    AppLifecycle* lifecycle,
                    const QUrl& contentUrl,
+                   const QString& brandingImagePath,
                    OverlayStyle overlayStyle = FullOverlay,
                    QWidget* parent = nullptr);
 
